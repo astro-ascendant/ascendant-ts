@@ -13,6 +13,7 @@ import * as Layer from "effect/Layer"
 import * as ChildProcess from "effect/process/ChildProcess"
 import * as Scope from "effect/Scope"
 import * as Stream from "effect/Stream"
+import { spawnSync } from "node:child_process"
 import { join } from "node:path"
 
 const NodeServices = NodeChildProcessSpawner.layer.pipe(
@@ -24,6 +25,23 @@ const NodeServices = NodeChildProcessSpawner.layer.pipe(
 
 ChildProcessSpawnerTest.suite("NodeChildProcessSpawner", NodeServices, {
   processGroups: true
+})
+
+// Synchronous fixture runs must not block other tests with active timeout budgets.
+describe("interrupted buffered input", { concurrent: false, timeout: 15_000 }, () => {
+  for (const input of ["stdin", "fd3"] as const) {
+    it(`does not crash the host when ${input} is interrupted`, () => {
+      // Isolate the host so an unhandled writable error becomes an assertion
+      // failure rather than an uncaught exception in the test runner.
+      const result = spawnSync(process.execPath, [join(__dirname, "fixtures", "buffered-input.ts"), input], {
+        encoding: "utf8",
+        timeout: 10_000
+      })
+      assert.strictEqual(result.error, undefined)
+      assert.strictEqual(result.status, 0, result.stderr)
+      assert.strictEqual(result.stdout, "program finished: Failure\nstill alive after 500ms\n")
+    })
+  }
 })
 
 describe("buildSpawnOptions", () => {
@@ -187,6 +205,22 @@ describe.skipIf(process.platform === "win32")("process group cleanup", () => {
       yield* Scope.close(scope, Exit.void)
 
       assert.strictEqual(yield* fs.readFileString(marker), "exited")
+    }).pipe(Effect.scoped, Effect.provide(NodeServices)))
+
+  it.live("scope release force kills descendants after the leader exits with a non-zero code", () =>
+    Effect.gen(function*() {
+      const { descendantPid, handle, marker, scope } = yield* startProcessGroup("ignore-signal", {
+        stdin: "pipe",
+        forceKillAfter: "200 millis"
+      })
+      yield* Effect.addFinalizer(() => killDescendant(descendantPid))
+
+      yield* Stream.run(Stream.make(new TextEncoder().encode("exit 1\n")), handle.stdin)
+      assert.strictEqual(yield* handle.exitCode, 1)
+
+      yield* Scope.close(scope, Exit.void).pipe(liveTimeout(2_000))
+
+      yield* assertHeartbeatStopped(marker)
     }).pipe(Effect.scoped, Effect.provide(NodeServices)))
 
   it.live("scope release cleans descendants after the leader is killed externally", () =>
