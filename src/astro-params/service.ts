@@ -1,17 +1,21 @@
-import { Context, Layer } from "effect";
+import { Config, Context, Effect, Layer } from "effect";
 
 import { Ayanamsa, HouseSystem, type Options } from "./model.js";
 
 class Service extends Context.Service<
   Service,
   {
-    readonly ayanamsa: typeof Ayanamsa.Type;
-    readonly houseSystem: typeof HouseSystem.Type;
+    readonly ayanamsa: Ayanamsa;
+    readonly houseSystem: HouseSystem;
   }
 >()("astro-ascendant/astro-params/service") {}
 
 export function layer(options: Options) {
-  return Layer.succeed(Service, Service.of(options));
+  return Layer.sync(Service, () => Service.of(options));
+}
+
+export function layerConfig(config: Config.Wrap<Options>) {
+  return Layer.effect(Service, Config.unwrap(config).pipe(Effect.map((o) => Service.of(o))));
 }
 
 const defaultLayer = layer({

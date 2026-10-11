@@ -1,1 +1,1 @@
-export { SwissephLayer } from "./service.js";
+export { SwissephCachedLayer, SwissephLayer } from "./service.js";
