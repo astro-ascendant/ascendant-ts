@@ -54,13 +54,12 @@ export const compareExactDegrees = Function.dual<
   return leftCoefficient < rightCoefficient ? -1 : leftCoefficient > rightCoefficient ? 1 : 0;
 });
 
-export const assignmentAt = Effect.fn(function* (
-  assignments: HashMap.HashMap<Role, readonly [Holder, ...Holder[]]>,
-  role: Role,
-) {
-  const assignment = HashMap.get(assignments, role);
-  if (Option.isNone(assignment)) {
-    return yield* ParseError.make({ message: `Missing Chara Karaka role ${role}` });
-  }
-  return assignment.value;
-});
+export const assignmentAt = Effect.fn("astro-ascendant/jaimini/chara-karakas/assignmentAt")(
+  function* (assignments: HashMap.HashMap<Role, readonly [Holder, ...Holder[]]>, role: Role) {
+    const assignment = HashMap.get(assignments, role);
+    if (Option.isNone(assignment)) {
+      return yield* ParseError.make({ message: `Missing Chara Karaka role ${role}` });
+    }
+    return assignment.value;
+  },
+);

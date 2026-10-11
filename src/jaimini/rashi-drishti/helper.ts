@@ -12,23 +12,23 @@ export const targetsOf = Effect.fn("astro-ascendant/jaimini/rashi-drishti/target
 ): Effect.fn.Return<readonly [Rashis, Rashis, Rashis], CalculationError | SignIndexError> {
   const referenceIndex = Zodiac.rashiIndexOf(reference);
   const targets: Array<Rashis> = [];
-  if (yield* isMovableSign(reference)) {
+  if (isMovableSign(reference)) {
     const excluded = Array.getUnsafe(RASHIS, yield* signAtIndex(referenceIndex + 1));
     for (const candidate of RASHIS) {
-      if ((yield* isFixedSign(candidate)) && candidate !== excluded) {
+      if (isFixedSign(candidate) && candidate !== excluded) {
         targets.push(candidate);
       }
     }
-  } else if (yield* isFixedSign(reference)) {
+  } else if (isFixedSign(reference)) {
     const excluded = Array.getUnsafe(RASHIS, yield* signAtIndex(referenceIndex - 1));
     for (const candidate of RASHIS) {
-      if ((yield* isMovableSign(candidate)) && candidate !== excluded) {
+      if (isMovableSign(candidate) && candidate !== excluded) {
         targets.push(candidate);
       }
     }
   } else {
     for (const candidate of RASHIS) {
-      if ((yield* isDualSign(candidate)) && candidate !== reference) {
+      if (isDualSign(candidate) && candidate !== reference) {
         targets.push(candidate);
       }
     }

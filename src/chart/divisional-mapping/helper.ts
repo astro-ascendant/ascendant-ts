@@ -4,7 +4,9 @@ import { EPS_PART, signIndexOf } from "../../utils/position.js";
 import { Degree, type Division, Longitude } from "../model.js";
 import type { SourcePosition, Subdivision } from "./model.js";
 
-export const sourcePositionOf = Effect.fn(function* (longitude: Longitude) {
+export const sourcePositionOf = Effect.fn(
+  "astro-ascendant/chart/divisional-mapping/sourcePositionOf",
+)(function* (longitude: Longitude) {
   const signIndex = yield* signIndexOf(longitude);
   return {
     longitude,

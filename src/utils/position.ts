@@ -3,7 +3,7 @@
  * hub. Raw angles enter here and leave as branded coordinates; total lookups
  * live in `./zodiac.js`.
  */
-import { Data, Effect } from "effect";
+import { Effect, Schema } from "effect";
 
 import type { Planets, Rashis } from "../chart/model.js";
 import { Longitude } from "../chart/model.js";
@@ -26,80 +26,105 @@ const PLANET_BODY: Record<Planets, CelestialBody> = {
   Ketu: "MeanNode",
 };
 
-export class LongitudeError extends Data.TaggedError("LongitudeError")<{
-  readonly message: string;
-  readonly longitude: number;
-}> {}
+export class LongitudeError extends Schema.TaggedError<LongitudeError>()("LongitudeError", {
+  message: Schema.String,
+  cause: Schema.Defect(),
+}) {}
 
-export class SignIndexError extends Data.TaggedError("SignIndexError")<{
-  readonly message: string;
-  readonly index: number;
-}> {}
+export class SignIndexError extends Schema.TaggedError<SignIndexError>()("SignIndexError", {
+  message: Schema.String,
+  cause: Schema.Defect(),
+}) {}
 
 /** Ephemeris body backing a planet (nodes share the mean node). */
-export const planetBodyOf = (planet: Planets) => Effect.succeed(PLANET_BODY[planet]);
+export function planetBodyOf(planet: Planets): CelestialBody {
+  return PLANET_BODY[planet];
+}
 
 // Converts an angle into branded Longitude in the range of [0, 360)
-export const normalizeLongitude = Effect.fn(function* (longitude: number) {
-  if (!Number.isFinite(longitude)) {
-    return yield* new LongitudeError({
-      message: "Longitude must be finite",
-      longitude,
-    });
-  }
+export const normalizeLongitude = Effect.fn("astro-ascendant/utils/normalizeLongitude")(function* (
+  longitude: number,
+) {
+  const finite = yield* Schema.Finite.makeEffect(longitude).pipe(
+    Effect.mapError(() =>
+      LongitudeError.make({
+        message: "Longitude must be finite",
+        cause: longitude,
+      }),
+    ),
+  );
 
-  const normalized = ((longitude % 360) + 360) % 360;
-
-  if (normalized < 0 || normalized >= 360) {
-    return yield* new LongitudeError({
-      message: `Normalized longitude ${normalized} is outside [0, 360)`,
-      longitude,
-    });
-  }
-
-  return Longitude.make(normalized);
+  return yield* Longitude.makeEffect(((finite % 360) + 360) % 360).pipe(
+    Effect.mapError(() =>
+      LongitudeError.make({
+        message: "Normalized longitude is outside [0, 360)",
+        cause: longitude,
+      }),
+    ),
+  );
 });
 
 // Converts an angle into the signed range [-180, 180)
-export const wrap180 = Effect.fn(function* (degrees: number) {
+export const wrap180 = Effect.fn("astro-ascendant/utils/wrap180")(function* (degrees: number) {
   return (yield* normalizeLongitude(degrees + 180)) - 180;
 });
 
 /** 0-based wheel position of the sign containing a longitude. */
-export const signIndexOf = Effect.fn(function* (longitude: Longitude) {
+export const signIndexOf = Effect.fn("astro-ascendant/utils/signIndexOf")(function* (
+  longitude: Longitude,
+) {
   const normalized = yield* normalizeLongitude(longitude);
   return indexOfLongitude(normalized);
 });
 
 /** Wraps any integer onto the 0–11 sign wheel, rejecting non-integers. */
-export const signAtIndex = Effect.fn(function* (index: number) {
-  if (!Number.isFinite(index)) {
-    return yield* new SignIndexError({
-      message: "Sign index must be finite",
-      index,
-    });
-  }
+export const signAtIndex = Effect.fn("astro-ascendant/utils/signAtIndex")(function* (
+  index: number,
+) {
+  const finite = yield* Schema.Finite.makeEffect(index).pipe(
+    Effect.mapError(() =>
+      SignIndexError.make({
+        message: "Sign index must be finite",
+        cause: index,
+      }),
+    ),
+  );
 
-  if (!Number.isInteger(index)) {
-    return yield* new SignIndexError({
-      message: "Sign index must be an integer",
-      index,
-    });
-  }
+  const integer = yield* Schema.Int.makeEffect(finite).pipe(
+    Effect.mapError(() =>
+      SignIndexError.make({
+        message: "Sign index must be an integer",
+        cause: index,
+      }),
+    ),
+  );
 
-  return wrapIndex(index);
+  return wrapIndex(integer);
 });
 
 /** 0-based wheel position of a sign. */
-export const indexOfSign = (sign: Rashis) => Effect.succeed(rashiIndexOf(sign));
+export function indexOfSign(sign: Rashis): number {
+  return rashiIndexOf(sign);
+}
 
 // Returns the start longitude (0, 30, ..., 330) of the zodiac sign containing the given longitude
-export const signStartOf = Effect.fn(function* (longitude: number) {
+export const signStartOf = Effect.fn("astro-ascendant/utils/signStartOf")(function* (
+  longitude: number,
+) {
   const normalized = yield* normalizeLongitude(longitude);
-  return (Math.floor(normalized / 30) * 30) as Longitude;
+  return yield* Longitude.makeEffect(Math.floor(normalized / 30) * 30).pipe(
+    Effect.mapError(() =>
+      LongitudeError.make({
+        message: "Sign start longitude failed validation",
+        cause: longitude,
+      }),
+    ),
+  );
 });
 
 /** Ketu sits exactly opposite Rahu. */
-export const ketuFromRahu = Effect.fn(function* (rahuLongitude: number) {
+export const ketuFromRahu = Effect.fn("astro-ascendant/utils/ketuFromRahu")(function* (
+  rahuLongitude: number,
+) {
   return yield* normalizeLongitude(rahuLongitude + 180);
 });
