@@ -3,7 +3,7 @@ import * as Swisseph from "@swisseph/node";
 import { type Ayanamsa, type HouseSystem } from "../astro-params/model.js";
 import { type CelestialBody } from "../ephemeris/model.js";
 
-export const SIDEREAL_MODE: Record<typeof Ayanamsa.Type, Swisseph.SiderealMode> = {
+export const SIDEREAL_MODE: Record<Ayanamsa, Swisseph.SiderealMode> = {
   FaganBradley: Swisseph.SiderealMode.FaganBradley,
   Lahiri: Swisseph.SiderealMode.Lahiri,
   DeLuce: Swisseph.SiderealMode.DeLuce,
@@ -66,7 +66,7 @@ export const CELESTIAL_BODY: Record<CelestialBody, Swisseph.CelestialBody> = {
   TrueNode: Swisseph.LunarPoint.TrueNode,
 };
 
-export const HOUSE_SYSTEM: Record<typeof HouseSystem.Type, Swisseph.HouseSystem> = {
+export const HOUSE_SYSTEM: Record<HouseSystem, Swisseph.HouseSystem> = {
   Placidus: Swisseph.HouseSystem.Placidus,
   Koch: Swisseph.HouseSystem.Koch,
   Porphyrius: Swisseph.HouseSystem.Porphyrius,

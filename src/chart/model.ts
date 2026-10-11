@@ -51,34 +51,38 @@ export const Degree = Schema.Finite.check(
 ).pipe(Schema.brand("Degree"));
 export type Degree = typeof Degree.Type;
 
-export class Star extends Schema.Class<Star>("Star")({
+export const Star = Schema.Struct({
   name: Stars,
   lord: Planets,
   pada: Pada,
-}) {}
+});
+export interface Star extends Schema.Schema.Type<typeof Star> {}
 
-export class Sign extends Schema.Class<Sign>("Sign")({
+export const Sign = Schema.Struct({
   name: Rashis,
   lord: RashiLords,
-}) {}
+});
+export interface Sign extends Schema.Schema.Type<typeof Sign> {}
 
-export class Planet extends Schema.Class<Planet>("Planet")({
+export const Planet = Schema.Struct({
   name: Planets,
   longitude: Longitude,
   degree: Degree,
   is_retrograde: Schema.Boolean,
   in_sign: Schema.Array(PlanetDignity),
   sign: Sign,
-}) {}
+});
+export interface Planet extends Schema.Schema.Type<typeof Planet> {}
 
-export class Lagna extends Schema.Class<Lagna>("Lagna")({
+export const Lagna = Schema.Struct({
   name: LagnaName,
   longitude: Longitude,
   degree: Degree,
   sign: Sign,
-}) {}
+});
+export interface Lagna extends Schema.Schema.Type<typeof Lagna> {}
 
-export class House extends Schema.Class<House>("House")({
+export const House = Schema.Struct({
   sign: Rashis,
   cusp: Longitude,
   signLord: PlanetsLagna,
@@ -88,27 +92,31 @@ export class House extends Schema.Class<House>("House")({
   significations: Schema.Array(Schema.String),
   planets: Schema.Array(Planet),
   lagna: Schema.NullOr(Lagna),
-}) {}
+});
+export interface House extends Schema.Schema.Type<typeof House> {}
 
 export const ChartHouses = Schema.Record(Houses, House);
 
-export class SourcePlanet extends Schema.Class<SourcePlanet>("SourcePlanet")({
+export const SourcePlanet = Schema.Struct({
   name: Planets,
   longitude: Longitude,
   is_retrograde: Schema.Boolean,
   star: Star,
-}) {}
+});
+export interface SourcePlanet extends Schema.Schema.Type<typeof SourcePlanet> {}
 
-export class SourceLagna extends Schema.Class<SourceLagna>("SourceLagna")({
+export const SourceLagna = Schema.Struct({
   name: LagnaName,
   longitude: Longitude,
   star: Star,
-}) {}
+});
+export interface SourceLagna extends Schema.Schema.Type<typeof SourceLagna> {}
 
-export class Placements extends Schema.Class<Placements>("Placements")({
+export const Placements = Schema.Struct({
   lagna: SourceLagna,
   planets: Schema.Array(SourcePlanet),
-}) {}
+});
+export interface Placements extends Schema.Schema.Type<typeof Placements> {}
 
 export { ChartProjectionProvenance as Provenance } from "../provenance.js";
 
@@ -130,24 +138,26 @@ export const HOUSE_SIGNIFICATIONS = {
   12: ["disappearance", "bondage", "loss", "bed", "poverty", "decline", "left eye", "leg"],
 } as const satisfies Record<Houses, readonly string[]>;
 
-export class PlanetSignification extends Schema.Class<PlanetSignification>("PlanetSignification")({
+export const PlanetSignification = Schema.Struct({
   planet: Planets,
   agent: Schema.optionalKey(Planets),
   level1: Schema.Array(Houses),
   level2: Schema.Array(Houses),
   level3: Schema.Array(Houses),
   level4: Schema.Array(Houses),
-}) {}
+});
+export interface PlanetSignification extends Schema.Schema.Type<typeof PlanetSignification> {}
 
-export class HouseSignificators extends Schema.Class<HouseSignificators>("HouseSignificators")({
+export const HouseSignificators = Schema.Struct({
   house: Houses,
   level1: Schema.Array(Planets),
   level2: Schema.Array(Planets),
   level3: Schema.Array(Planets),
   level4: Schema.Array(Planets),
-}) {}
+});
+export interface HouseSignificators extends Schema.Schema.Type<typeof HouseSignificators> {}
 
-export class ChartAngles extends Schema.Class<ChartAngles>("ChartAngles")({
+export const ChartAngles = Schema.Struct({
   ascendant: CircleAngle,
   mc: CircleAngle,
   armc: CircleAngle,
@@ -156,9 +166,10 @@ export class ChartAngles extends Schema.Class<ChartAngles>("ChartAngles")({
   coAscendant1: CircleAngle,
   coAscendant2: CircleAngle,
   polarAscendant: CircleAngle,
-}) {}
+});
+export interface ChartAngles extends Schema.Schema.Type<typeof ChartAngles> {}
 
-export class Chart extends Schema.Class<Chart>("Chart")({
+export const Chart = Schema.Struct({
   sex: Schema.optionalKey(Sex),
   provenance: ChartProjectionProvenance,
   division: Division,
@@ -167,7 +178,8 @@ export class Chart extends Schema.Class<Chart>("Chart")({
   planetSignifications: Schema.optionalKey(Schema.Record(Planets, PlanetSignification)),
   houseSignificators: Schema.optionalKey(Schema.Record(Houses, HouseSignificators)),
   rulingPlanets: Schema.optionalKey(Schema.Tuple([Planets, Planets, Planets, Planets, Planets])),
-}) {}
+});
+export interface Chart extends Schema.Schema.Type<typeof Chart> {}
 
 export const CalculationCharts = Schema.NonEmptyArray(Chart).check(
   Schema.makeFilter((charts) => charts[0].division === 1, {
@@ -175,21 +187,24 @@ export const CalculationCharts = Schema.NonEmptyArray(Chart).check(
   }),
 );
 
-export class ChartCalculation extends Schema.Class<ChartCalculation>("ChartCalculation")({
+export const ChartCalculation = Schema.Struct({
   placements: Placements,
   charts: CalculationCharts,
   astroParams: AstroParamsOptions,
-}) {}
+});
+export interface ChartCalculation extends Schema.Schema.Type<typeof ChartCalculation> {}
 
-export class Moment extends Schema.Class<Moment>("Moment")({
+export const Moment = Schema.Struct({
   date: Schema.DateTimeUtc,
-}) {}
+});
+export interface Moment extends Schema.Schema.Type<typeof Moment> {}
 
-export class LocatedMoment extends Schema.Class<LocatedMoment>("LocatedMoment")({
+export const LocatedMoment = Schema.Struct({
   moment: Moment,
   latitude: Schema.Finite,
   longitude: Schema.Finite,
-}) {}
+});
+export interface LocatedMoment extends Schema.Schema.Type<typeof LocatedMoment> {}
 
 export const ChartParams = Schema.Struct({
   ...LocatedMoment.fields,

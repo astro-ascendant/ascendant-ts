@@ -122,7 +122,9 @@ export const SthiraDasha = Schema.Struct({
 });
 export interface SthiraDasha extends Schema.Schema.Type<typeof SthiraDasha> {}
 
-export const RashiDasha = Schema.Union([CharaDasha, SthiraDasha]);
+export const RashiDasha = Schema.Union([CharaDasha, SthiraDasha]).pipe(
+  Schema.toTaggedUnion("system"),
+);
 export type RashiDasha = typeof RashiDasha.Type;
 
 export const CurrentRashiDasha = Schema.Struct({

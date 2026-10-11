@@ -23,7 +23,7 @@ export const Pinda = Schema.Struct({
   graha_pinda: Schema.Int,
   shodhya_pinda: Schema.Int,
 });
-export type Pinda = typeof Pinda.Type;
+export interface Pinda extends Schema.Schema.Type<typeof Pinda> {}
 
 export const ShodhyaPinda = Schema.Record(AshtakavargaPlanets, Pinda);
 export type ShodhyaPinda = typeof ShodhyaPinda.Type;
@@ -39,7 +39,7 @@ export const AshtakavargaTotals = Schema.Struct({
   Lagna: Schema.Int,
   sarva: Schema.Int,
 });
-export type AshtakavargaTotals = typeof AshtakavargaTotals.Type;
+export interface AshtakavargaTotals extends Schema.Schema.Type<typeof AshtakavargaTotals> {}
 
 export const AshtakavargaResult = Schema.Struct({
   bhinna: BhinnaAshtakavarga,
@@ -48,4 +48,4 @@ export const AshtakavargaResult = Schema.Struct({
   shodhya_pinda: ShodhyaPinda,
   totals: AshtakavargaTotals,
 });
-export type AshtakavargaResult = typeof AshtakavargaResult.Type;
+export interface AshtakavargaResult extends Schema.Schema.Type<typeof AshtakavargaResult> {}
