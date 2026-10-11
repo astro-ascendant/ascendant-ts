@@ -1,121 +1,157 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 
 import { AstroParams } from "../astro-params/service.js";
 import { generate } from "../chart/generate.js";
 import { ChartParams, Moment, type Planets } from "../chart/model.js";
+import type { JulianDay } from "../ephemeris/model.js";
 import { Ephemeris } from "../ephemeris/service.js";
+import { normalizeLongitude } from "../utils/position.js";
 import { TransitSearchExhausted, TransitValidationError } from "./error.js";
 import {
   TransitEvent,
+  TransitRequest,
+  type Division,
+  type LocatedMoment,
   type TransitDirection,
   type TransitKind,
-  type TransitRequest,
 } from "./model.js";
 import {
   DEFAULT_MAX_YEARS,
-  DEFAULT_PRECISION_MINUTES,
-  MINUTES_PER_DAY,
-  normalize360,
   dateTimeFromJd,
   searchRawHits,
   type FixedTarget,
+  type RawHit,
 } from "./search.js";
-
-const MAX_COUNT = 100;
-const MAX_YEARS = 200;
 
 const validateRequest = Effect.fn("astro-ascendant/transit/validateRequest")(function* (
   request: TransitRequest,
 ) {
-  const invalid = (message: string) => TransitValidationError.make({ message, cause: request });
-  if (!Number.isInteger(request.count) || request.count < 1 || request.count > MAX_COUNT) {
-    return yield* invalid(`count must be an integer between 1 and ${MAX_COUNT}`);
+  const decoded = yield* Schema.decodeEffect(TransitRequest)(request).pipe(
+    Effect.mapError((cause) =>
+      TransitValidationError.make({
+        message: "Invalid Transit request",
+        cause,
+      }),
+    ),
+  );
+  if (decoded.kinds.includes("longitude-hit") && decoded.targetLongitude === undefined) {
+    return yield* TransitValidationError.make({
+      message: "targetLongitude is required for longitude-hit searches",
+      cause: decoded.kinds,
+    });
   }
-  if (request.kinds.length === 0) {
-    return yield* invalid("kinds must name at least one Transit event kind");
+  if (decoded.kinds.includes("cusp-crossing") && decoded.house === undefined) {
+    return yield* TransitValidationError.make({
+      message: "house is required for cusp-crossing searches",
+      cause: decoded.kinds,
+    });
   }
-  if (request.kinds.includes("longitude-hit") && request.targetLongitude === undefined) {
-    return yield* invalid("targetLongitude is required for longitude-hit searches");
-  }
-  if (request.kinds.includes("cusp-crossing") && request.house === undefined) {
-    return yield* invalid("house is required for cusp-crossing searches");
-  }
-  const maxYears = request.maxYears ?? DEFAULT_MAX_YEARS;
-  if (!Number.isFinite(maxYears) || maxYears <= 0 || maxYears > MAX_YEARS) {
-    return yield* invalid(`maxYears must be between 0 (exclusive) and ${MAX_YEARS}`);
-  }
-  const precisionMinutes = request.precisionMinutes ?? DEFAULT_PRECISION_MINUTES;
-  if (
-    !Number.isFinite(precisionMinutes) ||
-    precisionMinutes <= 0 ||
-    precisionMinutes > MINUTES_PER_DAY
-  ) {
-    return yield* invalid("precisionMinutes must be between 0 (exclusive) and 1440");
-  }
+  return decoded;
 });
 
 export const findTransits = Effect.fn("astro-ascendant/transit/findTransits")(function* (
   request: TransitRequest,
 ) {
-  yield* validateRequest(request);
+  const validated = yield* validateRequest(request);
   const astroParams = yield* AstroParams;
   const ephemeris = yield* Ephemeris;
 
-  const fromJulianDay = yield* ephemeris.dateToJulianDay(request.from.moment.date);
-  const fromJd = Number(fromJulianDay);
+  const fromJulianDay = yield* ephemeris.dateToJulianDay(validated.from.moment.date);
+  const fixedTargets = yield* buildFixedTargets(validated, fromJulianDay);
 
-  const fixedTargets: Array<FixedTarget> = [];
-  if (request.kinds.includes("longitude-hit" satisfies TransitKind)) {
-    fixedTargets.push({
-      kind: "longitude-hit",
-      longitude: normalize360(Number(request.targetLongitude)),
+  const planet: Planets = validated.planet;
+  const direction: TransitDirection = validated.direction;
+  const outcome = yield* searchRawHits({
+    planet,
+    fromJulianDay,
+    direction,
+    count: validated.count,
+    includeIngress: validated.kinds.includes("sign-ingress" satisfies TransitKind),
+    includeStations: validated.kinds.includes("station" satisfies TransitKind),
+    fixedTargets,
+    ayanamsa: astroParams.ayanamsa,
+    ...(validated.precisionMinutes === undefined
+      ? {}
+      : { precisionMinutes: validated.precisionMinutes }),
+    ...(validated.maxYears === undefined ? {} : { maxYears: validated.maxYears }),
+  });
+
+  const events = mapEvents(outcome.hits, planet, direction);
+
+  if (!outcome.complete) {
+    return yield* TransitSearchExhausted.make({
+      message: `Found ${events.length} of ${validated.count} events within ${validated.maxYears ?? DEFAULT_MAX_YEARS} years`,
+      found: events,
+      searchedUntil: dateTimeFromJd(outcome.endJulianDay),
     });
   }
-  if (request.kinds.includes("cusp-crossing" satisfies TransitKind)) {
+
+  const divisions = validated.includeCharts ?? [];
+  if (divisions.length === 0) return events;
+  return yield* enrichWithCharts(events, divisions, validated.from);
+});
+
+const buildFixedTargets = Effect.fn("astro-ascendant/transit/buildFixedTargets")(function* (
+  validated: TransitRequest,
+  fromJulianDay: JulianDay,
+) {
+  const astroParams = yield* AstroParams;
+  const ephemeris = yield* Ephemeris;
+
+  const fixedTargets: Array<FixedTarget> = [];
+  if (validated.kinds.includes("longitude-hit" satisfies TransitKind)) {
+    const target = validated.targetLongitude;
+    if (target === undefined) {
+      return yield* TransitValidationError.make({
+        message: "targetLongitude is required for longitude-hit searches",
+        cause: validated.kinds,
+      });
+    }
+    fixedTargets.push({ kind: "longitude-hit", longitude: target });
+  }
+  if (validated.kinds.includes("cusp-crossing" satisfies TransitKind)) {
+    const house = validated.house;
+    if (house === undefined) {
+      return yield* TransitValidationError.make({
+        message: "house is required for cusp-crossing searches",
+        cause: validated.kinds,
+      });
+    }
     const houses = yield* ephemeris.calculateHouses(
       fromJulianDay,
-      request.from.latitude,
-      request.from.longitude,
+      validated.from.latitude,
+      validated.from.longitude,
       astroParams.houseSystem,
       astroParams.ayanamsa,
     );
-    const cusp = houses.cusps[request.house!];
+    const cusp = houses.cusps[house];
     if (cusp === undefined || !Number.isFinite(cusp)) {
       return yield* TransitValidationError.make({
-        message: `No cusp found for house ${request.house}`,
+        message: `No cusp found for house ${house}`,
         cause: houses.cusps,
       });
     }
-    fixedTargets.push({ kind: "cusp-crossing", longitude: normalize360(cusp) });
+    fixedTargets.push({ kind: "cusp-crossing", longitude: yield* normalizeLongitude(cusp) });
   }
 
-  const planet: Planets = request.planet;
-  const direction: TransitDirection = request.direction;
-  const outcome = yield* searchRawHits({
-    planet,
-    fromJulianDay: fromJd,
-    direction,
-    count: request.count,
-    includeIngress: request.kinds.includes("sign-ingress" satisfies TransitKind),
-    includeStations: request.kinds.includes("station" satisfies TransitKind),
-    fixedTargets,
-    ayanamsa: astroParams.ayanamsa,
-    ...(request.precisionMinutes === undefined
-      ? {}
-      : { precisionMinutes: request.precisionMinutes }),
-    ...(request.maxYears === undefined ? {} : { maxYears: request.maxYears }),
-  });
+  return fixedTargets;
+});
 
+function mapEvents(
+  hits: ReadonlyArray<RawHit>,
+  planet: Planets,
+  direction: TransitDirection,
+): ReadonlyArray<TransitEvent> {
   const provenance = {
     school: "Ascendant",
     method: "transit-sample-bisect",
     version: 1,
   } as const;
-  const events = outcome.hits.map((hit) =>
+  return hits.map((hit) =>
     TransitEvent.make({
       planet,
       moment: dateTimeFromJd(hit.julianDay),
-      longitude: normalize360(hit.longitude),
+      longitude: hit.longitude,
       kind: hit.kind,
       sign: hit.sign,
       is_retrograde: hit.speed < 0,
@@ -123,25 +159,21 @@ export const findTransits = Effect.fn("astro-ascendant/transit/findTransits")(fu
       provenance,
     }),
   );
+}
 
-  if (!outcome.complete) {
-    return yield* TransitSearchExhausted.make({
-      message: `Found ${events.length} of ${request.count} events within ${request.maxYears ?? DEFAULT_MAX_YEARS} years`,
-      found: events,
-      searchedUntil: dateTimeFromJd(outcome.endJulianDay),
-    });
-  }
-
-  const divisions = request.includeCharts ?? [];
-  if (divisions.length === 0) return events;
+const enrichWithCharts = Effect.fn("astro-ascendant/transit/enrichWithCharts")(function* (
+  events: ReadonlyArray<TransitEvent>,
+  divisions: ReadonlyArray<Division>,
+  from: LocatedMoment,
+) {
   return yield* Effect.forEach(
     events,
     (event) =>
       Effect.gen(function* () {
         const input = ChartParams.make({
           moment: Moment.make({ date: event.moment }),
-          latitude: request.from.latitude,
-          longitude: request.from.longitude,
+          latitude: from.latitude,
+          longitude: from.longitude,
         });
         const calculation = yield* generate(input, divisions);
         return TransitEvent.make({
