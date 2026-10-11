@@ -92,7 +92,17 @@
           "unnecessaryPipeChain": "message",
           "unnecessaryTypeofType": "message",
           "unsafeEffectTypeAssertion": "warning"
-        }
+        },
+        "overrides": [
+          {
+            "include": ["benchmarks/**/*.ts"],
+            "options": {
+              "diagnosticSeverity": {
+                "strictEffectProvide": "off"
+              }
+            }
+          }
+        ]
       }
     ],
 
@@ -107,6 +117,12 @@
     "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": false
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "examples/**/*.ts", "vitest.config.ts"],
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "examples/**/*.ts",
+    "benchmarks/**/*.ts",
+    "vitest.config.ts"
+  ],
   "exclude": ["dist", "node_modules", "repos", "tests/package"]
 }

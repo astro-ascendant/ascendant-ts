@@ -1,14 +1,14 @@
-import { Array, Console, Effect, Option, Record } from "effect";
+import { Array, Console, Effect, Record, Schema } from "effect";
 
-import type { ExampleInput } from "../examples/input.ts";
-import * as AstroParams from "../src/astro-params/index.ts";
-import { angularDistance } from "../src/chart/cusp.ts";
-import { subLordOf } from "../src/chart/helper.ts";
-import * as Chart from "../src/chart/index.ts";
+import type { ExampleInput } from "../examples/input.js";
+import * as AstroParams from "../src/astro-params/index.js";
+import { angularDistance } from "../src/chart/cusp.js";
+import { subLordOf } from "../src/chart/helper.js";
+import * as Chart from "../src/chart/index.js";
 
 export const HOUSES = Chart.Houses.literals;
-export const BASELINE_AYANAMSA = "KrishnamurtiVP291" satisfies typeof AstroParams.Ayanamsa.Type;
-export const BASELINE_HOUSE_SYSTEM = "Placidus" satisfies typeof AstroParams.HouseSystem.Type;
+export const BASELINE_AYANAMSA = "KrishnamurtiVP291" satisfies AstroParams.Ayanamsa;
+export const BASELINE_HOUSE_SYSTEM = "Placidus" satisfies AstroParams.HouseSystem;
 
 const AYANAMSA_HOUSE_SYSTEMS = [
   ["Lahiri", ["WholeSign", "Equal", "Placidus"]],
@@ -20,12 +20,12 @@ const AYANAMSA_HOUSE_SYSTEMS = [
   ["TrueRevati", ["WholeSign", "Equal", "Placidus"]],
   ["TruePushya", ["WholeSign", "Equal", "Placidus"]],
 ] as const satisfies ReadonlyArray<
-  readonly [typeof AstroParams.Ayanamsa.Type, readonly (typeof AstroParams.HouseSystem.Type)[]]
+  readonly [AstroParams.Ayanamsa, readonly AstroParams.HouseSystem[]]
 >;
 
 export type Combination = {
-  readonly ayanamsa: typeof AstroParams.Ayanamsa.Type;
-  readonly houseSystem: typeof AstroParams.HouseSystem.Type;
+  readonly ayanamsa: AstroParams.Ayanamsa;
+  readonly houseSystem: AstroParams.HouseSystem;
 };
 
 export type HouseLords = {
@@ -47,6 +47,11 @@ export type CombinationSnapshot = {
   readonly houses: readonly HouseLords[];
   readonly points: readonly PointSublord[];
 };
+
+export class BaselineMissingError extends Schema.TaggedError<BaselineMissingError>()(
+  "Benchmarks.sublordBenchmark.BaselineMissing",
+  { combination: Schema.String },
+) {}
 
 export type HouseDeviation = {
   readonly combination: Combination;
@@ -90,14 +95,11 @@ export function houseLordsOf(chart: Chart.Chart): readonly HouseLords[] {
   });
 }
 
-export function houseByNumber(
-  houses: readonly HouseLords[],
-  house: Chart.Houses,
-): HouseLords | undefined {
+function houseByNumber(houses: readonly HouseLords[], house: Chart.Houses): HouseLords | undefined {
   return houses.find((item) => item.house === house);
 }
 
-export function countMatches(
+function countMatches(
   baseline: readonly HouseLords[],
   candidate: readonly HouseLords[],
   field: "signLord" | "starLord" | "subLord",
@@ -109,7 +111,7 @@ export function countMatches(
   }).length;
 }
 
-export function houseDeviations(
+function houseDeviations(
   baseline: CombinationSnapshot,
   candidate: CombinationSnapshot,
 ): readonly HouseDeviation[] {
@@ -131,7 +133,7 @@ export function houseDeviations(
   });
 }
 
-export function cuspDeltas(
+function cuspDeltas(
   baseline: readonly HouseLords[],
   candidate: readonly HouseLords[],
 ): readonly number[] {
@@ -200,17 +202,12 @@ export const sublordBenchmark = Effect.fn("Benchmarks.sublordBenchmark")(functio
       concurrency: 1,
     },
   );
-  const baseline = yield* Option.match(
+  const baseline = yield* Effect.fromOption(
     Array.findFirst(snapshots, (snapshot) => isBaseline(snapshot.combination)),
-    {
-      onNone: () =>
-        Effect.fail(
-          new Error(
-            `Baseline ${BASELINE_AYANAMSA} / ${BASELINE_HOUSE_SYSTEM} is missing from the combination matrix.`,
-          ),
-        ),
-      onSome: (snapshot) => Effect.succeed(snapshot),
-    },
+    () =>
+      BaselineMissingError.make({
+        combination: `${BASELINE_AYANAMSA} / ${BASELINE_HOUSE_SYSTEM}`,
+      }),
   );
 
   yield* Console.log(

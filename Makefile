@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help install run build test test-watch typecheck lint lint-fix format format-check package-check publish check
+.PHONY: help install example build test test-watch typecheck lint lint-fix format format-check package-check publish check benchmark
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "; printf "Usage: make <target>\n\nTargets:\n"} /^[a-zA-Z_-]+:.*## / {printf "  %-14s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -8,11 +8,11 @@ help: ## Show available commands
 install: ## Install dependencies
 	bun install
 
-run: ## Select and run an example
+example: ## Select and run an example
 	bun run examples/index.ts
 
-benchmark: ## Run the benchmark suite
-	bun run benchmarks/index.ts
+benchmark: ## Run benchmarks (interactive CLI)
+	bun run benchmarks/cli.ts
 
 build: ## Build the npm package into dist/
 	bun run build
