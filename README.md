@@ -16,7 +16,7 @@ Effect-first TypeScript library for sidereal Vedic astrology calculations.
 Install the package and its Effect peer dependency:
 
 ```bash
-npm install astro-ascendant effect@rc
+npm install astro-ascendant effect
 ```
 
 The package includes the Swiss Ephemeris adapter dependency, uses ES modules, and includes TypeScript declarations.
@@ -46,6 +46,12 @@ const calculation = await Effect.runPromise(program.pipe(Effect.provide(layers))
 console.log(calculation.charts[0]); // D1
 console.log(calculation.charts[1]); // D9
 ```
+
+For repeated or overlapping workloads (transit scans, dashboards), swap in
+`Swisseph.SwissephCachedLayer`: it memoizes `calculatePosition` per
+`(julianDay, body, ayanamsa)` with singleflight dedupe, so re-scans hit the
+cache instead of the native library. See `benchmarks/stress.md` for measured
+speedups.
 
 `calculation.placements` contains the shared sidereal positions. `calculation.charts` contains D1 first, followed by the requested divisions in numeric order. Optional birth `sex` is copied into each chart. Every chart uses cusp-defined houses and includes KP house significations, four-level planet significations, four-level house significators, and the five ordered ruling planets.
 
