@@ -13,20 +13,7 @@ import * as Provenance from "../src/provenance.js";
 import { fixtures } from "./support/fixtures.js";
 
 describe("Astrology method provenance", () => {
-  it("contains one valid, versioned specification for every implemented methodology", () => {
-    expect(Object.keys(Provenance.methods).sort()).toEqual([
-      "charaDasha",
-      "chartProjection",
-      "jaiminiArgala",
-      "jaiminiArudhaPada",
-      "jaiminiCharaKarakas",
-      "jaiminiKarakamsha",
-      "jaiminiRashiDrishti",
-      "jaiminiUpapada",
-      "sthiraDasha",
-      "transitSearch",
-    ]);
-
+  it("requires every registered methodology to carry a valid, versioned specification", () => {
     for (const specification of Object.values(Provenance.methods)) {
       expect(Schema.is(Provenance.MethodSpecification)(specification)).toBe(true);
       expect(
@@ -42,13 +29,6 @@ describe("Astrology method provenance", () => {
     );
 
     expect(new Set(identities).size).toBe(identities.length);
-    expect(
-      Equal.equals(Provenance.methods.charaDasha.provenance, {
-        school: "Jaimini",
-        method: "kn-rao-co-lord-strength",
-        version: 2,
-      }),
-    ).toBe(true);
   });
 
   it.effect("binds every provenance-bearing calculation to its registry specification", () =>

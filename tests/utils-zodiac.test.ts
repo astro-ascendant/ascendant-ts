@@ -1,8 +1,22 @@
 import { describe, expect, it } from "@effect/vitest";
 
-import { RASHIS } from "../src/chart/internal/constants.js";
 import type { Longitude } from "../src/chart/model.js";
 import { Zodiac } from "../src/utils/index.js";
+
+const SIGNS = [
+  "Aries",
+  "Taurus",
+  "Gemini",
+  "Cancer",
+  "Leo",
+  "Virgo",
+  "Libra",
+  "Scorpio",
+  "Sagittarius",
+  "Capricorn",
+  "Aquarius",
+  "Pisces",
+] as const;
 
 describe("Zodiac", () => {
   it("wraps any integer onto the 0-11 wheel", () => {
@@ -15,7 +29,7 @@ describe("Zodiac", () => {
   });
 
   it("round-trips every sign through its index", () => {
-    for (const [index, sign] of RASHIS.entries()) {
+    for (const [index, sign] of SIGNS.entries()) {
       expect(Zodiac.rashiIndexOf(sign)).toBe(index);
       expect(Zodiac.signAt(index)).toBe(sign);
     }
@@ -55,10 +69,10 @@ describe("Zodiac", () => {
   });
 
   it("walks the full wheel from any start in either direction", () => {
-    expect(Zodiac.sequenceFrom(0, 1)).toEqual([...RASHIS]);
+    expect(Zodiac.sequenceFrom(0, 1)).toEqual([...SIGNS]);
     expect(Zodiac.sequenceFrom(0, -1)[1]).toBe("Pisces");
     expect(Zodiac.sequenceFrom(0, 1)).toHaveLength(12);
-    expect(Zodiac.sequenceFrom(5, 1)[0]).toBe(RASHIS[5]);
+    expect(Zodiac.sequenceFrom(5, 1)[0]).toBe("Virgo");
   });
 
   it("rejects out-of-range wheel positions", () => {
