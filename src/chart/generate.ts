@@ -52,7 +52,7 @@ const calculatePlacementEvidence = Effect.fn("astro-ascendant/chart/calculatePla
       Planets.literals.filter((planet) => planet !== "Ketu"),
       (planet) =>
         Effect.gen(function* () {
-          const body = yield* planetBodyOf(planet);
+          const body = planetBodyOf(planet);
           const position = yield* ephemeris.calculatePosition(
             julianDay,
             body,

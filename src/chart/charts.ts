@@ -28,42 +28,39 @@ export interface MappedPositions {
   readonly sex: Sex | undefined;
 }
 
-const chartFromMappedPlacements = Effect.fn(function* ({
-  division,
-  lagna,
-  planets,
-  sex,
-}: MappedPositions) {
-  const lagnaSignIndex = Rashis.literals.indexOf(lagna.sign.name);
-  const entries: Array<readonly [string, House]> = [];
-  for (const index of Array.range(0, 11)) {
-    const house = (index + 1) as Houses;
-    const houseSign = Zodiac.signAt(lagnaSignIndex + index);
-    const cusp = yield* normalizeLongitude(Zodiac.wrapIndex(lagnaSignIndex + index) * 30);
-    entries.push([
-      String(house),
-      House.make({
-        sign: houseSign,
-        cusp,
-        signLord: SIGN_LORDS[houseSign],
-        starLord: (yield* starOf(cusp)).lord,
-        subLord: yield* subLordOf(cusp),
-        subSubLord: yield* subSubLordOf(cusp),
-        significations: HOUSE_SIGNIFICATIONS[house],
-        planets: planets.filter((planet) => planet.sign.name === houseSign),
-        lagna: house === 1 ? lagna : null,
-      }),
-    ] as const);
-  }
-  const houses = Struct.fromEntries(entries) as Record<Houses, House>;
+const chartFromMappedPlacements = Effect.fn("astro-ascendant/chart/chartFromMappedPlacements")(
+  function* ({ division, lagna, planets, sex }: MappedPositions) {
+    const lagnaSignIndex = Rashis.literals.indexOf(lagna.sign.name);
+    const entries: Array<readonly [string, House]> = [];
+    for (const index of Array.range(0, 11)) {
+      const house = (index + 1) as Houses;
+      const houseSign = Zodiac.signAt(lagnaSignIndex + index);
+      const cusp = yield* normalizeLongitude(Zodiac.wrapIndex(lagnaSignIndex + index) * 30);
+      entries.push([
+        String(house),
+        House.make({
+          sign: houseSign,
+          cusp,
+          signLord: SIGN_LORDS[houseSign],
+          starLord: (yield* starOf(cusp)).lord,
+          subLord: yield* subLordOf(cusp),
+          subSubLord: yield* subSubLordOf(cusp),
+          significations: HOUSE_SIGNIFICATIONS[house],
+          planets: planets.filter((planet) => planet.sign.name === houseSign),
+          lagna: house === 1 ? lagna : null,
+        }),
+      ] as const);
+    }
+    const houses = Struct.fromEntries(entries) as Record<Houses, House>;
 
-  return Chart.make({
-    ...(sex === undefined ? {} : { sex }),
-    provenance: chartProjection.provenance,
-    division,
-    houses,
-  });
-});
+    return Chart.make({
+      ...(sex === undefined ? {} : { sex }),
+      provenance: chartProjection.provenance,
+      division,
+      houses,
+    });
+  },
+);
 
 export const mappedPositions = Effect.fn("astro-ascendant/chart/mappedPositions")(function* (
   placements: Placements,

@@ -4,27 +4,35 @@ import { getDivisionalTarget } from "../../chart/divisional-mapping/calculate.js
 import { Placements } from "../../chart/model.js";
 import { jaiminiKarakamsha } from "../../provenance.js";
 import { calculate as calculateCharaKarakas } from "../chara-karakas/calculate.js";
+import type {
+  EvidenceError as CharaKarakasEvidenceError,
+  ParseError as CharaKarakasParseError,
+} from "../chara-karakas/model.js";
 import { signOf } from "./helper.js";
 import type { Result } from "./model.js";
 import { CalculationError, EvidenceError } from "./model.js";
+
+function karakamshaError(
+  error: CharaKarakasEvidenceError | CharaKarakasParseError,
+): EvidenceError | CalculationError {
+  if (error._tag === "CharaKarakasEvidenceError") {
+    return EvidenceError.make({
+      placement: error.placement,
+      expected: 1,
+      actual: error.actual,
+    });
+  }
+  return CalculationError.make({
+    message: "Chara Karaka calculation failed",
+    cause: error,
+  });
+}
 
 export const calculate = Effect.fn("astro-ascendant/jaimini/karakamsha/calculate")(function* (
   placements: Placements,
 ) {
   const charaKarakas = yield* calculateCharaKarakas(placements).pipe(
-    Effect.mapError((error) => {
-      if (error._tag === "CharaKarakasEvidenceError") {
-        return EvidenceError.make({
-          placement: error.placement,
-          expected: 1,
-          actual: error.actual,
-        });
-      }
-      return CalculationError.make({
-        message: "Chara Karaka calculation failed",
-        cause: error,
-      });
-    }),
+    Effect.mapError(karakamshaError),
   );
 
   const karakamshaPlacements = yield* Effect.all(

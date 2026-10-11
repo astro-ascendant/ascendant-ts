@@ -35,3 +35,7 @@ triples yield three events; refinement bisects to `precisionMinutes`
 (default 1); an exhausted `maxYears` window fails with typed
 `TransitSearchExhausted` instead of a short list. Pass `includeCharts` with
 divisions to attach one full `ChartCalculation` per found moment.
+
+Searches sample thousands of ephemeris positions; for repeated or
+overlapping scans, provide `SwissephCachedLayer` (see `../swisseph/README.md`)
+instead of `SwissephLayer` so re-scans hit the position cache.

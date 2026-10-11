@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 
 // Ordered by Swiss Ephemeris SE_SIDM numeric ID (0-46).
-// Note: this is catalog order, not recency — e.g. J2000 (18) is modern but early in the list.
+// Note: this is catalog order, not recency - e.g. J2000 (18) is modern but early in the list.
 export const Ayanamsa = Schema.Literals([
   "FaganBradley",
   "Lahiri",
@@ -67,8 +67,11 @@ export const HouseSystem = Schema.Literals([
   "Alcabitus",
   "Morinus",
 ]);
+export type Ayanamsa = typeof Ayanamsa.Type;
+export type HouseSystem = typeof HouseSystem.Type;
 
-export class Options extends Schema.Class<Options>("AstroParams")({
+export const Options = Schema.Struct({
   ayanamsa: Ayanamsa,
   houseSystem: HouseSystem,
-}) {}
+});
+export interface Options extends Schema.Schema.Type<typeof Options> {}

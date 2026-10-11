@@ -3,7 +3,10 @@ import { Array, Effect, Function, Option } from "effect";
 import { normalizeLongitude } from "../utils/position.js";
 import type { Longitude, Planet } from "./model.js";
 
-export const forwardDistance = Effect.fn(function* (from: Longitude, to: Longitude) {
+export const forwardDistance = Effect.fn("astro-ascendant/chart/forwardDistance")(function* (
+  from: Longitude,
+  to: Longitude,
+) {
   return yield* normalizeLongitude(to - from);
 });
 

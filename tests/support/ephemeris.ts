@@ -24,23 +24,20 @@ export const planetaryPosition: {
 }));
 
 export const wholeSignHouses: {
-  (houseSystem: typeof HouseSystem.Type): (cusps: ReadonlyArray<number>) => HouseData;
-  (cusps: ReadonlyArray<number>, houseSystem: typeof HouseSystem.Type): HouseData;
-} = Function.dual(
-  2,
-  (cusps: ReadonlyArray<number>, houseSystem: typeof HouseSystem.Type): HouseData => ({
-    cusps: [...cusps],
-    ascendant: 0,
-    mc: 270,
-    armc: 270,
-    vertex: 90,
-    equatorialAscendant: 0,
-    coAscendant1: 0,
-    coAscendant2: 0,
-    polarAscendant: 0,
-    houseSystem,
-  }),
-);
+  (houseSystem: HouseSystem): (cusps: ReadonlyArray<number>) => HouseData;
+  (cusps: ReadonlyArray<number>, houseSystem: HouseSystem): HouseData;
+} = Function.dual(2, (cusps: ReadonlyArray<number>, houseSystem: HouseSystem): HouseData => ({
+  cusps: [...cusps],
+  ascendant: 0,
+  mc: 270,
+  armc: 270,
+  vertex: 90,
+  equatorialAscendant: 0,
+  coAscendant1: 0,
+  coAscendant2: 0,
+  polarAscendant: 0,
+  houseSystem,
+}));
 
 function positionAt(body: CelestialBody): PlanetaryPosition {
   return planetaryPosition(CelestialBody.literals.indexOf(body) * 30, 1);
@@ -50,11 +47,7 @@ function dateToJulianDay(_date: DateTime) {
   return Effect.succeed(JulianDay.make(2_451_545));
 }
 
-function calculatePosition(
-  _julianDay: JulianDay,
-  body: CelestialBody,
-  _ayanamsa: typeof Ayanamsa.Type,
-) {
+function calculatePosition(_julianDay: JulianDay, body: CelestialBody, _ayanamsa: Ayanamsa) {
   return Effect.succeed(positionAt(body));
 }
 
@@ -62,8 +55,8 @@ function calculateHouses(
   _julianDay: JulianDay,
   _latitude: number,
   _longitude: number,
-  houseSystem: typeof HouseSystem.Type,
-  _ayanamsa: typeof Ayanamsa.Type,
+  houseSystem: HouseSystem,
+  _ayanamsa: Ayanamsa,
 ) {
   return Effect.succeed(
     wholeSignHouses([0, 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330], houseSystem),

@@ -16,6 +16,7 @@ import {
   Chart,
   ChartHouses,
   CircleAngle,
+  type Division,
   HouseSignificators,
   House,
   Houses,
@@ -29,20 +30,24 @@ import {
 
 const PLANET_NAMES = Planets.literals;
 
-const houseOfPlanet = (planet: Planets, houses: readonly House[]) =>
-  Effect.sync(() => {
-    const index = houses.findIndex((house) => house.planets.some((item) => item.name === planet));
-    return (index + 1) as Houses;
-  });
+function houseOfPlanet(planet: Planets, houses: readonly House[]): Houses {
+  const index = houses.findIndex((house) => house.planets.some((item) => item.name === planet));
+  return (index + 1) as Houses;
+}
 
-const ownedHouses = (planet: Planets, houses: readonly House[]) =>
-  Effect.forEach(houses, (house, index) =>
-    signAt(house.cusp).pipe(
-      Effect.map((sign) => (SIGN_LORDS[sign] === planet ? [(index + 1) as Houses] : [])),
-    ),
-  ).pipe(Effect.map((groups) => groups.flat()));
+const ownedHouses = Effect.fn("astro-ascendant/chart/ownedHouses")(
+  (planet: Planets, houses: readonly House[]) =>
+    Effect.forEach(houses, (house, index) =>
+      signAt(house.cusp).pipe(
+        Effect.map((sign) => (SIGN_LORDS[sign] === planet ? [(index + 1) as Houses] : [])),
+      ),
+    ).pipe(Effect.map((groups) => groups.flat())),
+);
 
-const planetsInStarOf = Effect.fn(function* (starLord: Planets, planets: readonly Planet[]) {
+const planetsInStarOf = Effect.fn("astro-ascendant/chart/planetsInStarOf")(function* (
+  starLord: Planets,
+  planets: readonly Planet[],
+) {
   const names: Array<Planets> = [];
   for (const planet of planets) {
     if ((yield* starOf(planet.longitude)).lord === starLord) {
@@ -52,7 +57,10 @@ const planetsInStarOf = Effect.fn(function* (starLord: Planets, planets: readonl
   return names;
 });
 
-const agentOf = Effect.fn(function* (planet: Planet, houses: readonly House[]) {
+const agentOf = Effect.fn("astro-ascendant/chart/agentOf")(function* (
+  planet: Planet,
+  houses: readonly House[],
+) {
   if (planet.name !== "Rahu" && planet.name !== "Ketu") {
     return yield* ChartCalculationError.make({
       message: `${planet.name} has no agent; only Rahu and Ketu do`,
@@ -76,7 +84,7 @@ const agentOf = Effect.fn(function* (planet: Planet, houses: readonly House[]) {
   return conjunction?.name ?? planet.sign.lord;
 });
 
-const planetSignificationOf = Effect.fn(function* (
+const planetSignificationOf = Effect.fn("astro-ascendant/chart/planetSignificationOf")(function* (
   planet: Planets,
   byName: HashMap.HashMap<Planets, Planet>,
   allHouses: readonly House[],
@@ -99,8 +107,8 @@ const planetSignificationOf = Effect.fn(function* (
   // node-agent expansion. Rahu/Ketu own no signs, so level3 is empty
   // when the star lord is a node and level4 is empty when the planet
   // itself is a node. The agent is still recorded on the result.
-  const level1 = Option.isSome(starLord) ? [yield* houseOfPlanet(starLord.value, allHouses)] : [];
-  const level2 = [yield* houseOfPlanet(planet, allHouses)];
+  const level1 = Option.isSome(starLord) ? [houseOfPlanet(starLord.value, allHouses)] : [];
+  const level2 = [houseOfPlanet(planet, allHouses)];
   const level3 = Option.isSome(starLord) ? yield* ownedHouses(starLord.value, allHouses) : [];
   const level4 = yield* ownedHouses(planet, allHouses);
 
@@ -117,13 +125,13 @@ const planetSignificationOf = Effect.fn(function* (
   ] as const;
 });
 
-const houseSignificatorsOf = Effect.fn(function* (
+const houseSignificatorsOf = Effect.fn("astro-ascendant/chart/houseSignificatorsOf")(function* (
   house: Houses,
   chartHouse: House,
   planets: readonly Planet[],
 ) {
   const occupants = chartHouse.planets.map((planet) => planet.name);
-  const owner = SIGN_LORDS[yield* signAt(chartHouse.cusp as Longitude)];
+  const owner = SIGN_LORDS[yield* signAt(chartHouse.cusp)];
   const level1 = (yield* Effect.forEach(occupants, (o) => planetsInStarOf(o, planets))).flat();
   const level3 = yield* planetsInStarOf(owner, planets);
 
@@ -133,58 +141,77 @@ const houseSignificatorsOf = Effect.fn(function* (
   ] as const;
 });
 
-const calculateSignifications = Effect.fn(function* (
-  houses: Readonly<Record<Houses, House>>,
-  lagna: Lagna,
-  date: DateTimeType,
-) {
-  const houseEntries = Houses.literals.map((house) => [house, houses[house]] as const);
-  const allHouses = houseEntries.map(([, house]) => house);
-  const planets = allHouses.flatMap((house) => house.planets);
-  const byName = HashMap.fromIterable(planets.map((planet) => [planet.name, planet] as const));
+const calculateSignifications = Effect.fn("astro-ascendant/chart/calculateSignifications")(
+  function* (houses: Readonly<Record<Houses, House>>, lagna: Lagna, date: DateTimeType) {
+    const houseEntries = Houses.literals.map((house) => [house, houses[house]] as const);
+    const allHouses = houseEntries.map(([, house]) => house);
+    const planets = allHouses.flatMap((house) => house.planets);
+    const byName = HashMap.fromIterable(planets.map((planet) => [planet.name, planet] as const));
 
-  const significations = yield* Effect.forEach(PLANET_NAMES, (planet) =>
-    planetSignificationOf(planet, byName, allHouses),
-  );
-  const houseSignificators = yield* Effect.forEach(houseEntries, ([house, chartHouse]) =>
-    houseSignificatorsOf(house, chartHouse, planets),
-  );
+    const significations = yield* Effect.forEach(PLANET_NAMES, (planet) =>
+      planetSignificationOf(planet, byName, allHouses),
+    );
+    const houseSignificators = yield* Effect.forEach(houseEntries, ([house, chartHouse]) =>
+      houseSignificatorsOf(house, chartHouse, planets),
+    );
 
-  const moon = HashMap.get(byName, "Moon");
-  const ascendantStarLord = (yield* starOf(lagna.longitude)).lord;
-  const ascendantSignLord = SIGN_LORDS[lagna.sign.name];
-  const moonStarLord = Option.isSome(moon)
-    ? (yield* starOf(moon.value.longitude)).lord
-    : ascendantStarLord;
-  const moonSignLord = Option.match(moon, {
-    onNone: () => ascendantSignLord,
-    onSome: (m) => m.sign.lord,
-  });
-  const dayLordOfDate = yield* dayLord(date);
+    const moon = HashMap.get(byName, "Moon");
+    const ascendantStarLord = (yield* starOf(lagna.longitude)).lord;
+    const ascendantSignLord = SIGN_LORDS[lagna.sign.name];
+    const moonStarLord = Option.isSome(moon)
+      ? (yield* starOf(moon.value.longitude)).lord
+      : ascendantStarLord;
+    const moonSignLord = Option.match(moon, {
+      onNone: () => ascendantSignLord,
+      onSome: (m) => m.sign.lord,
+    });
+    const dayLordOfDate = dayLord(date);
 
-  return {
-    planetSignifications: Record.fromEntries(significations) as Record<
-      Planets,
-      PlanetSignification
-    >,
-    houseSignificators: Record.fromEntries(houseSignificators) as Record<
-      Houses,
-      HouseSignificators
-    >,
-    rulingPlanets: [
-      ascendantStarLord,
-      ascendantSignLord,
-      moonStarLord,
-      moonSignLord,
-      dayLordOfDate,
-    ] as [Planets, Planets, Planets, Planets, Planets],
-  };
-});
+    return {
+      planetSignifications: Record.fromEntries(significations) as Record<
+        Planets,
+        PlanetSignification
+      >,
+      houseSignificators: Record.fromEntries(houseSignificators) as Record<
+        Houses,
+        HouseSignificators
+      >,
+      rulingPlanets: [
+        ascendantStarLord,
+        ascendantSignLord,
+        moonStarLord,
+        moonSignLord,
+        dayLordOfDate,
+      ] as [Planets, Planets, Planets, Planets, Planets],
+    };
+  },
+);
 
 export const chartFromHouseData = Effect.fn("astro-ascendant/chart/chartFromHouseData")(function* (
   houses: HouseData,
   positions: MappedPositions,
   date: DateTimeType,
+) {
+  const { rawCusps } = yield* validateHouseInputs(houses);
+  const { division, lagna, planets, sex } = positions;
+
+  const { cusps, spans } = yield* mapCusps(rawCusps, houses.houseSystem, division, lagna);
+  const chartHouses = yield* buildHouses(cusps, spans, planets, lagna);
+  const significations = yield* calculateSignifications(chartHouses, lagna, date);
+  const angles = yield* buildAngles(houses);
+
+  return Chart.make({
+    ...(sex === undefined ? {} : { sex }),
+    provenance: chartProjection.provenance,
+    division,
+    houses: chartHouses,
+    angles,
+    ...significations,
+  });
+});
+
+const validateHouseInputs = Effect.fn("astro-ascendant/chart/validateHouseInputs")(function* (
+  houses: HouseData,
 ) {
   const rawCusps = houses.cusps.slice(1, 13);
   const rawAngles = [
@@ -210,8 +237,15 @@ export const chartFromHouseData = Effect.fn("astro-ascendant/chart/chartFromHous
     });
   }
 
-  const { division, lagna, planets, sex } = positions;
+  return { rawCusps } as const;
+});
 
+const mapCusps = Effect.fn("astro-ascendant/chart/mapCusps")(function* (
+  rawCusps: ReadonlyArray<number>,
+  houseSystem: HouseData["houseSystem"],
+  division: Division,
+  lagna: Lagna,
+) {
   const mappedCusps = yield* Effect.forEach(
     rawCusps,
     (cusp) =>
@@ -233,7 +267,7 @@ export const chartFromHouseData = Effect.fn("astro-ascendant/chart/chartFromHous
   }
   const mappedFullCircle = mappedSpans.reduce((total, span) => total + span, 0);
   const cusps =
-    houses.houseSystem === "WholeSign" ||
+    houseSystem === "WholeSign" ||
     mappedSpans.some((span) => span === 0) ||
     Math.abs(mappedFullCircle - 360) > EPS_CIRCLE
       ? equalCusps
@@ -248,10 +282,19 @@ export const chartFromHouseData = Effect.fn("astro-ascendant/chart/chartFromHous
     return yield* ChartCalculationError.make({
       stage: "mapping",
       message: "Could not calculate chart",
-      cause: houses.cusps,
+      cause: rawCusps,
     });
   }
 
+  return { cusps, spans } as const;
+});
+
+const buildHouses = Effect.fn("astro-ascendant/chart/buildHouses")(function* (
+  cusps: ReadonlyArray<Longitude>,
+  spans: ReadonlyArray<number>,
+  planets: MappedPositions["planets"],
+  lagna: Lagna,
+) {
   const planetsByHouse = yield* distributePlanets(planets, cusps, spans);
 
   const houseEntries: Array<readonly [string, House]> = [];
@@ -262,7 +305,7 @@ export const chartFromHouseData = Effect.fn("astro-ascendant/chart/chartFromHous
       return yield* ChartCalculationError.make({
         stage: "mapping",
         message: "Could not calculate chart",
-        cause: houses.cusps,
+        cause: cusps,
       });
     }
 
@@ -288,9 +331,7 @@ export const chartFromHouseData = Effect.fn("astro-ascendant/chart/chartFromHous
     ]);
   }
 
-  const chartHouses = yield* Schema.decodeUnknownEffect(ChartHouses)(
-    Record.fromEntries(houseEntries),
-  ).pipe(
+  return yield* Schema.decodeUnknownEffect(ChartHouses)(Record.fromEntries(houseEntries)).pipe(
     Effect.mapError((cause) =>
       ChartCalculationError.make({
         stage: "mapping",
@@ -299,9 +340,9 @@ export const chartFromHouseData = Effect.fn("astro-ascendant/chart/chartFromHous
       }),
     ),
   );
+});
 
-  const significations = yield* calculateSignifications(chartHouses, lagna, date);
-
+const buildAngles = Effect.fn("astro-ascendant/chart/buildAngles")(function* (houses: HouseData) {
   const ascendantAngle = yield* normalizeLongitude(houses.ascendant);
   const mcAngle = yield* normalizeLongitude(houses.mc);
   const armcAngle = yield* normalizeLongitude(houses.armc);
@@ -311,21 +352,14 @@ export const chartFromHouseData = Effect.fn("astro-ascendant/chart/chartFromHous
   const coAscendant2Angle = yield* normalizeLongitude(houses.coAscendant2);
   const polarAscendantAngle = yield* normalizeLongitude(houses.polarAscendant);
 
-  return Chart.make({
-    ...(sex === undefined ? {} : { sex }),
-    provenance: chartProjection.provenance,
-    division,
-    houses: chartHouses,
-    angles: ChartAngles.make({
-      ascendant: CircleAngle.make(ascendantAngle),
-      mc: CircleAngle.make(mcAngle),
-      armc: CircleAngle.make(armcAngle),
-      vertex: CircleAngle.make(vertexAngle),
-      equatorialAscendant: CircleAngle.make(equatorialAscendantAngle),
-      coAscendant1: CircleAngle.make(coAscendant1Angle),
-      coAscendant2: CircleAngle.make(coAscendant2Angle),
-      polarAscendant: CircleAngle.make(polarAscendantAngle),
-    }),
-    ...significations,
+  return ChartAngles.make({
+    ascendant: CircleAngle.make(ascendantAngle),
+    mc: CircleAngle.make(mcAngle),
+    armc: CircleAngle.make(armcAngle),
+    vertex: CircleAngle.make(vertexAngle),
+    equatorialAscendant: CircleAngle.make(equatorialAscendantAngle),
+    coAscendant1: CircleAngle.make(coAscendant1Angle),
+    coAscendant2: CircleAngle.make(coAscendant2Angle),
+    polarAscendant: CircleAngle.make(polarAscendantAngle),
   });
 });

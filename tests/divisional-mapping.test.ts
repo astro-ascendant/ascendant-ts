@@ -1,8 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
-import { Array, Effect, Equal } from "effect";
+import { Effect, Equal } from "effect";
 
 import { getDivisionalTarget } from "../src/chart/divisional-mapping/index.js";
-import * as Chart from "../src/chart/index.js";
 import { normalizeLongitude } from "../src/utils/position.js";
 
 describe("divisional mapping", () => {
@@ -31,7 +30,6 @@ describe("divisional mapping", () => {
       const justBefore = yield* getDivisionalTarget(10 - 1e-8, 9);
 
       expect(atBoundary.signIndex).not.toBe(justBefore.signIndex);
-      expect(Array.contains(Chart.Division.literals, 9)).toBe(true);
     }),
   );
 

@@ -1,45 +1,52 @@
 import * as Swisseph from "@swisseph/node";
-import { DateTime, Effect, Semaphore } from "effect";
+import { DateTime, Effect, Schema, Semaphore } from "effect";
 import type { DateTime as DateTimeType } from "effect/DateTime";
 
 import { type Ayanamsa, type HouseSystem } from "../astro-params/model.js";
 import { EphemerisError } from "../ephemeris/error.js";
-import { type CelestialBody, JulianDay } from "../ephemeris/model.js";
+import {
+  NativeHouseData,
+  NativePlanetaryPosition,
+  type CelestialBody,
+  JulianDay,
+} from "../ephemeris/model.js";
+import { operationError } from "../utils/operation-error.js";
 import { normalizeLongitude } from "../utils/position.js";
 import { siderealModeOf, celestialBodyOf, houseSystemOf, wholeSignCusps } from "./helper.js";
 
 const NATIVE_SIDEREAL_MODE_LOCK = Semaphore.makeUnsafe(1);
 
+const ephemerisError = operationError((args) => EphemerisError.make(args));
+
 export const dateToJulianDay = Effect.fn("astro-ascendant/swisseph/dateToJulianDay")(function* (
   date: DateTimeType,
 ) {
-  const julianDay = yield* Effect.try({
-    try: () => Swisseph.dateToJulianDay(DateTime.toDate(date)),
-    catch: (cause) => EphemerisError.make({ operation: "dateToJulianDay", cause }),
-  });
+  const raw = yield* Effect.try(() => Swisseph.dateToJulianDay(DateTime.toDate(date))).pipe(
+    ephemerisError("dateToJulianDay"),
+  );
 
-  return JulianDay.make(julianDay);
+  return yield* JulianDay.makeEffect(raw).pipe(ephemerisError("dateToJulianDay"));
 });
 
 export const calculatePosition = Effect.fn("astro-ascendant/swisseph/calculatePosition")(function* (
   julianDay: number,
   body: CelestialBody,
-  ayanamsa: typeof Ayanamsa.Type,
+  ayanamsa: Ayanamsa,
 ) {
-  const mode = yield* siderealModeOf(ayanamsa);
+  const mode = siderealModeOf(ayanamsa);
   const cb = yield* celestialBodyOf(body);
   return yield* NATIVE_SIDEREAL_MODE_LOCK.withPermit(
-    Effect.try({
-      try: () => {
-        Swisseph.setSiderealMode(mode);
-        return Swisseph.calculatePosition(
-          julianDay,
-          cb,
-          Swisseph.CalculationFlag.Sidereal | Swisseph.CalculationFlag.Speed,
-        );
-      },
-      catch: (cause) => EphemerisError.make({ operation: "calculatePosition", cause }),
-    }),
+    Effect.try(() => {
+      Swisseph.setSiderealMode(mode);
+      return Swisseph.calculatePosition(
+        julianDay,
+        cb,
+        Swisseph.CalculationFlag.Sidereal | Swisseph.CalculationFlag.Speed,
+      );
+    }).pipe(
+      Effect.flatMap((raw) => Schema.decodeEffect(NativePlanetaryPosition)(raw)),
+      ephemerisError("calculatePosition"),
+    ),
   );
 });
 
@@ -47,22 +54,26 @@ export const calculateHouses = Effect.fn("astro-ascendant/swisseph/calculateHous
   julianDay: number,
   latitude: number,
   longitude: number,
-  houseSystem: typeof HouseSystem.Type,
-  ayanamsa: typeof Ayanamsa.Type,
+  houseSystem: HouseSystem,
+  ayanamsa: Ayanamsa,
 ) {
-  const mode = yield* siderealModeOf(ayanamsa);
+  const mode = siderealModeOf(ayanamsa);
   const nativeHouseSystem = yield* houseSystemOf(houseSystem);
   const { houses, offset } = yield* NATIVE_SIDEREAL_MODE_LOCK.withPermit(
-    Effect.try({
-      try: () => {
-        Swisseph.setSiderealMode(mode);
-        return {
-          houses: Swisseph.calculateHouses(julianDay, latitude, longitude, nativeHouseSystem),
-          offset: Swisseph.getAyanamsa(julianDay),
-        };
-      },
-      catch: (cause) => EphemerisError.make({ operation: "calculateHouses", cause }),
-    }),
+    Effect.try(() => {
+      Swisseph.setSiderealMode(mode);
+      return {
+        houses: Swisseph.calculateHouses(julianDay, latitude, longitude, nativeHouseSystem),
+        offset: Swisseph.getAyanamsa(julianDay),
+      };
+    }).pipe(
+      Effect.flatMap(({ houses: rawHouses, offset }) =>
+        Schema.decodeEffect(NativeHouseData)(rawHouses).pipe(
+          Effect.map((houses) => ({ houses, offset })),
+        ),
+      ),
+      ephemerisError("calculateHouses"),
+    ),
   );
   return yield* Effect.gen(function* () {
     const ascendant = yield* normalizeLongitude(houses.ascendant - offset);
@@ -83,5 +94,5 @@ export const calculateHouses = Effect.fn("astro-ascendant/swisseph/calculateHous
       polarAscendant: yield* normalizeLongitude(houses.polarAscendant - offset),
       houseSystem,
     };
-  }).pipe(Effect.mapError((cause) => EphemerisError.make({ operation: "calculateHouses", cause })));
+  }).pipe(ephemerisError("calculateHouses"));
 });

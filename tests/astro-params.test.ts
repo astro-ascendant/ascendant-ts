@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
-import { Effect, Equal } from "effect";
+import { Config, ConfigProvider, Effect, Equal, Layer } from "effect";
 
 import * as AstroParams from "../src/astro-params/index.js";
 
@@ -27,6 +27,29 @@ describe("AstroParams", () => {
         const configured = yield* AstroParams.AstroParams;
 
         expect(Equal.equals(configured, { ayanamsa: "Raman", houseSystem: "Placidus" })).toBe(true);
+      }),
+    );
+  });
+
+  it.layer(
+    AstroParams.layerConfig({
+      ayanamsa: Config.schema(AstroParams.Ayanamsa, "ayanamsa"),
+      houseSystem: Config.schema(AstroParams.HouseSystem, "houseSystem"),
+    }).pipe(
+      Layer.provide(
+        ConfigProvider.layer(
+          ConfigProvider.fromUnknown({ ayanamsa: "Lahiri", houseSystem: "WholeSign" }),
+        ),
+      ),
+    ),
+  )((it) => {
+    it.effect("provides options decoded from Config", () =>
+      Effect.gen(function* () {
+        const configured = yield* AstroParams.AstroParams;
+
+        expect(Equal.equals(configured, { ayanamsa: "Lahiri", houseSystem: "WholeSign" })).toBe(
+          true,
+        );
       }),
     );
   });

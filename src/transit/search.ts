@@ -5,7 +5,7 @@ import { Longitude, Rashis } from "../chart/model.js";
 import { JulianDay, type CelestialBody } from "../ephemeris/model.js";
 import { Ephemeris } from "../ephemeris/service.js";
 import { Zodiac } from "../utils/index.js";
-import { EPS_BOUNDARY } from "../utils/position.js";
+import { EPS_BOUNDARY, normalizeLongitude } from "../utils/position.js";
 import { type Planets, type TransitDirection, type TransitKind } from "./model.js";
 
 export const JD_UNIX_EPOCH = 2_440_587.5;
@@ -57,13 +57,13 @@ export const COARSE_STEP_DAYS: Record<Planets, number> = {
 
 export interface LongitudeSample {
   readonly julianDay: number;
-  readonly longitude: number;
+  readonly longitude: Longitude;
   readonly speed: number;
 }
 
 export interface FixedTarget {
   readonly kind: "longitude-hit" | "cusp-crossing";
-  readonly longitude: number;
+  readonly longitude: Longitude;
 }
 
 export interface SearchOptions {
@@ -74,7 +74,7 @@ export interface SearchOptions {
   readonly includeIngress: boolean;
   readonly includeStations: boolean;
   readonly fixedTargets: ReadonlyArray<FixedTarget>;
-  readonly ayanamsa: typeof Ayanamsa.Type;
+  readonly ayanamsa: Ayanamsa;
   readonly stepDays?: number;
   readonly precisionMinutes?: number;
   readonly maxYears?: number;
@@ -82,7 +82,7 @@ export interface SearchOptions {
 
 export interface RawHit {
   readonly julianDay: number;
-  readonly longitude: number;
+  readonly longitude: Longitude;
   readonly speed: number;
   readonly kind: TransitKind;
   readonly sign: Rashis;
@@ -97,18 +97,20 @@ export interface SearchOutcome {
 export const sampleAt = Effect.fn("astro-ascendant/transit/sampleAt")(function* (
   julianDay: number,
   planet: Planets,
-  ayanamsa: typeof Ayanamsa.Type,
+  ayanamsa: Ayanamsa,
 ) {
   const ephemeris = yield* Ephemeris;
+  const julianDayValue = yield* JulianDay.makeEffect(julianDay);
   const position = yield* ephemeris.calculatePosition(
-    JulianDay.make(julianDay),
+    julianDayValue,
     PLANET_BODY[planet],
     ayanamsa,
   );
-  const raw = planet === "Ketu" ? normalize360(position.longitude + 180) : position.longitude;
+  const raw = planet === "Ketu" ? position.longitude + 180 : position.longitude;
+  const longitude = yield* normalizeLongitude(raw);
   return {
     julianDay,
-    longitude: normalize360(raw),
+    longitude,
     speed: position.longitudeSpeed,
   } satisfies LongitudeSample;
 });
@@ -147,7 +149,7 @@ const refineValue = Effect.fn("astro-ascendant/transit/refineValue")(function* (
   low: LongitudeSample,
   high: LongitudeSample,
   planet: Planets,
-  ayanamsa: typeof Ayanamsa.Type,
+  ayanamsa: Ayanamsa,
   precisionMinutes: number,
   valueOf: (sample: LongitudeSample) => number,
 ) {
@@ -173,7 +175,7 @@ const refineLongitude = Effect.fn("astro-ascendant/transit/refineLongitude")(fun
   low: LongitudeSample,
   high: LongitudeSample,
   planet: Planets,
-  ayanamsa: typeof Ayanamsa.Type,
+  ayanamsa: Ayanamsa,
   precisionMinutes: number,
   target: number,
 ) {
@@ -186,7 +188,7 @@ const refineStation = Effect.fn("astro-ascendant/transit/refineStation")(functio
   low: LongitudeSample,
   high: LongitudeSample,
   planet: Planets,
-  ayanamsa: typeof Ayanamsa.Type,
+  ayanamsa: Ayanamsa,
   precisionMinutes: number,
 ) {
   return yield* refineValue(
@@ -199,90 +201,127 @@ const refineStation = Effect.fn("astro-ascendant/transit/refineStation")(functio
   );
 });
 
+interface RefinedHit {
+  readonly sample: LongitudeSample;
+  readonly kind: TransitKind;
+  readonly sign: Rashis;
+}
+
+function pushDedup(hits: Array<RawHit>, hit: RefinedHit, precision: number): void {
+  const previous = hits[hits.length - 1];
+  if (
+    previous !== undefined &&
+    previous.kind === hit.kind &&
+    Math.abs(hit.sample.julianDay - previous.julianDay) * MINUTES_PER_DAY < precision
+  ) {
+    return;
+  }
+  hits.push({
+    julianDay: hit.sample.julianDay,
+    longitude: hit.sample.longitude,
+    speed: hit.sample.speed,
+    kind: hit.kind,
+    sign: hit.sign,
+  });
+}
+
+const ingressHit = Effect.fn("astro-ascendant/transit/ingressHit")(function* (
+  earlier: LongitudeSample,
+  later: LongitudeSample,
+  options: SearchOptions,
+  precision: number,
+) {
+  const crossed = crossedBoundary(earlier.longitude, later.longitude);
+  if (crossed === null) return null;
+  const refined = yield* refineLongitude(
+    earlier,
+    later,
+    options.planet,
+    options.ayanamsa,
+    precision,
+    crossed.boundary,
+  );
+  const hit: RefinedHit = {
+    sample: refined,
+    kind: "sign-ingress",
+    sign: enteredSign(crossed.boundary, options.direction, crossed.rising),
+  };
+  return hit;
+});
+
+const fixedTargetHit = Effect.fn("astro-ascendant/transit/fixedTargetHit")(function* (
+  earlier: LongitudeSample,
+  later: LongitudeSample,
+  options: SearchOptions,
+  precision: number,
+  target: FixedTarget,
+) {
+  const early = wrap180(earlier.longitude - target.longitude);
+  const late = wrap180(later.longitude - target.longitude);
+  if (early !== 0 && late !== 0 && Math.sign(early) === Math.sign(late)) return null;
+  const refined = yield* refineLongitude(
+    earlier,
+    later,
+    options.planet,
+    options.ayanamsa,
+    precision,
+    target.longitude,
+  );
+  const rising = wrap180(later.longitude - earlier.longitude) > 0;
+  const hit: RefinedHit = {
+    sample: refined,
+    kind: target.kind,
+    sign: isBoundaryTarget(target.longitude)
+      ? enteredSign(target.longitude, options.direction, rising)
+      : Zodiac.signAt(Zodiac.indexOfLongitude(normalize360(refined.longitude))),
+  };
+  return hit;
+});
+
+const stationHit = Effect.fn("astro-ascendant/transit/stationHit")(function* (
+  earlier: LongitudeSample,
+  later: LongitudeSample,
+  options: SearchOptions,
+  precision: number,
+) {
+  const earlySpeed = earlier.speed;
+  const lateSpeed = later.speed;
+  if (earlySpeed !== 0 && lateSpeed !== 0 && earlySpeed < 0 === lateSpeed < 0) return null;
+  const refined = yield* refineStation(earlier, later, options.planet, options.ayanamsa, precision);
+  const hit: RefinedHit = {
+    sample: refined,
+    kind: "station",
+    sign: Zodiac.signAt(Zodiac.indexOfLongitude(normalize360(refined.longitude))),
+  };
+  return hit;
+});
+
 const refineStep = Effect.fn("astro-ascendant/transit/refineStep")(function* (
   earlier: LongitudeSample,
   later: LongitudeSample,
   options: SearchOptions,
 ) {
-  const hits: Array<RawHit> = [];
   const precision = options.precisionMinutes ?? DEFAULT_PRECISION_MINUTES;
-  const push = (sample: LongitudeSample, kind: TransitKind, sign: Rashis) => {
-    const previous = hits[hits.length - 1];
-    if (
-      previous !== undefined &&
-      previous.kind === kind &&
-      Math.abs(sample.julianDay - previous.julianDay) * MINUTES_PER_DAY < precision
-    ) {
-      return;
-    }
-    hits.push({
-      julianDay: sample.julianDay,
-      longitude: sample.longitude,
-      speed: sample.speed,
-      kind,
-      sign,
-    });
-  };
+  const candidates: Array<RefinedHit> = [];
 
   if (options.includeIngress) {
-    const crossed = crossedBoundary(earlier.longitude, later.longitude);
-    if (crossed !== null) {
-      const refined = yield* refineLongitude(
-        earlier,
-        later,
-        options.planet,
-        options.ayanamsa,
-        precision,
-        crossed.boundary,
-      );
-      push(
-        refined,
-        "sign-ingress",
-        enteredSign(crossed.boundary, options.direction, crossed.rising),
-      );
-    }
+    const hit = yield* ingressHit(earlier, later, options, precision);
+    if (hit !== null) candidates.push(hit);
   }
 
   for (const target of options.fixedTargets) {
-    const early = wrap180(earlier.longitude - target.longitude);
-    const late = wrap180(later.longitude - target.longitude);
-    if (early === 0 || late === 0 || Math.sign(early) !== Math.sign(late)) {
-      const refined = yield* refineLongitude(
-        earlier,
-        later,
-        options.planet,
-        options.ayanamsa,
-        precision,
-        target.longitude,
-      );
-      const rising = wrap180(later.longitude - earlier.longitude) > 0;
-      push(
-        refined,
-        target.kind,
-        isBoundaryTarget(target.longitude)
-          ? enteredSign(target.longitude, options.direction, rising)
-          : Zodiac.signAt(Zodiac.indexOfLongitude(normalize360(refined.longitude))),
-      );
-    }
+    const hit = yield* fixedTargetHit(earlier, later, options, precision, target);
+    if (hit !== null) candidates.push(hit);
   }
 
   if (options.includeStations) {
-    const earlySpeed = earlier.speed;
-    const lateSpeed = later.speed;
-    if (earlySpeed === 0 || lateSpeed === 0 || earlySpeed < 0 !== lateSpeed < 0) {
-      const refined = yield* refineStation(
-        earlier,
-        later,
-        options.planet,
-        options.ayanamsa,
-        precision,
-      );
-      push(
-        refined,
-        "station",
-        Zodiac.signAt(Zodiac.indexOfLongitude(normalize360(refined.longitude))),
-      );
-    }
+    const hit = yield* stationHit(earlier, later, options, precision);
+    if (hit !== null) candidates.push(hit);
+  }
+
+  const hits: Array<RawHit> = [];
+  for (const candidate of candidates) {
+    pushDedup(hits, candidate, precision);
   }
 
   return hits.toSorted((first, second) =>
@@ -291,6 +330,40 @@ const refineStep = Effect.fn("astro-ascendant/transit/refineStep")(function* (
       : second.julianDay - first.julianDay,
   );
 });
+
+const advanceCursor = Effect.fn("astro-ascendant/transit/advanceCursor")(function* (
+  cursor: number,
+  previous: LongitudeSample,
+  step: number,
+  forward: boolean,
+  options: SearchOptions,
+) {
+  const next = yield* sampleAt(cursor + step, options.planet, options.ayanamsa);
+  const earlier = forward ? previous : next;
+  const later = forward ? next : previous;
+  const stepHits = yield* refineStep(earlier, later, options);
+  return { next, stepHits } as const;
+});
+
+function appendStepHits(
+  hits: Array<RawHit>,
+  stepHits: ReadonlyArray<RawHit>,
+  precision: number,
+  count: number,
+): void {
+  for (const hit of stepHits) {
+    if (hits.length >= count) break;
+    const last = hits[hits.length - 1];
+    if (
+      last !== undefined &&
+      last.kind === hit.kind &&
+      Math.abs(hit.julianDay - last.julianDay) * MINUTES_PER_DAY < precision
+    ) {
+      continue;
+    }
+    hits.push(hit);
+  }
+}
 
 /** Every zero-crossing counts, so retrograde triples yield three hits in time order. */
 export const searchRawHits = Effect.fn("astro-ascendant/transit/searchRawHits")(function* (
@@ -302,6 +375,7 @@ export const searchRawHits = Effect.fn("astro-ascendant/transit/searchRawHits")(
   const spanDays = (options.maxYears ?? DEFAULT_MAX_YEARS) * DAYS_PER_YEAR * sign;
   const limit = options.fromJulianDay + spanDays;
   const maxIterations = Math.ceil(Math.abs(spanDays / step)) + 2;
+  const precision = options.precisionMinutes ?? DEFAULT_PRECISION_MINUTES;
 
   const hits: Array<RawHit> = [];
   let cursor = options.fromJulianDay;
@@ -314,23 +388,8 @@ export const searchRawHits = Effect.fn("astro-ascendant/transit/searchRawHits")(
       break;
     }
     if (forward ? cursor >= limit : cursor <= limit) break;
-    const next = yield* sampleAt(cursor + step, options.planet, options.ayanamsa);
-    const earlier = forward ? previous : next;
-    const later = forward ? next : previous;
-    const stepHits = yield* refineStep(earlier, later, options);
-    for (const hit of stepHits) {
-      if (hits.length >= options.count) break;
-      const last = hits[hits.length - 1];
-      const precision = options.precisionMinutes ?? DEFAULT_PRECISION_MINUTES;
-      if (
-        last !== undefined &&
-        last.kind === hit.kind &&
-        Math.abs(hit.julianDay - last.julianDay) * MINUTES_PER_DAY < precision
-      ) {
-        continue;
-      }
-      hits.push(hit);
-    }
+    const { next, stepHits } = yield* advanceCursor(cursor, previous, step, forward, options);
+    appendStepHits(hits, stepHits, precision, options.count);
     previous = next;
     cursor += step;
   }

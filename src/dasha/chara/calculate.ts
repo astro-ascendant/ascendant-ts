@@ -23,11 +23,13 @@ const CO_LORDS = {
   Aquarius: ["Saturn", "Rahu"],
 } as const;
 
-const padaDirection = (sign: Rashis) =>
-  Effect.succeed((HashSet.has(SAMA_PADA, sign) ? 1 : -1) as Direction);
+function padaDirection(sign: Rashis): Direction {
+  return (HashSet.has(SAMA_PADA, sign) ? 1 : -1) as Direction;
+}
 
-const distanceInDirection = (from: number, to: number, direction: Direction) =>
-  Effect.succeed(((to - from) * direction + RASHIS.length) % RASHIS.length);
+function distanceInDirection(from: number, to: number, direction: Direction): number {
+  return ((to - from) * direction + RASHIS.length) % RASHIS.length;
+}
 
 const countAssociations = Effect.fn("astro-ascendant/dasha/chara/countAssociations")(function* (
   placements: Placements,
@@ -55,7 +57,7 @@ const countAssociations = Effect.fn("astro-ascendant/dasha/chara/countAssociatio
 const resolveCoLord = Effect.fn("astro-ascendant/dasha/chara/resolveCoLord")(function* <
   Candidate extends Planets,
 >(placements: Placements, sign: "Scorpio" | "Aquarius", [a, b]: readonly [Candidate, Candidate]) {
-  const target = yield* indexOfSign(sign);
+  const target = indexOfSign(sign);
 
   const describe = (planet: Candidate) =>
     placementOf(placements, planet, `${sign} co-lord`).pipe(
@@ -102,17 +104,12 @@ const durationOf = Effect.fn("astro-ascendant/dasha/chara/durationOf")(function*
 
   if (lord === null) return 12;
 
-  const distance = yield* Effect.all({
-    signIndex: indexOfSign(sign),
-    lordIndex: placementOf(placements, lord, `${sign} duration`).pipe(
-      Effect.flatMap(({ longitude }) => signIndexOf(longitude)),
-    ),
-    direction: padaDirection(sign),
-  }).pipe(
-    Effect.flatMap(({ signIndex, lordIndex, direction }) =>
-      distanceInDirection(signIndex, lordIndex, direction),
-    ),
+  const signIndex = indexOfSign(sign);
+  const direction = padaDirection(sign);
+  const lordIndex = yield* placementOf(placements, lord, `${sign} duration`).pipe(
+    Effect.flatMap(({ longitude }) => signIndexOf(longitude)),
   );
+  const distance = distanceInDirection(signIndex, lordIndex, direction);
 
   return distance === 0 ? 12 : distance;
 });
@@ -138,19 +135,18 @@ export const calculateChara = Effect.fn("astro-ascendant/dasha/chara/calculateCh
   const lagnaIndex = yield* signIndexOf(placements.lagna.longitude);
 
   // Direction is determined by the 9th sign from lagna
-  const direction = yield* signAtIndex(lagnaIndex + 8).pipe(
-    Effect.map((index) => Array.getUnsafe(RASHIS, index)),
-    Effect.flatMap((ninthSign) => padaDirection(ninthSign)),
-  );
+  const ninthIndex = yield* signAtIndex(lagnaIndex + 8);
+  const direction = padaDirection(Array.getUnsafe(RASHIS, ninthIndex));
 
   // Effectful phase: resolve duration and sign index for each sign, in order
   const specs = yield* Effect.forEach(
     RashiInternal.sequenceFrom(lagnaIndex, direction),
     (mahadasha) =>
-      Effect.all({
-        years: durationOf(placements, mahadasha),
+      Effect.map(durationOf(placements, mahadasha), (years) => ({
+        mahadasha,
+        years,
         mahadashaIndex: indexOfSign(mahadasha),
-      }).pipe(Effect.map((resolved) => ({ mahadasha, ...resolved }))),
+      })),
   );
 
   // Pure phase: each period starts where the previous one ended

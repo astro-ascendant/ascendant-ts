@@ -18,4 +18,5 @@ Jaimini calculations.
 - [`sav`](./sav/): Ashtakavarga and Shodhya Pinda calculations
 - [`swisseph`](./swisseph/): Swiss Ephemeris adapter
 - [`transit`](./transit/): Transit event search
-- [`utils`](./utils/): shared helpers — pure zodiac math, validated coordinates, placement lookup
+- [`runtime`](../runtime.ts): default full-stack layer graph (`MainLayer`)
+- [`utils`](./utils/): shared helpers — pure zodiac math, validated coordinates, placement lookup, operation-labeled error mapping

@@ -61,7 +61,7 @@ function fakeEphemerisLayer(
   const calculatePosition = (
     julianDay: JulianDay,
     _body: CelestialBody,
-    _ayanamsa: typeof Ayanamsa.Type,
+    _ayanamsa: Ayanamsa,
   ): Effect.Effect<PlanetaryPosition, never> => {
     const { longitude, speed } = motionAt(base, JD0, segments, Number(julianDay));
     return Effect.succeed(planetaryPosition(Transit.normalize360(longitude), speed));
@@ -70,8 +70,8 @@ function fakeEphemerisLayer(
     _julianDay: JulianDay,
     _latitude: number,
     _longitude: number,
-    houseSystem: typeof HouseSystem.Type,
-    _ayanamsa: typeof Ayanamsa.Type,
+    houseSystem: HouseSystem,
+    _ayanamsa: Ayanamsa,
   ): Effect.Effect<HouseData, never> => Effect.succeed(wholeSignHouses(cusps, houseSystem));
   return Layer.succeed(
     Ephemeris,
@@ -201,6 +201,16 @@ describe("Transit search over linear motion", () => {
         });
 
         expect(event?.calculation?.charts[0]?.division).toBe(1);
+
+        const [bare] = yield* Transit.findTransits({
+          planet: "Jupiter",
+          from: locatedMoment(),
+          count: 1,
+          direction: "forward",
+          kinds: ["sign-ingress"],
+        });
+
+        expect(bare?.calculation).toBeUndefined();
       }),
     );
   });

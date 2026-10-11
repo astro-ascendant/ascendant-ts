@@ -79,21 +79,29 @@ describe("named Jaimini calculations", () => {
     Effect.gen(function* () {
       const result = yield* Karakamsha.calculate(exactDegreePlacements);
 
-      expect(result.placements[0]?.planet).toBe("Saturn");
+      // Saturn holds sole Atmakaraka at 196° (16° Libra); D9 part 4 from
+      // movable Libra lands on Aquarius.
+      expect(Equal.equals(result.placements, [{ planet: "Saturn", sign: "Aquarius" }])).toBe(true);
     }),
   );
 
   it.effect("follows the movable, fixed, and dual Rashi Drishti rules", () =>
     Effect.gen(function* () {
-      const result = yield* RashiDrishti.calculate("Aries");
+      const movable = yield* RashiDrishti.calculate("Aries");
+      const fixed = yield* RashiDrishti.calculate("Taurus");
+      const dual = yield* RashiDrishti.calculate("Gemini");
 
       expect(
-        Equal.equals(result, {
+        Equal.equals(movable, {
           provenance: { school: "Jaimini", method: "movable-fixed-dual", version: 1 },
           reference: "Aries",
           targets: ["Leo", "Scorpio", "Aquarius"],
         }),
       ).toBe(true);
+      // Fixed signs aspect the movable signs except the adjacent one (Aries).
+      expect(fixed.targets).toEqual(["Cancer", "Libra", "Capricorn"]);
+      // Dual signs aspect every other dual sign.
+      expect(dual.targets).toEqual(["Virgo", "Sagittarius", "Pisces"]);
     }),
   );
 
@@ -113,11 +121,26 @@ describe("named Jaimini calculations", () => {
 
   it.effect("returns Argala relations in forward and Ketu-reverse directions", () =>
     Effect.gen(function* () {
-      const result = yield* Argala.calculate(exactDegreePlacements, { kind: "Ketu" });
+      const reverse = yield* Argala.calculate(exactDegreePlacements, { kind: "Ketu" });
+      const forward = yield* Argala.calculate(exactDegreePlacements, {
+        kind: "Sign",
+        sign: "Aries",
+      });
 
-      expect(result.direction).toBe("reverse");
-      expect(result.supporting).toHaveLength(3);
-      expect(result.obstructing).toHaveLength(3);
+      expect(reverse.direction).toBe("reverse");
+      expect(reverse.supporting).toHaveLength(3);
+      expect(reverse.obstructing).toHaveLength(3);
+
+      expect(forward.direction).toBe("forward");
+      expect(forward.referenceSign).toBe("Aries");
+      expect(forward.supporting.map(({ sign }) => sign)).toEqual(["Taurus", "Cancer", "Aquarius"]);
+      expect(forward.obstructing.map(({ sign }) => sign)).toEqual([
+        "Pisces",
+        "Capricorn",
+        "Gemini",
+      ]);
+      expect(forward.supporting[0]).toMatchObject({ position: 2, planets: ["Moon"] });
+      expect(forward.obstructing[2]).toMatchObject({ position: 3, planets: ["Mars"] });
     }),
   );
 });

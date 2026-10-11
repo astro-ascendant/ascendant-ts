@@ -17,14 +17,14 @@ class Service extends Context.Service<
     readonly calculatePosition: (
       julianDay: JulianDay,
       body: CelestialBody,
-      ayanamsa: typeof Ayanamsa.Type,
+      ayanamsa: Ayanamsa,
     ) => Effect.Effect<PlanetaryPosition, EphemerisError>;
     readonly calculateHouses: (
       julianDay: JulianDay,
       latitude: number,
       longitude: number,
-      houseSystem: typeof HouseSystem.Type,
-      ayanamsa: typeof Ayanamsa.Type,
+      houseSystem: HouseSystem,
+      ayanamsa: Ayanamsa,
     ) => Effect.Effect<HouseData, EphemerisError>;
   }
 >()("astro-ascendant/ephemeris/service") {}

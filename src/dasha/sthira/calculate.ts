@@ -64,7 +64,7 @@ const rashiBalaOf = Effect.fn("astro-ascendant/dasha/sthira/rashiBalaOf")(functi
   placements: Placements,
   sign: Rashis,
 ) {
-  const signIdx = yield* indexOfSign(sign);
+  const signIdx = indexOfSign(sign);
   // Dedupe handles the case where the lord is Jupiter or Mercury
   const aspectingPlanets = yield* Effect.filter(
     Arr.dedupe([SIGN_LORDS[sign], "Jupiter", "Mercury"] as const),
@@ -97,7 +97,7 @@ const referenceOf = Effect.fn("astro-ascendant/dasha/sthira/referenceOf")(functi
   placements: Placements,
 ) {
   const lagnaSign = yield* signAt(placements.lagna.longitude);
-  const seventhSign = Arr.getUnsafe(RASHIS, Zodiac.wrapIndex((yield* indexOfSign(lagnaSign)) + 6));
+  const seventhSign = Arr.getUnsafe(RASHIS, Zodiac.wrapIndex(indexOfSign(lagnaSign) + 6));
   const [lagnaRashiBala, seventhRashiBala] = yield* Effect.all([
     rashiBalaOf(placements, lagnaSign),
     rashiBalaOf(placements, seventhSign),
@@ -110,17 +110,15 @@ const referenceOf = Effect.fn("astro-ascendant/dasha/sthira/referenceOf")(functi
 });
 
 /** Lords of the 5th, 7th, and 11th from the reference sign, filtered to eligible Brahma planets and deduped. */
-const candidatesOf = Effect.fn("astro-ascendant/dasha/sthira/candidatesOf")(function* (
-  referenceSign: Rashis,
-) {
-  const start = yield* indexOfSign(referenceSign);
+function candidatesOf(referenceSign: Rashis): ReadonlyArray<EligibleBrahmaPlanet> {
+  const start = indexOfSign(referenceSign);
   return pipe(
     [5, 7, 11],
     Arr.map((offset) => SIGN_LORDS[Arr.getUnsafe(RASHIS, Zodiac.wrapIndex(start + offset))]),
     Arr.filter((candidate) => isEligibleBrahma(candidate)),
     Arr.dedupe,
   );
-});
+}
 
 /** Chara Karaka assignments plus the resolved Atmakaraka and its placement for Kendradi Bala. */
 const karakasOf = Effect.fn("astro-ascendant/dasha/sthira/karakasOf")(function* (
@@ -202,7 +200,7 @@ const scoreCandidate = Effect.fn("astro-ascendant/dasha/sthira/scoreCandidate")(
 
 /** Scores every contender, ranks by strength, and returns the winner with its selection record. */
 const scoredOf = Effect.fn("astro-ascendant/dasha/sthira/scoredOf")(function* (
-  candidates: Array<EligibleBrahmaPlanet>,
+  candidates: ReadonlyArray<EligibleBrahmaPlanet>,
   placements: Placements,
   karakas: Karakas,
   atmakarakaSignIndex: Zodiac.RashiIndex,
@@ -237,11 +235,8 @@ const scoredOf = Effect.fn("astro-ascendant/dasha/sthira/scoredOf")(function* (
 });
 
 /** Builds the twelve Rashi Mahadashas from the Brahma sign onward, each lasting its sign duration. */
-const mahadashasFrom = Effect.fn("astro-ascendant/dasha/sthira/mahadashasFrom")(function* (
-  winnerSign: Rashis,
-  start: Moment["date"],
-) {
-  const startIndex = yield* indexOfSign(winnerSign);
+function mahadashasFrom(winnerSign: Rashis, start: Moment["date"]): ReadonlyArray<RashiMahaDasha> {
+  const startIndex = indexOfSign(winnerSign);
   return pipe(
     Arr.range(0, RASHIS.length - 1),
     Arr.map((offset) => Zodiac.wrapIndex(startIndex + offset)),
@@ -257,7 +252,7 @@ const mahadashasFrom = Effect.fn("astro-ascendant/dasha/sthira/mahadashasFrom")(
     }),
     ({ periods }) => periods,
   );
-});
+}
 
 /** Calculates the Sthira Dasha: selects Brahma by Graha strength and lays out its Rashi Mahadashas. */
 export const calculateSthira = Effect.fn("astro-ascendant/dasha/sthira/calculateSthira")(function* (
@@ -268,7 +263,7 @@ export const calculateSthira = Effect.fn("astro-ascendant/dasha/sthira/calculate
   const { lagnaRashiBala, seventhRashiBala, referenceSign } = yield* referenceOf(placements);
   const { karakas, atmakaraka, atmakarakaSign, atmakarakaSignIndex } = yield* karakasOf(placements);
   const { winner, candidateScores } = yield* scoredOf(
-    yield* candidatesOf(referenceSign),
+    candidatesOf(referenceSign),
     placements,
     karakas,
     atmakarakaSignIndex,
@@ -295,6 +290,6 @@ export const calculateSthira = Effect.fn("astro-ascendant/dasha/sthira/calculate
         candidates: [candidateScores[0]!, ...candidateScores.slice(1)],
       },
     },
-    mahadashas: yield* mahadashasFrom(winner.sign, moment.date),
+    mahadashas: mahadashasFrom(winner.sign, moment.date),
   });
 });

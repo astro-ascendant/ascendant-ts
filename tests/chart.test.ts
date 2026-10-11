@@ -169,16 +169,19 @@ describe("Chart projections", () => {
 
   it.effect("keeps source retrograde state while remapping longitude and sign", () =>
     Effect.gen(function* () {
-      const placements = fixtures.placementsFromLongitudes({ Saturn: 190 });
+      const placements = fixtures.placementsFromLongitudes(
+        { Saturn: 190 },
+        { retrograde: ["Saturn"] },
+      );
       const charts = yield* Chart.project(placements, [9]);
       const chart = charts[1];
       if (chart === undefined) return yield* Effect.die("Expected a D9 chart");
-      const saturn = Record.values(chart.houses)
-        .flatMap(({ planets }) => planets)
-        .find(({ name }) => name === "Saturn");
+      const planets = Record.values(chart.houses).flatMap(({ planets }) => planets);
+      const saturn = planets.find(({ name }) => name === "Saturn");
+      const jupiter = planets.find(({ name }) => name === "Jupiter");
 
-      expect(saturn?.is_retrograde).toBe(false);
-      expect(saturn?.longitude).toBeGreaterThanOrEqual(0);
+      expect(saturn?.is_retrograde).toBe(true);
+      expect(jupiter?.is_retrograde).toBe(false);
     }),
   );
 

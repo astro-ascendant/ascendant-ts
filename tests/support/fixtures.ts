@@ -22,6 +22,7 @@ function placementsFromLongitudes(
     readonly omit?: readonly Model.Planets[];
     readonly duplicate?: Model.Planets;
     readonly lagnaLongitude?: number;
+    readonly retrograde?: readonly Model.Planets[];
   } = {},
 ): Model.Placements {
   const longitudes: Record<Model.Planets, number> = {
@@ -37,8 +38,9 @@ function placementsFromLongitudes(
     ...overrides,
   };
   const omitted = HashSet.fromIterable(options.omit ?? []);
+  const retrograde = HashSet.fromIterable(options.retrograde ?? []);
   const planets = PLANETS.filter((planet) => !HashSet.has(omitted, planet)).map((planet) =>
-    sourcePlanet(planet, longitudes[planet]),
+    sourcePlanet(planet, longitudes[planet], HashSet.has(retrograde, planet)),
   );
   if (options.duplicate !== undefined) {
     planets.push(sourcePlanet(options.duplicate, longitudes[options.duplicate]));

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Array, DateTime, Effect, Equal } from "effect";
 
-import * as Dasha from "../src/dasha/index.js";
 import * as Model from "../src/chart/index.js";
+import * as Dasha from "../src/dasha/index.js";
 import { fixtures } from "./support/fixtures.js";
 
 function placementsWithMoonStar(name: Model.Stars, lord: Model.Planets, pada: 1 | 2 | 3 | 4) {
@@ -12,12 +12,12 @@ function placementsWithMoonStar(name: Model.Stars, lord: Model.Planets, pada: 1 
     planets: base.planets.map((planet) =>
       planet.name === "Moon"
         ? Model.SourcePlanet.make({
-          name: planet.name,
-          longitude: planet.longitude,
-          is_retrograde: planet.is_retrograde,
-          star: Model.Star.make({ name, lord, pada }),
-        })
-        : planet
+            name: planet.name,
+            longitude: planet.longitude,
+            is_retrograde: planet.is_retrograde,
+            star: Model.Star.make({ name, lord, pada }),
+          })
+        : planet,
     ),
   });
 }
