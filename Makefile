@@ -1,12 +1,15 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help install example build test test-watch typecheck lint lint-fix format format-check package-check publish check benchmark
+.PHONY: help install hooks example build test test-watch typecheck lint lint-fix format format-check package-check publish check benchmark
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "; printf "Usage: make <target>\n\nTargets:\n"} /^[a-zA-Z_-]+:.*## / {printf "  %-14s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-install: ## Install dependencies
+install: hooks ## Install dependencies
 	bun install
+
+hooks: ## Register the versioned git hooks in .githooks
+	@sh .githooks/install.sh
 
 example: ## Select and run an example
 	bun run examples/index.ts

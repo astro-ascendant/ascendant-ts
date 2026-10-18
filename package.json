@@ -121,7 +121,7 @@
     "access": "public"
   },
   "scripts": {
-    "prepare": "effect-tsgo patch --typescript --oxlint",
+    "prepare": "sh .githooks/install.sh && effect-tsgo patch --typescript --oxlint",
     "dev": "bun --watch src/index.ts",
     "changeset": "changeset",
     "version": "changeset version && bun install",
