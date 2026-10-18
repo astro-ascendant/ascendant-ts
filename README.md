@@ -77,6 +77,12 @@ bun install
 make check
 ```
 
+`bun install` registers the versioned git hooks in `.githooks`. The `pre-commit`
+hook rejects any staged file larger than 5,000 estimated tokens (bytes ÷ 4), and
+skips lockfiles, vendored trees, build output, and binaries. Raise the limit for
+one commit with `MAX_FILE_TOKENS=20000 git commit ...`; re-register the hooks
+after a fresh clone with `make hooks`.
+
 Use `make help` to list all available commands.
 
 ## License
