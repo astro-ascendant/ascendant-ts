@@ -1,0 +1,70 @@
+name: Release astro-ascendant
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+# id-token enables npm OIDC trusted publishing (configure the trusted
+# publisher for astro-ascendant on npmjs.com first: repository
+# astro-ascendant/ascendant-ts, workflow release.yml). If NPM_TOKEN is set as
+# a repo secret, npm publish uses it instead; either path works. NPM_TOKEN
+# must be an Automation (or granular) token: classic Publish tokens on a
+# 2FA-enabled account fail with EOTP, which cannot be answered in CI. The npm
+# upgrade below is required for the OIDC path (trusted publishing needs
+# npm >= 11.5.1; stock Node 22 ships npm 10). contents: write lets the job
+# create the GitHub Release for the tag.
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Tag matches package version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          [ "$TAG" = "$PKG" ] || { echo "tag $TAG != package $PKG"; exit 1; }
+
+      - name: Verify
+        run: bun run check
+
+      - name: Verify packed package
+        run: bun run package:check
+
+      - name: Upgrade npm for OIDC trusted publishing
+        run: npm install -g npm@latest
+
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 ||
+            gh release create "$GITHUB_REF_NAME" \
+              --title "$GITHUB_REF_NAME" \
+              --generate-notes \
+              --verify-tag
