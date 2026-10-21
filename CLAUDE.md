@@ -77,6 +77,17 @@ Reach when: uncertain on API, checking generics, debugging inference.
 - Do not edit files under `@repos/` unless explicitly asked.
 - Do not import from `@repos/` - use normal package dependencies.
 
+## Git hooks
+
+`bun install` registers the versioned hooks in `.githooks` via `core.hooksPath`; re-register after a fresh clone with `make hooks`.
+
+The `pre-commit` hook rejects any staged file over 5,000 estimated tokens (bytes ÷ 4). Sizes come from the staged blob, so partial staging changes nothing, and only the files in that commit are inspected. Lockfiles, legal boilerplate, vendored trees, build output, generated code, and binaries are skipped.  
+Reach when: a commit is blocked by the guard, or a file you are writing may exceed 5,000 tokens.
+
+- Raise the limit for one commit: `MAX_FILE_TOKENS=20000 git commit ...`
+- Bypass the guard, sparingly: `git commit --no-verify`
+- Change the skip list in `.githooks/pre-commit` (`is_ignored`) rather than disabling the hook.
+
 ## Agent skills
 
 ### Issue tracker
