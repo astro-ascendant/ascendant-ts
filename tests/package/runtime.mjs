@@ -13,6 +13,7 @@ const expectedExports = HashSet.make(
   "Karakamsha",
   "Provenance",
   "RashiDrishti",
+  "Runtime",
   "SAV",
   "Swisseph",
   "Transit",
