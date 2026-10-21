@@ -15,7 +15,7 @@
     "transit",
     "vedic"
   ],
-  "homepage": "https://ascendant-docs.vercel.app",
+  "homepage": "https://astro-ascendant.vercel.app",
   "bugs": {
     "url": "https://github.com/astro-ascendant/ascendant-ts/issues"
   },
