@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>5.1.0_service_dependency_graph</title>
+    <style>
+      :root {
+        --bg: #f7f8fa;
+        --fg: #1b1f27;
+        --muted: #5b6472;
+        --panel: #ffffff;
+        --line: #d9dde4;
+        --layer-f: #fff4e0;
+        --layer-s: #c98a1b;
+        --svc-f: #e8f0fe;
+        --svc-s: #4a6fa5;
+        --con-f: #eef7ee;
+        --con-s: #4f8a4f;
+        --box-fg: #1a1a1a;
+        --edge: #5b6472;
+        box-sizing: border-box;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #14171c;
+          --fg: #e8ebf0;
+          --muted: #9aa4b2;
+          --panel: #1b1f26;
+          --line: #2c333d;
+          --layer-f: #3a2e14;
+          --layer-s: #d9a441;
+          --svc-f: #1d2a44;
+          --svc-s: #7fa4dc;
+          --con-f: #1c3321;
+          --con-s: #7dbb7d;
+          --box-fg: #e8ebf0;
+          --edge: #9aa4b2;
+        }
+      }
+      :root[data-theme="dark"] {
+        --bg: #14171c;
+        --fg: #e8ebf0;
+        --muted: #9aa4b2;
+        --panel: #1b1f26;
+        --line: #2c333d;
+        --layer-f: #3a2e14;
+        --layer-s: #d9a441;
+        --svc-f: #1d2a44;
+        --svc-s: #7fa4dc;
+        --con-f: #1c3321;
+        --con-s: #7dbb7d;
+        --box-fg: #e8ebf0;
+        --edge: #9aa4b2;
+      }
+      html {
+        scroll-padding-top: env(safe-area-inset-top, 0px);
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.55;
+      }
+      main {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 4px;
+      }
+      p.sub {
+        margin: 0 0 20px;
+        color: var(--muted);
+        max-width: 70ch;
+      }
+      .diagram {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px;
+        overflow-x: auto;
+      }
+      svg {
+        display: block;
+        width: 100%;
+        min-width: 680px;
+        height: auto;
+      }
+      .box {
+        stroke-width: 1.5;
+      }
+      .layer {
+        fill: var(--layer-f);
+        stroke: var(--layer-s);
+      }
+      .svc {
+        fill: var(--svc-f);
+        stroke: var(--svc-s);
+      }
+      .con {
+        fill: var(--con-f);
+        stroke: var(--con-s);
+      }
+      .t {
+        fill: var(--box-fg);
+        font-size: 13px;
+        text-anchor: middle;
+        font-family: inherit;
+      }
+      .cap {
+        fill: var(--muted);
+        font-size: 12px;
+        font-family: inherit;
+      }
+      .note {
+        fill: var(--muted);
+        font-size: 10.5px;
+        text-anchor: middle;
+        font-family: inherit;
+      }
+      .edge {
+        stroke: var(--edge);
+        stroke-width: 1.5;
+        fill: none;
+      }
+      .dash {
+        stroke-dasharray: 5 4;
+      }
+      ul {
+        margin: 20px 0 0;
+        padding-left: 1.2rem;
+        max-width: 75ch;
+      }
+      li {
+        margin-bottom: 6px;
+      }
+      code {
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 0.9em;
+      }
+      details {
+        margin-top: 20px;
+        max-width: 75ch;
+      }
+      summary {
+        cursor: pointer;
+        color: var(--muted);
+      }
+      pre {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        overflow-x: auto;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>5.1.0_service_dependency_graph</h1>
+      <p class="sub">
+        Which layers provide <code>AstroParams</code> and <code>Ephemeris</code>, and which modules
+        require them. <code>Runtime.MainLayer</code> ships both services by default.
+      </p>
+
+      <div class="diagram">
+        <svg
+          viewBox="0 0 1000 400"
+          role="img"
+          aria-label="Dependency graph: AstroParams is provided by DefaultAstroParams, layer(options) and layerConfig(config); Ephemeris is provided by SwissephLayer and decorated by withPositionCache. Chart.generate and Transit.findTransits require both services; Transit.sampleAt requires only Ephemeris."
+        >
+          <defs>
+            <marker
+              id="arrow"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="8"
+              markerHeight="8"
+              orient="auto-start-reverse"
+            >
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--edge)" />
+            </marker>
+          </defs>
+
+          <text class="cap" x="18" y="22">Providers (layers)</text>
+          <text class="cap" x="18" y="156">Services (context tags)</text>
+          <text class="cap" x="18" y="282">Modules requiring services</text>
+
+          <!-- provider to service edges -->
+          <path class="edge" d="M106,104 L330,170" marker-end="url(#arrow)" />
+          <path class="edge dash" d="M298,104 L390,170" marker-end="url(#arrow)" />
+          <path class="edge dash" d="M490,104 L465,170" marker-end="url(#arrow)" />
+          <path class="edge" d="M682,104 L730,170" marker-end="url(#arrow)" />
+          <path class="edge dash" d="M874,104 L860,170" marker-end="url(#arrow)" />
+
+          <!-- service to consumer edges -->
+          <path class="edge" d="M350,230 L120,310" marker-end="url(#arrow)" />
+          <path class="edge" d="M455,230 L430,310" marker-end="url(#arrow)" />
+          <path class="edge" d="M700,230 L250,310" marker-end="url(#arrow)" />
+          <path class="edge" d="M740,230 L560,310" marker-end="url(#arrow)" />
+          <path class="edge" d="M830,230 L825,310" marker-end="url(#arrow)" />
+
+          <!-- providers -->
+          <rect class="box layer" x="18" y="36" width="176" height="68" rx="8" />
+          <text class="t" x="106" y="55">AstroParams.</text>
+          <text class="t" x="106" y="72">DefaultAstroParams</text>
+          <text class="note" x="106" y="90">shipped default</text>
+
+          <rect class="box layer" x="210" y="36" width="176" height="68" rx="8" />
+          <text class="t" x="298" y="55">AstroParams.</text>
+          <text class="t" x="298" y="72">layer(options)</text>
+          <text class="note" x="298" y="90">explicit options</text>
+
+          <rect class="box layer" x="402" y="36" width="176" height="68" rx="8" />
+          <text class="t" x="490" y="55">AstroParams.</text>
+          <text class="t" x="490" y="72">layerConfig(config)</text>
+          <text class="note" x="490" y="90">needs ConfigProvider</text>
+
+          <rect class="box layer" x="594" y="36" width="176" height="68" rx="8" />
+          <text class="t" x="682" y="55">Swisseph.</text>
+          <text class="t" x="682" y="72">SwissephLayer</text>
+          <text class="note" x="682" y="90">uncached backend</text>
+
+          <rect class="box layer dash" x="786" y="36" width="176" height="68" rx="8" />
+          <text class="t" x="874" y="55">withPositionCache</text>
+          <text class="t" x="874" y="72">(options)</text>
+          <text class="note" x="874" y="90">caching decorator</text>
+
+          <!-- services -->
+          <rect class="box svc" x="280" y="170" width="240" height="60" rx="8" />
+          <text class="t" x="400" y="206">AstroParams</text>
+          <rect class="box svc" x="680" y="170" width="240" height="60" rx="8" />
+          <text class="t" x="800" y="206">Ephemeris</text>
+
+          <!-- consumers -->
+          <rect class="box con" x="60" y="310" width="250" height="64" rx="8" />
+          <text class="t" x="185" y="348">Chart.generate</text>
+          <rect class="box con" x="380" y="310" width="250" height="64" rx="8" />
+          <text class="t" x="505" y="348">Transit.findTransits</text>
+          <rect class="box con" x="700" y="310" width="250" height="64" rx="8" />
+          <text class="t" x="825" y="348">Transit.sampleAt</text>
+        </svg>
+      </div>
+
+      <ul>
+        <li>Solid arrows are the shipped wiring; dashed arrows are alternatives or decorators.</li>
+        <li>
+          <code>Runtime.MainLayer</code> is
+          <code>Layer.mergeAll(AstroParamsSubgraph, EphemerisSubgraph)</code>, i.e.
+          <code>DefaultAstroParams</code> plus <code>SwissephCachedLayer</code>, so providing it
+          satisfies both services.
+        </li>
+        <li>
+          <code>Swisseph.SwissephCachedLayer</code> is
+          <code>withPositionCache().pipe(Layer.provide(SwissephLayer))</code>. It memoizes
+          <code>calculatePosition</code> per <code>(julianDay, body, ayanamsa)</code> for 10
+          minutes, never caches failures, and passes <code>calculateHouses</code> and
+          <code>dateToJulianDay</code> straight through.
+        </li>
+        <li>
+          <code>withPositionCache(options)</code> decorates any <code>Ephemeris</code> layer, so it
+          requires <code>Ephemeris</code> and provides <code>Ephemeris</code>.
+        </li>
+        <li>
+          <code>DefaultAstroParams</code> pins ayanamsa <code>KrishnamurtiVP291</code> and house
+          system <code>Placidus</code>. <code>layerConfig(config)</code> reads the same options
+          through Effect <code>Config</code>, so it needs an ambient <code>ConfigProvider</code>.
+        </li>
+        <li>
+          <code>Dasha</code>, <code>Jaimini</code> and <code>SAV</code> need no services. They are
+          pure functions over the <code>Placements</code> that <code>Chart.generate</code> produces.
+        </li>
+        <li>
+          <code>Transit.findTransits</code> and <code>Transit.searchRawHits</code> sample through
+          <code>sampleAt</code>, so they inherit its <code>Ephemeris</code> requirement.
+        </li>
+        <li>
+          <code>examples/runtime.ts</code> merges <code>BunServices.layer</code> with the uncached
+          <code>Swisseph.SwissephLayer</code>, so the examples run without the position cache.
+        </li>
+      </ul>
+
+      <details>
+        <summary>Mermaid source</summary>
+        <pre>
+flowchart TB
+    subgraph PROVIDERS["Providers (layers)"]
+        DEF["AstroParams.DefaultAstroParams"]
+        APL["AstroParams.layer(options)"]
+        APC["AstroParams.layerConfig(config)"]
+        SWL["Swisseph.SwissephLayer"]
+        WPC["withPositionCache(options)"]
+    end
+    subgraph SERVICES["Services (context tags)"]
+        AP["AstroParams"]
+        EPH["Ephemeris"]
+    end
+    subgraph CONSUMERS["Modules requiring services"]
+        CHART["Chart.generate"]
+        TRANSIT["Transit.findTransits"]
+        SAMPLE["Transit.sampleAt"]
+    end
+    DEF -- provides --> AP
+    APL -. provides .-> AP
+    APC -. provides .-> AP
+    SWL -- provides --> EPH
+    WPC -. decorates .-> EPH
+    AP -- required by --> CHART
+    AP -- required by --> TRANSIT
+    EPH -- required by --> CHART
+    EPH -- required by --> TRANSIT
+    EPH -- required by --> SAMPLE
+
+    %% Runtime.MainLayer = Layer.mergeAll(DefaultAstroParams, SwissephCachedLayer)
+    %% SwissephCachedLayer = withPositionCache().pipe(Layer.provide(SwissephLayer))
+    %% layerConfig needs an ambient ConfigProvider</pre>
+      </details>
+    </main>
+  </body>
+</html>
