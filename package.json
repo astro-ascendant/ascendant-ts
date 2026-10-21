@@ -123,6 +123,8 @@
   "scripts": {
     "prepare": "sh .githooks/install.sh && effect-tsgo patch --typescript --oxlint",
     "dev": "bun --watch src/index.ts",
+    "example": "bun examples/index.ts",
+    "benchmark": "bun benchmarks/cli.ts",
     "changeset": "changeset",
     "version": "changeset version && bun install",
     "release": "bun run build && changeset publish",
@@ -135,8 +137,6 @@
     "lint:fix": "oxlint --fix --disable-nested-config",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "fmt": "oxfmt .",
-    "fmt:check": "oxfmt --check .",
     "docgen": "docgen",
     "package:check": "bun run build && tsc -p tsconfig.package.json && bun tests/package/runtime.mjs && bun pm pack --dry-run",
     "check": "bun run typecheck && bun run test && bun run lint && bun run format:check && bun run build"
