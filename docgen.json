@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/@effect/docgen/schema.json",
+  "srcDir": "src",
+  "outDir": "docs/api",
+  "enforceDescriptions": false,
+  "enforceExamples": false,
+  "enforceVersion": false,
+  "exclude": ["src/internal/**/*.ts", "src/**/internal/**/*.ts"]
+}

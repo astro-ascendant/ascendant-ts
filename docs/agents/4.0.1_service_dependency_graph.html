@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>4.0.1_service_dependency_graph</title>
+    <style>
+      :root {
+        --bg: #f7f8fa;
+        --fg: #1b1f27;
+        --muted: #5b6472;
+        --panel: #ffffff;
+        --line: #d9dde4;
+        --layer-f: #fff4e0;
+        --layer-s: #c98a1b;
+        --svc-f: #e8f0fe;
+        --svc-s: #4a6fa5;
+        --con-f: #eef7ee;
+        --con-s: #4f8a4f;
+        --box-fg: #1a1a1a;
+        --edge: #5b6472;
+        box-sizing: border-box;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #14171c;
+          --fg: #e8ebf0;
+          --muted: #9aa4b2;
+          --panel: #1b1f26;
+          --line: #2c333d;
+          --layer-f: #3a2e14;
+          --layer-s: #d9a441;
+          --svc-f: #1d2a44;
+          --svc-s: #7fa4dc;
+          --con-f: #1c3321;
+          --con-s: #7dbb7d;
+          --box-fg: #e8ebf0;
+          --edge: #9aa4b2;
+        }
+      }
+      :root[data-theme="dark"] {
+        --bg: #14171c;
+        --fg: #e8ebf0;
+        --muted: #9aa4b2;
+        --panel: #1b1f26;
+        --line: #2c333d;
+        --layer-f: #3a2e14;
+        --layer-s: #d9a441;
+        --svc-f: #1d2a44;
+        --svc-s: #7fa4dc;
+        --con-f: #1c3321;
+        --con-s: #7dbb7d;
+        --box-fg: #e8ebf0;
+        --edge: #9aa4b2;
+      }
+      html {
+        scroll-padding-top: env(safe-area-inset-top, 0px);
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.55;
+      }
+      main {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 4px;
+      }
+      p.sub {
+        margin: 0 0 20px;
+        color: var(--muted);
+        max-width: 70ch;
+      }
+      .diagram {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px;
+        overflow-x: auto;
+      }
+      svg {
+        display: block;
+        width: 100%;
+        min-width: 640px;
+        height: auto;
+      }
+      .box {
+        stroke-width: 1.5;
+      }
+      .layer {
+        fill: var(--layer-f);
+        stroke: var(--layer-s);
+      }
+      .svc {
+        fill: var(--svc-f);
+        stroke: var(--svc-s);
+      }
+      .con {
+        fill: var(--con-f);
+        stroke: var(--con-s);
+      }
+      .t {
+        fill: var(--box-fg);
+        font-size: 13px;
+        text-anchor: middle;
+        font-family: inherit;
+      }
+      .cap {
+        fill: var(--muted);
+        font-size: 12px;
+        font-family: inherit;
+      }
+      .edge {
+        stroke: var(--edge);
+        stroke-width: 1.5;
+        fill: none;
+      }
+      .dash {
+        stroke-dasharray: 5 4;
+      }
+      ul {
+        margin: 20px 0 0;
+        padding-left: 1.2rem;
+        max-width: 75ch;
+      }
+      li {
+        margin-bottom: 6px;
+      }
+      code {
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 0.9em;
+      }
+      details {
+        margin-top: 20px;
+        max-width: 75ch;
+      }
+      summary {
+        cursor: pointer;
+        color: var(--muted);
+      }
+      pre {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        overflow-x: auto;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>4.0.1_service_dependency_graph</h1>
+      <p class="sub">Which layers provide which services, and which modules require them.</p>
+
+      <div class="diagram">
+        <svg
+          viewBox="0 0 930 470"
+          role="img"
+          aria-label="Dependency graph: layers provide the Ephemeris and AstroParams services, which Chart.generate and Transit.findTransits require."
+        >
+          <defs>
+            <marker
+              id="arrow"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="8"
+              markerHeight="8"
+              orient="auto-start-reverse"
+            >
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--edge)" />
+            </marker>
+          </defs>
+
+          <text class="cap" x="10" y="26">Layers (providers)</text>
+          <text class="cap" x="10" y="196">Services (context tags)</text>
+          <text class="cap" x="10" y="366">Modules requiring services</text>
+          <text class="cap" x="10" y="160" font-style="italic">provides</text>
+          <text class="cap" x="10" y="330" font-style="italic">required by</text>
+
+          <!-- edges -->
+          <path class="edge" d="M160,70 L198,70" marker-end="url(#arrow)" />
+          <path class="edge" d="M275,100 L340,208" marker-end="url(#arrow)" />
+          <path class="edge dash" d="M465,100 L400,208" marker-end="url(#arrow)" />
+          <path class="edge" d="M655,100 L720,208" marker-end="url(#arrow)" />
+          <path class="edge dash" d="M845,100 L780,208" marker-end="url(#arrow)" />
+
+          <path class="edge" d="M340,270 L330,378" marker-end="url(#arrow)" />
+          <path class="edge" d="M400,270 L710,378" marker-end="url(#arrow)" />
+          <path class="edge" d="M720,270 L410,378" marker-end="url(#arrow)" />
+          <path class="edge" d="M780,270 L790,378" marker-end="url(#arrow)" />
+
+          <!-- layers -->
+          <rect class="box layer" x="10" y="40" width="150" height="60" rx="8" />
+          <text class="t" x="85" y="75">BunServices.layer</text>
+          <rect class="box layer" x="200" y="40" width="150" height="60" rx="8" />
+          <text class="t" x="275" y="65">Swisseph.</text>
+          <text class="t" x="275" y="83">SwissephLayer</text>
+          <rect class="box layer" x="390" y="40" width="150" height="60" rx="8" />
+          <text class="t" x="465" y="65">Custom Ephemeris</text>
+          <text class="t" x="465" y="83">layer (optional)</text>
+          <rect class="box layer" x="580" y="40" width="150" height="60" rx="8" />
+          <text class="t" x="655" y="65">AstroParams.</text>
+          <text class="t" x="655" y="83">DefaultAstroParams</text>
+          <rect class="box layer" x="770" y="40" width="150" height="60" rx="8" />
+          <text class="t" x="845" y="65">AstroParams.</text>
+          <text class="t" x="845" y="83">layer(options)</text>
+
+          <!-- services -->
+          <rect class="box svc" x="280" y="210" width="180" height="60" rx="8" />
+          <text class="t" x="370" y="246">Ephemeris</text>
+          <rect class="box svc" x="660" y="210" width="180" height="60" rx="8" />
+          <text class="t" x="750" y="246">AstroParams</text>
+
+          <!-- consumers -->
+          <rect class="box con" x="270" y="380" width="200" height="60" rx="8" />
+          <text class="t" x="370" y="416">Chart.generate</text>
+          <rect class="box con" x="650" y="380" width="200" height="60" rx="8" />
+          <text class="t" x="750" y="416">Transit.findTransits</text>
+        </svg>
+      </div>
+
+      <ul>
+        <li>Solid arrows are the default wiring; dashed arrows are alternatives or optional.</li>
+        <li>
+          <code>Dasha</code>, <code>Jaimini</code> and <code>SAV</code> need no services. They are
+          pure functions over the <code>Placements</code> that <code>Chart.generate</code> produces.
+        </li>
+        <li>
+          <code>BunServices.layer</code> appears only in the docs' example runtime layer, so its
+          link to <code>SwissephLayer</code> is inferred.
+        </li>
+      </ul>
+
+      <details>
+        <summary>Mermaid source</summary>
+        <pre>
+flowchart TB
+    subgraph LAYERS["Layers (providers)"]
+        BUN["BunServices.layer"]
+        SWL["Swisseph.SwissephLayer"]
+        CUSTOM["Custom Ephemeris layer (optional)"]
+        DEF["AstroParams.DefaultAstroParams"]
+        APL["AstroParams.layer(options)"]
+    end
+    subgraph SERVICES["Services (context tags)"]
+        EPH["Ephemeris"]
+        AP["AstroParams"]
+    end
+    subgraph CONSUMERS["Modules requiring services"]
+        CHART["Chart.generate"]
+        TRANSIT["Transit.findTransits"]
+    end
+    SWL -- provides --> EPH
+    CUSTOM -. provides .-> EPH
+    DEF -- provides --> AP
+    APL -. provides .-> AP
+    BUN -.-> SWL
+    EPH -- required by --> CHART
+    AP -- required by --> CHART
+    EPH -- required by --> TRANSIT
+    AP -- required by --> TRANSIT</pre>
+      </details>
+    </main>
+  </body>
+</html>

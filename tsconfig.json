@@ -1,8 +1,129 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
-  "include": [],
-  "references": [
-    { "path": "tsconfig.packages.json" },
-    { "path": "tsconfig.tests.json" }
-  ]
+  "$schema": "./node_modules/@effect/tsgo/schema.json",
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleDetection": "force",
+    "moduleResolution": "NodeNext",
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "ignoreEffectWarningsInTscExitCode": true,
+        "diagnosticSeverity": {
+          "abortControllerInEffect": "warning",
+          "anyUnknownInErrorContext": "warning",
+          "asyncFunction": "warning",
+          "catchAllToMapError": "message",
+          "catchChainToFirstSuccessOf": "message",
+          "catchTagToCatchReason": "warning",
+          "catchToIgnore": "message",
+          "catchToOrElseSucceed": "message",
+          "catchUnfailableEffect": "warning",
+          "classSelfMismatch": "warning",
+          "cryptoRandomUUID": "warning",
+          "cryptoRandomUUIDInEffect": "warning",
+          "deterministicKeys": "message",
+          "effectDoNotation": "message",
+          "effectFnImplicitAny": "warning",
+          "effectFnOpportunity": "message",
+          "effectMapFlatten": "message",
+          "effectMapVoid": "message",
+          "effectSucceedWithVoid": "message",
+          "extendsNativeError": "warning",
+          "flatMapToMap": "message",
+          "floatingEffect": "warning",
+          "floatingEffectInVitest": "warning",
+          "globalConsole": "warning",
+          "globalConsoleInEffect": "warning",
+          "globalDate": "warning",
+          "globalDateInEffect": "warning",
+          "globalFetch": "warning",
+          "globalFetchInEffect": "warning",
+          "globalRandom": "warning",
+          "globalRandomInEffect": "warning",
+          "globalTimers": "warning",
+          "globalTimersInEffect": "warning",
+          "instanceOfSchema": "warning",
+          "lazyEffect": "warning",
+          "leakingRequirements": "warning",
+          "missedPipeableOpportunity": "message",
+          "missingEffectContext": "warning",
+          "missingEffectError": "warning",
+          "missingEffectServiceDependency": "message",
+          "missingLayerContext": "warning",
+          "missingPipeableSignature": "message",
+          "missingReturnYieldStar": "warning",
+          "missingStarInYieldEffectGen": "warning",
+          "multipleCatchTag": "message",
+          "nestedEffectGenYield": "message",
+          "newPromise": "warning",
+          "newSchemaClass": "message",
+          "nodeBuiltinImport": "warning",
+          "nonObjectEffectServiceType": "warning",
+          "overriddenSchemaConstructor": "warning",
+          "preferSchemaOverJson": "warning",
+          "preferSchemaTypeProperty": "message",
+          "preferTypedSchemaDecoder": "message",
+          "preferUnsafeConstructor": "warning",
+          "processEnv": "warning",
+          "processEnvInEffect": "warning",
+          "redundantMapError": "message",
+          "redundantOrDie": "message",
+          "redundantSchemaTagIdentifier": "message",
+          "returnEffectInGen": "warning",
+          "runEffectInsideEffect": "warning",
+          "schemaLiteralNonFinite": "warning",
+          "schemaNumber": "message",
+          "schemaOpaqueInstanceMember": "warning",
+          "schemaStructWithTag": "message",
+          "schemaSyncInEffect": "warning",
+          "schemaUnionOfLiterals": "message",
+          "serviceNotAsClass": "message",
+          "strictBooleanExpressions": "message",
+          "strictEffectProvide": "warning",
+          "syncToSucceed": "message",
+          "tryCatchInEffectGen": "warning",
+          "unnecessaryArrowBlock": "message",
+          "unnecessaryEffectGen": "message",
+          "unnecessaryFailYieldableError": "message",
+          "unnecessaryPipe": "message",
+          "unnecessaryPipeChain": "message",
+          "unnecessaryTypeofType": "message",
+          "unsafeEffectTypeAssertion": "warning"
+        },
+        "overrides": [
+          {
+            "include": ["benchmarks/**/*.ts"],
+            "options": {
+              "diagnosticSeverity": {
+                "strictEffectProvide": "off"
+              }
+            }
+          }
+        ]
+      }
+    ],
+
+    "strict": true,
+    "skipLibCheck": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+
+    "exactOptionalPropertyTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noPropertyAccessFromIndexSignature": false
+  },
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "examples/**/*.ts",
+    "benchmarks/**/*.ts",
+    "vitest.config.ts"
+  ],
+  "exclude": ["dist", "node_modules", "repos", "tests/package"]
 }
