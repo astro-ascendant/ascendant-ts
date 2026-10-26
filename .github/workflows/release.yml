@@ -70,6 +70,12 @@ jobs:
           ID_TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org" | jq -r .value)
           echo "OIDC: id token length ${#ID_TOKEN}"
+          echo "--- claims npm matches on ---"
+          node -e '
+            const claims = JSON.parse(Buffer.from(process.argv[1].split(".")[1], "base64url"));
+            for (const k of ["aud","sub","repository","repository_owner","workflow_ref","job_workflow_ref","ref","event_name","environment","runner_environment"]) {
+              console.log(`${k}: ${JSON.stringify(claims[k])}`);
+            }' "$ID_TOKEN"
           echo "--- exchange response ---"
           curl -sS -o /tmp/exchange.json -w "http %{http_code}\n" -X POST \
             "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/astro-ascendant" \
