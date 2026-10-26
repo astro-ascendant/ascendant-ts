@@ -7,24 +7,30 @@ import { EphemerisTestLayer } from "./support/ephemeris.js";
 import { fixtures } from "./support/fixtures.js";
 
 describe("Chart projections", () => {
-  it("validates optional sex on chart parameters", () => {
-    const input = fixtures.locatedMoment();
-    expect(Chart.ChartParams.make(input)).not.toHaveProperty("sex");
-    for (const sex of Chart.Sex.literals) {
-      expect(
-        Chart.ChartParams.make({
-          moment: input.moment,
-          latitude: input.latitude,
-          longitude: input.longitude,
-          sex,
-        }).sex,
-      ).toBe(sex);
-    }
-    const decode = Schema.decodeUnknownSync(Chart.ChartParams);
-    const values = { moment: input.moment, latitude: input.latitude, longitude: input.longitude };
-    expect(() => decode({ ...values, sex: "Unknown" })).toThrow();
-    expect(() => decode({ ...values, sex: null })).toThrow();
-  });
+  it.effect("validates optional sex on chart parameters", () =>
+    Effect.gen(function* () {
+      const input = fixtures.locatedMoment();
+      expect(Chart.ChartParams.make(input)).not.toHaveProperty("sex");
+      for (const sex of Chart.Sex.literals) {
+        expect(
+          Chart.ChartParams.make({
+            moment: input.moment,
+            latitude: input.latitude,
+            longitude: input.longitude,
+            sex,
+          }).sex,
+        ).toBe(sex);
+      }
+      const decode = Schema.decodeUnknownEffect(Chart.ChartParams);
+      const values = { moment: input.moment, latitude: input.latitude, longitude: input.longitude };
+      expect(yield* Effect.flip(decode({ ...values, sex: "Unknown" }))).toBeInstanceOf(
+        Schema.SchemaError,
+      );
+      expect(yield* Effect.flip(decode({ ...values, sex: null }))).toBeInstanceOf(
+        Schema.SchemaError,
+      );
+    }),
+  );
 
   it.effect("preserves sex through direct projection and chart schema round trips", () =>
     Effect.gen(function* () {
@@ -35,14 +41,16 @@ describe("Chart projections", () => {
           expect(encoded.sex).toBe(sex);
           const decoded = yield* Schema.decodeEffect(Chart.Chart)(encoded);
           expect(decoded.sex).toBe(sex);
-          expect(() =>
-            Schema.decodeUnknownSync(Chart.Chart)({
-              provenance: encoded.provenance,
-              division: encoded.division,
-              houses: encoded.houses,
-              sex: "Unknown",
-            }),
-          ).toThrow();
+          expect(
+            yield* Effect.flip(
+              Schema.decodeUnknownEffect(Chart.Chart)({
+                provenance: encoded.provenance,
+                division: encoded.division,
+                houses: encoded.houses,
+                sex: "Unknown",
+              }),
+            ),
+          ).toBeInstanceOf(Schema.SchemaError);
         }
       }
       const [legacy] = yield* Chart.project(fixtures.placementsFromLongitudes());
