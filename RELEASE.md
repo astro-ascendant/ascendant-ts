@@ -26,9 +26,14 @@ exactly, including the workflow filename; if the workflow is ever renamed,
 update the trusted publisher first or the OIDC exchange fails with
 `403`/`ENEEDAUTH`.
 
-A repo secret `NPM_TOKEN` is optional. If set, the workflow publishes with it
-instead of OIDC; it must be an Automation or granular token, not a classic
-Publish token.
+Do not set an `NPM_TOKEN` secret, at repo or org level. The workflow never
+passes a token to `npm publish`, because any `NODE_AUTH_TOKEN` in the publish
+step makes npm authenticate with that token instead of exchanging the OIDC
+token, and a missing or expired one fails with `ENEEDAUTH` before the trusted
+publisher is consulted. An org-level secret is inherited by every repo, so
+check the organization too, not just the repository. If you ever need a token
+path instead of OIDC, add it deliberately and use an Automation or granular
+token, never a classic Publish token.
 
 ## Release steps
 
@@ -140,8 +145,9 @@ diverge.
 - **`EOTP`**: a 2FA prompt reached CI. Use trusted publishing (no token) or an
   Automation token, never a classic Publish token.
 - **`ENEEDAUTH` / `403`**: `id-token: write` is missing from the workflow, npm
-  in the runner is older than 11.5.1, or the trusted publisher entry does not
-  match the repository and workflow filename.
+  in the runner is older than 11.5.1, a token secret is reaching the publish
+  step and shadowing OIDC (check org-level secrets, not just the repo), or the
+  trusted publisher entry does not match the repository and workflow filename.
 - **`EPUBLISHCONFLICT`**: the version is already on npm. Bump again with a new
   changeset; never re-tag an existing version. If the publish succeeded but the
   Release step did not, create the Release by hand instead of re-running the
