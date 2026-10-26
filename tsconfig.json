@@ -121,10 +121,11 @@
         },
         "overrides": [
           {
-            "include": ["benchmarks/**/*.ts"],
+            "include": ["benchmarks/**/*.ts", "examples/**/*.ts"],
             "options": {
               "diagnosticSeverity": {
-                "strictEffectProvide": "off"
+                "strictEffectProvide": "off",
+                "unstableApiUsage": "off"
               }
             }
           }
