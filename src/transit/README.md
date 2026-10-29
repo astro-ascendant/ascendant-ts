@@ -36,6 +36,8 @@ triples yield three events; refinement bisects to `precisionMinutes`
 `TransitSearchExhausted` instead of a short list. Pass `includeCharts` with
 divisions to attach one full `ChartCalculation` per found moment.
 
-Searches sample thousands of ephemeris positions; for repeated or
+`findTransits` is the module's only operation; the sampling and bisection
+kernel behind it (ADR-0007) is internal. Searches sample thousands of
+ephemeris positions; for repeated or
 overlapping scans, provide `SwissephCachedLayer` (see `../swisseph/README.md`)
 instead of `SwissephLayer` so re-scans hit the position cache.
