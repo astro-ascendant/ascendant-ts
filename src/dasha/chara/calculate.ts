@@ -1,4 +1,4 @@
-import { Effect, HashSet, Array } from "effect";
+import { Effect, HashSet } from "effect";
 
 import { Planets, type Moment, type Placements, type Rashis } from "../../chart/model.js";
 import { charaDasha } from "../../provenance.js";
@@ -126,31 +126,15 @@ export const calculateChara = Effect.fn("astro-ascendant/dasha/chara/calculateCh
   // Direction is determined by the 9th sign from lagna
   const direction = padaDirection(Zodiac.signAt(lagnaIndex + 8));
 
-  // Effectful phase: resolve duration and sign index for each sign, in order
-  const specs = yield* Effect.forEach(
-    Zodiac.sequenceFrom(lagnaIndex, direction),
-    (mahadasha) =>
-      Effect.map(durationOf(placements, mahadasha), (years) => ({
-        mahadasha,
-        years,
-        mahadashaIndex: Zodiac.rashiIndexOf(mahadasha),
-      })),
+  // Antardashas begin from the Sign after their Mahadasha, in the same direction.
+  const specs = yield* Effect.forEach(Zodiac.sequenceFrom(lagnaIndex, direction), (mahadasha) =>
+    Effect.map(durationOf(placements, mahadasha), (years) => ({
+      mahadasha,
+      years,
+      antardashas: Zodiac.sequenceFrom(Zodiac.rashiIndexOf(mahadasha) + direction, direction),
+    })),
   );
-
-  // Pure phase: each period starts where the previous one ended
-  const [, mahadashas] = Array.mapAccum(
-    specs,
-    moment.date,
-    (start, { mahadasha, years, mahadashaIndex }) => {
-      const period = RashiInternal.makeRashiMahaDasha(
-        mahadasha,
-        start,
-        years,
-        Zodiac.sequenceFrom(mahadashaIndex + direction, direction),
-      );
-      return [period.end, period] as const;
-    },
-  );
+  const mahadashas = RashiInternal.rashiMahaDashas(moment.date, specs);
 
   return CharaDasha.make({
     system: "Chara",

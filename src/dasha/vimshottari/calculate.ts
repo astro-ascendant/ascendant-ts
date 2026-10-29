@@ -1,4 +1,4 @@
-import { Array as Arr, Effect, pipe } from "effect";
+import { Effect, pipe } from "effect";
 
 import {
   STAR_LORD_CYCLE,
@@ -9,6 +9,7 @@ import type { Moment, Placements, SourcePlanet } from "../../chart/model.js";
 import { Calendar } from "../calendar.js";
 import { placementOf } from "../evidence.js";
 import { AntarDasha, MahaDasha } from "../model.js";
+import * as Timeline from "../timeline.js";
 
 /** Minutes of arc in one nakshatra (13°20′). */
 const STAR_ARC_MINUTES = 800;
@@ -40,45 +41,33 @@ function balanceOf(moon: SourcePlanet) {
   );
 }
 
-/** Builds the nine Antardashas within one Mahadasha, proportional to the 120-year cycle; the last clamps to the parent end. */
-function antardashasOf(
-  mahadasha: StarLord,
-  mahadashaStart: Moment["date"],
-  sequence: readonly StarLord[],
-) {
-  const mahadashaYears = VIMSHOTTARI_YEARS[mahadasha];
-  const mahadashaEnd = Calendar.shiftDate(mahadashaStart, mahadashaYears, 1);
-  const antardashaSequence = rotateLeft(sequence, sequence.indexOf(mahadasha));
-  return pipe(
-    antardashaSequence,
-    Arr.reduce(
-      { start: mahadashaStart, elapsed: 0, periods: [] as Array<AntarDasha> },
-      ({ start, elapsed, periods }, antardasha, index) => {
-        const years =
-          elapsed + (mahadashaYears * VIMSHOTTARI_YEARS[antardasha]) / VIMSHOTTARI_CYCLE_YEARS;
-        const end =
-          index === antardashaSequence.length - 1
-            ? mahadashaEnd
-            : Calendar.shiftDate(mahadashaStart, years, 1);
-        const period = AntarDasha.make({ mahadasha, antardasha, start, end });
-        return { start: end, elapsed: years, periods: [...periods, period] };
-      },
-    ),
-    ({ periods }) => ({ end: mahadashaEnd, antardashas: periods }),
-  );
-}
-
-/** Builds the nine Mahadashas from the birth sequence start, chaining each period's end to the next start. */
+/** Lays the nine Mahadashas end to end, each split into nine Antardashas by its share of the 120-year cycle. */
 function mahadashasFrom(sequence: readonly StarLord[], start: Moment["date"]) {
-  return pipe(
-    sequence,
-    Arr.reduce({ start, periods: [] as Array<MahaDasha> }, ({ start, periods }, mahadasha) => {
-      const { end, antardashas } = antardashasOf(mahadasha, start, sequence);
-      const period = MahaDasha.make({ mahadasha, start, end, antardashas });
-      return { start: end, periods: [...periods, period] };
-    }),
-    ({ periods }) => periods,
+  const placed = Timeline.sequence(
+    start,
+    sequence.map((lord) => ({ label: lord, years: VIMSHOTTARI_YEARS[lord] })),
+    Calendar.decimalYears,
   );
+  return placed.map((period) => {
+    const mahadashaYears = VIMSHOTTARI_YEARS[period.label];
+    const shares = rotateLeft(sequence, sequence.indexOf(period.label)).map((lord) => ({
+      label: lord,
+      years: (mahadashaYears * VIMSHOTTARI_YEARS[lord]) / VIMSHOTTARI_CYCLE_YEARS,
+    }));
+    return MahaDasha.make({
+      mahadasha: period.label,
+      start: period.start,
+      end: period.end,
+      antardashas: Timeline.subdivide(period, shares, Calendar.decimalYears).map((child) =>
+        AntarDasha.make({
+          mahadasha: period.label,
+          antardasha: child.label,
+          start: child.start,
+          end: child.end,
+        }),
+      ),
+    });
+  });
 }
 
 /** Calculates the full Vimshottari Dasha timeline from the natal Moon's nakshatra position. */

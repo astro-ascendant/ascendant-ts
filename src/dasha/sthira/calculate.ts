@@ -225,21 +225,13 @@ const scoredOf = Effect.fn("astro-ascendant/dasha/sthira/scoredOf")(function* (
 
 /** Builds the twelve Rashi Mahadashas from the Brahma sign onward, each lasting its sign duration. */
 function mahadashasFrom(winnerSign: Rashis, start: Moment["date"]): ReadonlyArray<RashiMahaDasha> {
-  const startIndex = Zodiac.rashiIndexOf(winnerSign);
-  return pipe(
-    Arr.range(0, Zodiac.SIGNS.length - 1),
-    Arr.map((offset) => Zodiac.wrapIndex(startIndex + offset)),
-    Arr.reduce({ start, periods: [] as Array<RashiMahaDasha> }, ({ start, periods }, index) => {
-      const mahadasha = Zodiac.signAt(index);
-      const period = RashiInternal.makeRashiMahaDasha(
-        mahadasha,
-        start,
-        SIGN_DURATION[mahadasha],
-        Zodiac.sequenceFrom(index, 1),
-      );
-      return { start: period.end, periods: [...periods, period] };
-    }),
-    ({ periods }) => periods,
+  return RashiInternal.rashiMahaDashas(
+    start,
+    Zodiac.sequenceFrom(Zodiac.rashiIndexOf(winnerSign), 1).map((mahadasha) => ({
+      mahadasha,
+      years: SIGN_DURATION[mahadasha],
+      antardashas: Zodiac.sequenceFrom(Zodiac.rashiIndexOf(mahadasha), 1),
+    })),
   );
 }
 
