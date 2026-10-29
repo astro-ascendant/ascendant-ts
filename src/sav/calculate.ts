@@ -1,9 +1,7 @@
 import { Array, Effect, Record } from "effect";
 
-import { RASHIS } from "../chart/internal/constants.js";
 import type { Placements } from "../chart/model.js";
 import { Placement, Zodiac } from "../utils/index.js";
-import { signIndexOf } from "../utils/position.js";
 import {
   ASHTAKAVARGA_ENTITY_ORDER,
   ASHTAKAVARGA_PLANET_ORDER,
@@ -32,23 +30,23 @@ type EntityPositions = Readonly<Record<AshtakavargaEntities, Zodiac.RashiIndex>>
 
 function signScoresFromArray(scores: readonly number[]): SignScores {
   return Record.fromEntries(
-    RASHIS.map((rashi, index) => [rashi, Array.getUnsafe(scores, index)] as const),
+    Zodiac.SIGNS.map((rashi, index) => [rashi, Array.getUnsafe(scores, index)] as const),
   ) as SignScores;
 }
 
 const signScores = Effect.fn("astro-ascendant/sav/signScores")(function* (
   scores: readonly number[],
 ) {
-  if (scores.length !== RASHIS.length) {
+  if (scores.length !== Zodiac.SIGNS.length) {
     return yield* SAVCalculationError.make({
       message: `Expected 12 sign scores; received ${scores.length}`,
-      cause: { expected: RASHIS.length, actual: scores.length },
+      cause: { expected: Zodiac.SIGNS.length, actual: scores.length },
     });
   }
   return signScoresFromArray(scores);
 });
 
-const total = (scores: SignScores): number => RASHIS.reduce((sum, rashi) => sum + scores[rashi], 0);
+const total = (scores: SignScores): number => Zodiac.SIGNS.reduce((sum, rashi) => sum + scores[rashi], 0);
 
 const entityPositions = Effect.fn("astro-ascendant/sav/entityPositions")(function* (
   placements: Placements,
@@ -62,12 +60,14 @@ const entityPositions = Effect.fn("astro-ascendant/sav/entityPositions")(functio
         cause: { planet: name, count },
       }),
     );
-    return yield* signIndexOf(match.longitude);
+    return Zodiac.indexOfLongitude(match.longitude);
   });
 
   const positions = yield* Effect.all(
     ASHTAKAVARGA_ENTITY_ORDER.map((entity) =>
-      entity === "Lagna" ? signIndexOf(placements.lagna.longitude) : planetPosition(entity),
+      entity === "Lagna"
+        ? Effect.succeed(Zodiac.indexOfLongitude(placements.lagna.longitude))
+        : planetPosition(entity),
     ),
     { concurrency: "unbounded" },
   );
@@ -82,7 +82,7 @@ const calculateSignScores = Effect.fn("astro-ascendant/sav/calculateSignScores")
   positions: EntityPositions,
 ) {
   return yield* signScores(
-    RASHIS.map((_, signIndex) =>
+    Zodiac.SIGNS.map((_, signIndex) =>
       ASHTAKAVARGA_ENTITY_ORDER.reduce((score, contributor) => {
         const distance = Zodiac.houseDistance(positions[contributor], signIndex);
         return score + (CONTRIBUTION_OFFSETS[target][contributor].includes(distance) ? 1 : 0);
@@ -124,7 +124,7 @@ const calculateSarva = Effect.fn("astro-ascendant/sav/calculateSarva")(function*
   bhinna: BhinnaAshtakavarga,
 ) {
   const sarva = yield* signScores(
-    RASHIS.map((rashi) =>
+    Zodiac.SIGNS.map((rashi) =>
       ASHTAKAVARGA_PLANET_ORDER.reduce((score, planet) => score + bhinna[planet][rashi], 0),
     ),
   );
@@ -139,7 +139,7 @@ const calculateSarva = Effect.fn("astro-ascendant/sav/calculateSarva")(function*
 });
 
 const reduceScores = Effect.fn("astro-ascendant/sav/reduceScores")(function* (scores: SignScores) {
-  const reduced = RASHIS.map((rashi) => scores[rashi]);
+  const reduced = Zodiac.SIGNS.map((rashi) => scores[rashi]);
 
   for (const group of TRIKONA_GROUPS) {
     const minimum = Math.min(...group.map((index) => reduced[index] ?? 0));
@@ -174,13 +174,13 @@ const calculateReduced = Effect.fn("astro-ascendant/sav/calculateReduced")(funct
 });
 
 function calculatePlanetPinda(scores: SignScores, positions: EntityPositions): Pinda {
-  const rashi_pinda = RASHIS.reduce(
+  const rashi_pinda = Zodiac.SIGNS.reduce(
     (sum, rashi, index) => sum + scores[rashi] * (RASHI_GUNAKAR[index] ?? 0),
     0,
   );
   const graha_pinda = ASHTAKAVARGA_PLANET_ORDER.reduce(
     (sum, planet) =>
-      sum + scores[Array.getUnsafe(RASHIS, positions[planet])] * GRAHA_GUNAKAR[planet],
+      sum + scores[Zodiac.signAt(positions[planet])] * GRAHA_GUNAKAR[planet],
     0,
   );
   return { rashi_pinda, graha_pinda, shodhya_pinda: rashi_pinda + graha_pinda } satisfies Pinda;

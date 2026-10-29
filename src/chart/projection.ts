@@ -10,12 +10,11 @@ import type { DateTime as DateTimeType } from "effect/DateTime";
 import type { HouseData } from "../ephemeris/model.js";
 import { divisionalChartProjection, d1ChartProjection } from "../provenance.js";
 import { Zodiac } from "../utils/index.js";
-import { EPS_CIRCLE, normalizeLongitude } from "../utils/position.js";
+import { EPS_CIRCLE } from "../utils/position.js";
 import { getDivisionalTarget } from "./divisional-mapping/calculate.js";
 import { ChartCalculationError } from "./error.js";
 import { inSignStatus, starOf, subLordOf, subSubLordOf } from "./helper.js";
-import { SIGN_LORDS } from "./internal/constants.js";
-import { dayLord, signAt } from "./internal/position.js";
+import { dayLord } from "./internal/position.js";
 import {
   type Division,
   DivisionalChart,
@@ -34,7 +33,6 @@ import {
   D1Chart,
   D1House,
   D1Houses,
-  Rashis,
   type Sex,
   Sign,
 } from "./model.js";
@@ -45,8 +43,8 @@ interface MappedPoints {
 }
 
 function signOfIndex(signIndex: number): Sign {
-  const name = Array.getUnsafe(Rashis.literals, signIndex);
-  return Sign.make({ name, lord: SIGN_LORDS[name] });
+  const name = Zodiac.signAt(signIndex);
+  return Sign.make({ name, lord: Zodiac.lordOf(name) });
 }
 
 /** Maps the Lagna and planets into a Division, keeping source retrograde state. */
@@ -83,21 +81,12 @@ const mapPoints = Effect.fn("astro-ascendant/chart/mapPoints")(
   ),
 );
 
-function forwardDistance(from: number, to: number): number {
-  return (((to - from) % 360) + 360) % 360;
-}
-
-function angularDistance(first: number, second: number): number {
-  const distance = Math.abs(first - second) % 360;
-  return Math.min(distance, 360 - distance);
-}
-
 /** Forward span of each D1 house, failing when the cusps do not partition the circle. */
 const houseSpans = Effect.fn("astro-ascendant/chart/houseSpans")(function* (
   cusps: ReadonlyArray<Longitude>,
 ) {
   const spans = cusps.map((cusp, index) =>
-    forwardDistance(cusp, Array.getUnsafe(cusps, (index + 1) % cusps.length)),
+    Zodiac.forwardArc(cusp, Array.getUnsafe(cusps, (index + 1) % cusps.length)),
   );
   const fullCircle = spans.reduce((total, span) => total + span, 0);
   if (spans.some((span) => span === 0) || Math.abs(fullCircle - 360) > EPS_CIRCLE) {
@@ -117,7 +106,7 @@ function planetsInCuspHouses(
 ): ReadonlyArray<readonly Planet[]> {
   const houseIndexOf = (planet: Planet) =>
     cusps.findIndex(
-      (cusp, index) => forwardDistance(cusp, planet.longitude) < Array.getUnsafe(spans, index),
+      (cusp, index) => Zodiac.forwardArc(cusp, planet.longitude) < Array.getUnsafe(spans, index),
     );
   return cusps.map((_, index) => planets.filter((planet) => houseIndexOf(planet) === index));
 }
@@ -127,16 +116,11 @@ function houseOfPlanet(planet: Planets, houses: readonly D1House[]): Houses {
   return (index + 1) as Houses;
 }
 
-const ownedHouses = Effect.fn("astro-ascendant/chart/ownedHouses")(function* (
-  planet: Planets,
-  houses: readonly D1House[],
-) {
-  const owned: Array<Houses> = [];
-  for (const [index, house] of houses.entries()) {
-    if (SIGN_LORDS[yield* signAt(house.cusp)] === planet) owned.push((index + 1) as Houses);
-  }
-  return owned;
-});
+function ownedHouses(planet: Planets, houses: readonly D1House[]): readonly Houses[] {
+  return Houses.literals.filter(
+    (house) => Zodiac.lordOf(Zodiac.signOfLongitude(Array.getUnsafe(houses, house - 1).cusp)) === planet,
+  );
+}
 
 const planetsInStarOf = Effect.fn("astro-ascendant/chart/planetsInStarOf")(function* (
   starLord: Planets,
@@ -160,7 +144,7 @@ function agentOf(node: Planet, houses: readonly D1House[]): Planets {
       : Array.sort(
           house.planets.filter((item) => item.name !== node.name),
           Order.mapInput(Order.Number, (candidate: Planet) =>
-            angularDistance(candidate.longitude, node.longitude),
+            Zodiac.separation(candidate.longitude, node.longitude),
           ),
         )[0];
 
@@ -192,8 +176,8 @@ const planetSignificationOf = Effect.fn("astro-ascendant/chart/planetSignificati
   // itself is a node. The agent is still recorded on the result.
   const level1 = Option.isSome(starLord) ? [houseOfPlanet(starLord.value, allHouses)] : [];
   const level2 = [houseOfPlanet(planet, allHouses)];
-  const level3 = Option.isSome(starLord) ? yield* ownedHouses(starLord.value, allHouses) : [];
-  const level4 = yield* ownedHouses(planet, allHouses);
+  const level3 = Option.isSome(starLord) ? ownedHouses(starLord.value, allHouses) : [];
+  const level4 = ownedHouses(planet, allHouses);
 
   return [
     planet,
@@ -214,7 +198,7 @@ const houseSignificatorsOf = Effect.fn("astro-ascendant/chart/houseSignificators
   planets: readonly Planet[],
 ) {
   const occupants = chartHouse.planets.map((planet) => planet.name);
-  const owner = SIGN_LORDS[yield* signAt(chartHouse.cusp)];
+  const owner = Zodiac.lordOf(Zodiac.signOfLongitude(chartHouse.cusp));
   const level1 = (yield* Effect.forEach(occupants, (o) => planetsInStarOf(o, planets))).flat();
   const level3 = yield* planetsInStarOf(owner, planets);
 
@@ -242,7 +226,7 @@ const significationsOf = Effect.fn("astro-ascendant/chart/significationsOf")(fun
 
   const moon = HashMap.get(byName, "Moon");
   const ascendantStarLord = (yield* starOf(lagna.longitude)).lord;
-  const ascendantSignLord = SIGN_LORDS[lagna.sign.name];
+  const ascendantSignLord = Zodiac.lordOf(lagna.sign.name);
   const moonStarLord = Option.isSome(moon)
     ? (yield* starOf(moon.value.longitude)).lord
     : ascendantStarLord;
@@ -289,13 +273,13 @@ const d1Chart = Effect.fn("astro-ascendant/chart/d1Chart")(function* (
   const entries = yield* Effect.forEach(Houses.literals, (house) =>
     Effect.gen(function* () {
       const cusp = evidence.cusps[house];
-      const sign = yield* signAt(cusp);
+      const sign = Zodiac.signOfLongitude(cusp);
       return [
         String(house),
         D1House.make({
           sign,
           cusp,
-          signLord: SIGN_LORDS[sign],
+          signLord: Zodiac.lordOf(sign),
           starLord: (yield* starOf(cusp)).lord,
           subLord: yield* subLordOf(cusp),
           subSubLord: yield* subSubLordOf(cusp),
@@ -327,22 +311,20 @@ const divisionalChart = Effect.fn("astro-ascendant/chart/divisionalChart")(funct
   const { lagna, planets } = yield* mapPoints(placements, division);
   const lagnaIndex = Zodiac.rashiIndexOf(lagna.sign.name);
 
-  const entries = yield* Effect.forEach(Houses.literals, (house) =>
-    Effect.gen(function* () {
-      const sign = Zodiac.signAt(lagnaIndex + house - 1);
-      return [
-        String(house),
-        DivisionalHouse.make({
-          sign,
-          cusp: yield* normalizeLongitude(Zodiac.rashiIndexOf(sign) * 30),
-          signLord: SIGN_LORDS[sign],
-          significations: HOUSE_SIGNIFICATIONS[house],
-          planets: planets.filter((planet) => planet.sign.name === sign),
-          lagna: house === 1 ? lagna : null,
-        }),
-      ] as const;
-    }),
-  );
+  const entries = Houses.literals.map((house) => {
+    const sign = Zodiac.signAt(lagnaIndex + house - 1);
+    return [
+      String(house),
+      DivisionalHouse.make({
+        sign,
+        cusp: Zodiac.signStartOf(sign),
+        signLord: Zodiac.lordOf(sign),
+        significations: HOUSE_SIGNIFICATIONS[house],
+        planets: planets.filter((planet) => planet.sign.name === sign),
+        lagna: house === 1 ? lagna : null,
+      }),
+    ] as const;
+  });
 
   return yield* decodeChart(DivisionalChart, {
     ...(sex === undefined ? {} : { sex }),

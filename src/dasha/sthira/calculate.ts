@@ -1,8 +1,6 @@
 import { Array as Arr, Effect, HashSet, Order, pipe } from "effect";
 
 import { inSignStatus } from "../../chart/helper.js";
-import { RASHIS, SIGN_LORDS } from "../../chart/internal/constants.js";
-import { signAt } from "../../chart/internal/position.js";
 import type { Moment, Placements, Planets, Rashis } from "../../chart/model.js";
 import { calculate as calculateCharaKarakas } from "../../jaimini/chara-karakas/calculate.js";
 import { compareExactDegrees, exactDegreeOf } from "../../jaimini/chara-karakas/helper.js";
@@ -14,7 +12,6 @@ import {
 import { targetsOf } from "../../jaimini/rashi-drishti/helper.js";
 import { sthiraDasha } from "../../provenance.js";
 import { Zodiac } from "../../utils/index.js";
-import { indexOfSign, signIndexOf } from "../../utils/position.js";
 import { DashaCalculationError, DashaEvidenceError } from "../error.js";
 import { placementOf, validateRequiredPlacements } from "../evidence.js";
 import type {
@@ -64,20 +61,17 @@ const rashiBalaOf = Effect.fn("astro-ascendant/dasha/sthira/rashiBalaOf")(functi
   placements: Placements,
   sign: Rashis,
 ) {
-  const signIdx = indexOfSign(sign);
   // Dedupe handles the case where the lord is Jupiter or Mercury
   const aspectingPlanets = yield* Effect.filter(
-    Arr.dedupe([SIGN_LORDS[sign], "Jupiter", "Mercury"] as const),
+    Arr.dedupe([Zodiac.lordOf(sign), "Jupiter", "Mercury"] as const),
     (planet) =>
       placementOf(placements, planet, "Rashi Bala drishti").pipe(
-        Effect.flatMap((found) => signAt(found.longitude)),
-        Effect.flatMap((planetSign) => targetsOf(planetSign)),
-        Effect.map((targets) => targets.includes(sign)),
+        Effect.map((found) => targetsOf(Zodiac.signOfLongitude(found.longitude)).includes(sign)),
       ),
   );
-  const planetCount = (yield* Effect.filter(placements.planets, ({ longitude }) =>
-    signIndexOf(longitude).pipe(Effect.map((index) => (index as number) === signIdx)),
-  )).length;
+  const planetCount = placements.planets.filter(
+    ({ longitude }) => Zodiac.signOfLongitude(longitude) === sign,
+  ).length;
   const charaBala = CHARA_BALA[sign];
   const sthiraBala = planetCount === 0 ? 0 : 45 + 15 * planetCount;
   const drishtiBala = aspectingPlanets.length * 60;
@@ -96,8 +90,8 @@ const rashiBalaOf = Effect.fn("astro-ascendant/dasha/sthira/rashiBalaOf")(functi
 const referenceOf = Effect.fn("astro-ascendant/dasha/sthira/referenceOf")(function* (
   placements: Placements,
 ) {
-  const lagnaSign = yield* signAt(placements.lagna.longitude);
-  const seventhSign = Arr.getUnsafe(RASHIS, Zodiac.wrapIndex(indexOfSign(lagnaSign) + 6));
+  const lagnaSign = Zodiac.signOfLongitude(placements.lagna.longitude);
+  const seventhSign = Zodiac.houseSignOf(Zodiac.rashiIndexOf(lagnaSign), 7);
   const [lagnaRashiBala, seventhRashiBala] = yield* Effect.all([
     rashiBalaOf(placements, lagnaSign),
     rashiBalaOf(placements, seventhSign),
@@ -111,10 +105,10 @@ const referenceOf = Effect.fn("astro-ascendant/dasha/sthira/referenceOf")(functi
 
 /** Lords of the 5th, 7th, and 11th from the reference sign, filtered to eligible Brahma planets and deduped. */
 function candidatesOf(referenceSign: Rashis): ReadonlyArray<EligibleBrahmaPlanet> {
-  const start = indexOfSign(referenceSign);
+  const start = Zodiac.rashiIndexOf(referenceSign);
   return pipe(
     [5, 7, 11],
-    Arr.map((offset) => SIGN_LORDS[Arr.getUnsafe(RASHIS, Zodiac.wrapIndex(start + offset))]),
+    Arr.map((offset) => Zodiac.lordOf(Zodiac.signAt(start + offset))),
     Arr.filter((candidate) => isEligibleBrahma(candidate)),
     Arr.dedupe,
   );
@@ -149,8 +143,8 @@ const karakasOf = Effect.fn("astro-ascendant/dasha/sthira/karakasOf")(function* 
     atmakaraka.planet,
     "Brahma Kendradi Bala Atmakaraka",
   );
-  const atmakarakaSignIndex = yield* signIndexOf(atmakarakaPlacement.longitude);
-  const atmakarakaSign = yield* signAt(atmakarakaPlacement.longitude);
+  const atmakarakaSignIndex = Zodiac.indexOfLongitude(atmakarakaPlacement.longitude);
+  const atmakarakaSign = Zodiac.signAt(atmakarakaSignIndex);
   return { karakas, atmakaraka, atmakarakaSign, atmakarakaSignIndex };
 });
 
@@ -177,11 +171,11 @@ const scoreCandidate = Effect.fn("astro-ascendant/dasha/sthira/scoreCandidate")(
     Arr.map(([role]) => role),
   );
   const charaKarakaBala = Math.max(...charaKarakaRoles.map((role) => KARAKA_BALA[role]));
-  const signIndex = yield* signIndexOf(placement.longitude);
+  const signIndex = Zodiac.indexOfLongitude(placement.longitude);
   const kendradiHouseFromAtmakaraka = Zodiac.houseDistance(atmakarakaSignIndex, signIndex);
   const kendradiBala = KENDRADI_BALA[kendradiHouseFromAtmakaraka];
   const exactDegree = yield* exactDegreeOf(placement.longitude);
-  const sign = yield* signAt(placement.longitude);
+  const sign = Zodiac.signAt(signIndex);
   return {
     planet: candidate,
     sign,
@@ -236,17 +230,17 @@ const scoredOf = Effect.fn("astro-ascendant/dasha/sthira/scoredOf")(function* (
 
 /** Builds the twelve Rashi Mahadashas from the Brahma sign onward, each lasting its sign duration. */
 function mahadashasFrom(winnerSign: Rashis, start: Moment["date"]): ReadonlyArray<RashiMahaDasha> {
-  const startIndex = indexOfSign(winnerSign);
+  const startIndex = Zodiac.rashiIndexOf(winnerSign);
   return pipe(
-    Arr.range(0, RASHIS.length - 1),
+    Arr.range(0, Zodiac.SIGNS.length - 1),
     Arr.map((offset) => Zodiac.wrapIndex(startIndex + offset)),
     Arr.reduce({ start, periods: [] as Array<RashiMahaDasha> }, ({ start, periods }, index) => {
-      const mahadasha = Arr.getUnsafe(RASHIS, index);
+      const mahadasha = Zodiac.signAt(index);
       const period = RashiInternal.makeRashiMahaDasha(
         mahadasha,
         start,
         SIGN_DURATION[mahadasha],
-        RashiInternal.sequenceFrom(index, 1),
+        Zodiac.sequenceFrom(index, 1),
       );
       return { start: period.end, periods: [...periods, period] };
     }),

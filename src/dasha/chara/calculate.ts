@@ -1,10 +1,9 @@
 import { Effect, HashSet, Array } from "effect";
 
-import { RASHIS, SIGN_LORDS } from "../../chart/internal/constants.js";
 import { Planets, type Moment, type Placements, type Rashis } from "../../chart/model.js";
 import { compareExactDegrees, exactDegreeOf } from "../../jaimini/chara-karakas/helper.js";
 import { charaDasha } from "../../provenance.js";
-import { indexOfSign, signAtIndex, signIndexOf } from "../../utils/position.js";
+import { Zodiac } from "../../utils/index.js";
 import { placementOf, validateRequiredPlacements } from "../evidence.js";
 import { CharaDasha } from "../model.js";
 import { type Direction, RashiInternal } from "../rashi-internal.js";
@@ -28,20 +27,14 @@ function padaDirection(sign: Rashis): Direction {
 }
 
 function distanceInDirection(from: number, to: number, direction: Direction): number {
-  return ((to - from) * direction + RASHIS.length) % RASHIS.length;
+  return Zodiac.wrapIndex((to - from) * direction);
 }
 
-const countAssociations = Effect.fn("astro-ascendant/dasha/chara/countAssociations")(function* (
-  placements: Placements,
-  exclude: Planets,
-  index: number,
-) {
-  const indexes = yield* Effect.forEach(
-    placements.planets.filter((p) => p.name !== exclude),
-    (p) => signIndexOf(p.longitude),
-  );
-  return indexes.filter((i) => i === index).length;
-});
+function countAssociations(placements: Placements, exclude: Planets, index: number): number {
+  return placements.planets.filter(
+    (p) => p.name !== exclude && Zodiac.indexOfLongitude(p.longitude) === index,
+  ).length;
+}
 
 /**
  * Resolves the effective lord of Scorpio or Aquarius for Chara Dasha, where
@@ -57,15 +50,14 @@ const countAssociations = Effect.fn("astro-ascendant/dasha/chara/countAssociatio
 const resolveCoLord = Effect.fn("astro-ascendant/dasha/chara/resolveCoLord")(function* <
   Candidate extends Planets,
 >(placements: Placements, sign: "Scorpio" | "Aquarius", [a, b]: readonly [Candidate, Candidate]) {
-  const target = indexOfSign(sign);
+  const target = Zodiac.rashiIndexOf(sign);
 
   const describe = (planet: Candidate) =>
     placementOf(placements, planet, `${sign} co-lord`).pipe(
-      Effect.flatMap(({ longitude }) =>
-        signIndexOf(longitude).pipe(
-          Effect.map((index) => ({ planet, longitude, index, inSign: index === target })),
-        ),
-      ),
+      Effect.map(({ longitude }) => {
+        const index = Zodiac.indexOfLongitude(longitude);
+        return { planet, longitude, index, inSign: index === target };
+      }),
     );
 
   const [x, y] = yield* Effect.all([describe(a), describe(b)]);
@@ -73,10 +65,8 @@ const resolveCoLord = Effect.fn("astro-ascendant/dasha/chara/resolveCoLord")(fun
   if (x.inSign && y.inSign) return null;
   if (x.inSign !== y.inSign) return x.inSign ? y.planet : x.planet;
 
-  const [xCount, yCount] = yield* Effect.all([
-    countAssociations(placements, x.planet, x.index),
-    countAssociations(placements, y.planet, y.index),
-  ]);
+  const xCount = countAssociations(placements, x.planet, x.index);
+  const yCount = countAssociations(placements, y.planet, y.index);
   if (xCount !== yCount) return xCount > yCount ? x.planet : y.planet;
 
   const [xDeg, yDeg] = yield* Effect.all([exactDegreeOf(x.longitude), exactDegreeOf(y.longitude)]);
@@ -100,15 +90,14 @@ const durationOf = Effect.fn("astro-ascendant/dasha/chara/durationOf")(function*
   const lord =
     sign === "Scorpio" || sign === "Aquarius"
       ? yield* resolveCoLord(placements, sign, CO_LORDS[sign])
-      : SIGN_LORDS[sign];
+      : Zodiac.lordOf(sign);
 
   if (lord === null) return 12;
 
-  const signIndex = indexOfSign(sign);
+  const signIndex = Zodiac.rashiIndexOf(sign);
   const direction = padaDirection(sign);
-  const lordIndex = yield* placementOf(placements, lord, `${sign} duration`).pipe(
-    Effect.flatMap(({ longitude }) => signIndexOf(longitude)),
-  );
+  const lordPlacement = yield* placementOf(placements, lord, `${sign} duration`);
+  const lordIndex = Zodiac.indexOfLongitude(lordPlacement.longitude);
   const distance = distanceInDirection(signIndex, lordIndex, direction);
 
   return distance === 0 ? 12 : distance;
@@ -132,20 +121,19 @@ export const calculateChara = Effect.fn("astro-ascendant/dasha/chara/calculateCh
 ) {
   yield* validateRequiredPlacements(placements, Planets.literals, "Chara Dasha co-lord strength");
 
-  const lagnaIndex = yield* signIndexOf(placements.lagna.longitude);
+  const lagnaIndex = Zodiac.indexOfLongitude(placements.lagna.longitude);
 
   // Direction is determined by the 9th sign from lagna
-  const ninthIndex = yield* signAtIndex(lagnaIndex + 8);
-  const direction = padaDirection(Array.getUnsafe(RASHIS, ninthIndex));
+  const direction = padaDirection(Zodiac.signAt(lagnaIndex + 8));
 
   // Effectful phase: resolve duration and sign index for each sign, in order
   const specs = yield* Effect.forEach(
-    RashiInternal.sequenceFrom(lagnaIndex, direction),
+    Zodiac.sequenceFrom(lagnaIndex, direction),
     (mahadasha) =>
       Effect.map(durationOf(placements, mahadasha), (years) => ({
         mahadasha,
         years,
-        mahadashaIndex: indexOfSign(mahadasha),
+        mahadashaIndex: Zodiac.rashiIndexOf(mahadasha),
       })),
   );
 
@@ -158,7 +146,7 @@ export const calculateChara = Effect.fn("astro-ascendant/dasha/chara/calculateCh
         mahadasha,
         start,
         years,
-        RashiInternal.sequenceFrom(mahadashaIndex + direction, direction),
+        Zodiac.sequenceFrom(mahadashaIndex + direction, direction),
       );
       return [period.end, period] as const;
     },

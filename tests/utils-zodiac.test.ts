@@ -48,6 +48,41 @@ describe("Zodiac", () => {
     expect(Zodiac.wrapSigned(-180)).toBe(-180);
   });
 
+  it("gives every Sign its lord, modality and starting longitude", () => {
+    expect(SIGNS.map((sign) => Zodiac.lordOf(sign))).toEqual([
+      "Mars",
+      "Venus",
+      "Mercury",
+      "Moon",
+      "Sun",
+      "Mercury",
+      "Venus",
+      "Mars",
+      "Jupiter",
+      "Saturn",
+      "Saturn",
+      "Jupiter",
+    ]);
+    expect(SIGNS.slice(0, 6).map((sign) => Zodiac.modalityOf(sign))).toEqual([
+      "Movable",
+      "Fixed",
+      "Dual",
+      "Movable",
+      "Fixed",
+      "Dual",
+    ]);
+    expect(Zodiac.signStartOf("Aries")).toBe(0);
+    expect(Zodiac.signStartOf("Pisces")).toBe(330);
+    expect(Zodiac.signOfLongitude(Zodiac.wrapLongitude(359.99))).toBe("Pisces");
+  });
+
+  it("measures arcs forward and the shorter way round", () => {
+    expect(Zodiac.forwardArc(350, 10)).toBeCloseTo(20, 10);
+    expect(Zodiac.forwardArc(10, 350)).toBeCloseTo(340, 10);
+    expect(Zodiac.separation(350, 10)).toBeCloseTo(20, 10);
+    expect(Zodiac.separation(0, 180)).toBe(180);
+  });
+
   it("locates the sign containing a longitude", () => {
     const at = (longitude: number) => Zodiac.indexOfLongitude(longitude as Longitude);
     expect(at(0)).toBe(0);

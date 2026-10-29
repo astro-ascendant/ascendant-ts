@@ -15,7 +15,7 @@ export const getDivisionalTarget = Effect.fn(
       DivisionalMappingError.make({ message: "Invalid longitude for divisional mapping", cause }),
     ),
   );
-  const source = yield* sourcePositionOf(normalizedLongitude);
+  const source = sourcePositionOf(normalizedLongitude);
 
   if (division === 1) {
     return source;

@@ -1,48 +1,31 @@
-import { Array, Effect } from "effect";
+import { Array, Match } from "effect";
 
-import { RASHIS } from "../../chart/internal/constants.js";
-import { isDualSign, isFixedSign, isMovableSign } from "../../chart/internal/position.js";
 import type { Rashis } from "../../chart/model.js";
 import { Zodiac } from "../../utils/index.js";
-import { signAtIndex, type SignIndexError } from "../../utils/position.js";
-import { CalculationError } from "./model.js";
 
-export const targetsOf = Effect.fn("astro-ascendant/jaimini/rashi-drishti/targetsOf")(function* (
-  reference: Rashis,
-): Effect.fn.Return<readonly [Rashis, Rashis, Rashis], CalculationError | SignIndexError> {
-  const referenceIndex = Zodiac.rashiIndexOf(reference);
-  const targets: Array<Rashis> = [];
-  if (isMovableSign(reference)) {
-    const excluded = Array.getUnsafe(RASHIS, yield* signAtIndex(referenceIndex + 1));
-    for (const candidate of RASHIS) {
-      if (isFixedSign(candidate) && candidate !== excluded) {
-        targets.push(candidate);
-      }
-    }
-  } else if (isFixedSign(reference)) {
-    const excluded = Array.getUnsafe(RASHIS, yield* signAtIndex(referenceIndex - 1));
-    for (const candidate of RASHIS) {
-      if (isMovableSign(candidate) && candidate !== excluded) {
-        targets.push(candidate);
-      }
-    }
-  } else {
-    for (const candidate of RASHIS) {
-      if (isDualSign(candidate) && candidate !== reference) {
-        targets.push(candidate);
-      }
-    }
-  }
+function signsOf(modality: Zodiac.Modality): readonly Rashis[] {
+  return Zodiac.SIGNS.filter((sign) => Zodiac.modalityOf(sign) === modality);
+}
 
-  const first = targets[0];
-  const second = targets[1];
-  const third = targets[2];
-  if (first === undefined || second === undefined || third === undefined) {
-    return yield* CalculationError.make({
-      message: `Rashi Drishti did not produce three targets for ${reference}`,
-      cause: reference,
-    });
-  }
+function triple(signs: readonly Rashis[]): readonly [Rashis, Rashis, Rashis] {
+  return [Array.getUnsafe(signs, 0), Array.getUnsafe(signs, 1), Array.getUnsafe(signs, 2)];
+}
 
-  return [first, second, third];
-});
+/**
+ * The three Signs a Sign aspects: movable Signs aspect the fixed Signs except
+ * the next one, fixed Signs the movable Signs except the previous one, and dual
+ * Signs the other dual Signs (ADR-0006).
+ */
+export function targetsOf(reference: Rashis): readonly [Rashis, Rashis, Rashis] {
+  const index = Zodiac.rashiIndexOf(reference);
+  return Match.value(Zodiac.modalityOf(reference)).pipe(
+    Match.when("Movable", () =>
+      triple(signsOf("Fixed").filter((sign) => sign !== Zodiac.signAt(index + 1))),
+    ),
+    Match.when("Fixed", () =>
+      triple(signsOf("Movable").filter((sign) => sign !== Zodiac.signAt(index - 1))),
+    ),
+    Match.when("Dual", () => triple(signsOf("Dual").filter((sign) => sign !== reference))),
+    Match.exhaustive,
+  );
+}

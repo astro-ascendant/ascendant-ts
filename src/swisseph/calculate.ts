@@ -7,7 +7,8 @@ import { ChartAngles, CircleAngle, Houses, type Planets } from "../chart/model.j
 import { EphemerisError } from "../ephemeris/error.js";
 import { HouseData, JulianDay, PlanetaryPosition } from "../ephemeris/model.js";
 import { operationError } from "../utils/operation-error.js";
-import { normalizeLongitude, signStartOf } from "../utils/position.js";
+import { Zodiac } from "../utils/index.js";
+import { normalizeLongitude } from "../utils/position.js";
 import { siderealModeOf, celestialBodyOf, houseSystemOf, nativeCuspOf } from "./helper.js";
 import { NativeHouseData, NativePlanetaryPosition } from "./model.js";
 
@@ -88,7 +89,7 @@ export const calculateHouses = Effect.fn("astro-ascendant/swisseph/calculateHous
     const sidereal = (angle: number) =>
       Effect.map(normalizeLongitude(angle - offset), (longitude) => CircleAngle.make(longitude));
     const ascendant = yield* normalizeLongitude(houses.ascendant - offset);
-    const signStart = yield* signStartOf(ascendant);
+    const signStart = Zodiac.signStartOf(Zodiac.signOfLongitude(ascendant));
     const cusps = yield* Effect.forEach(Houses.literals, (house) =>
       Effect.gen(function* () {
         const cusp =

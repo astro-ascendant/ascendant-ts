@@ -1,13 +1,11 @@
 import { DateTime } from "effect";
 
 import type { Rashis } from "../chart/model.js";
-import { Zodiac } from "../utils/index.js";
 import { Calendar } from "./calendar.js";
 import { RashiAntarDasha, RashiMahaDasha } from "./model.js";
 
 export type Direction = 1 | -1;
 
-const sequenceFrom = Zodiac.sequenceFrom;
 
 /** The final child clamps to the parent end; fractional years must not gap or overrun. */
 function makeRashiMahaDasha(
@@ -41,4 +39,4 @@ function makeRashiMahaDasha(
   });
 }
 
-export const RashiInternal = { makeRashiMahaDasha, sequenceFrom };
+export const RashiInternal = { makeRashiMahaDasha };

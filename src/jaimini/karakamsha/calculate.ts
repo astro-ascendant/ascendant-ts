@@ -3,12 +3,12 @@ import { Effect } from "effect";
 import { getDivisionalTarget } from "../../chart/divisional-mapping/calculate.js";
 import { Placements } from "../../chart/model.js";
 import { jaiminiKarakamsha } from "../../provenance.js";
+import { Zodiac } from "../../utils/index.js";
 import { calculate as calculateCharaKarakas } from "../chara-karakas/calculate.js";
 import type {
   EvidenceError as CharaKarakasEvidenceError,
   ParseError as CharaKarakasParseError,
 } from "../chara-karakas/model.js";
-import { signOf } from "./helper.js";
 import type { Result } from "./model.js";
 import { CalculationError, EvidenceError } from "./model.js";
 
@@ -50,12 +50,7 @@ export const calculate = Effect.fn("astro-ascendant/jaimini/karakamsha/calculate
             cause,
           }),
         ),
-        Effect.flatMap((target) =>
-          Effect.map(signOf(target.signIndex), (sign) => ({
-            planet: holder.planet,
-            sign,
-          })),
-        ),
+        Effect.map((target) => ({ planet: holder.planet, sign: Zodiac.signAt(target.signIndex) })),
       );
     }),
     { concurrency: "unbounded" },

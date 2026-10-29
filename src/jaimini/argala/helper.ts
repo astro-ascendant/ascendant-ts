@@ -1,8 +1,7 @@
-import { Array, Effect, HashMap, Option } from "effect";
+import { Effect, HashMap, Option } from "effect";
 
-import { RASHIS } from "../../chart/internal/constants.js";
 import type { Planets, Rashis } from "../../chart/model.js";
-import { signAtIndex } from "../../utils/position.js";
+import { Zodiac } from "../../utils/index.js";
 import type { Relation } from "./model.js";
 import { CalculationError, Positions } from "./model.js";
 
@@ -15,8 +14,7 @@ export const relation = Effect.fn("astro-ascendant/jaimini/argala/relation")(fun
   reverse: boolean,
 ) {
   const offset = position - 1;
-  const index = yield* signAtIndex(referenceIndex + (reverse ? -offset : offset));
-  const sign = Array.getUnsafe(RASHIS, index);
+  const sign = Zodiac.signAt(referenceIndex + (reverse ? -offset : offset));
   const planets = HashMap.get(occupants, sign);
   if (Option.isNone(planets)) {
     return yield* CalculationError.make({

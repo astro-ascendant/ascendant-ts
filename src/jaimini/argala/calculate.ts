@@ -1,7 +1,6 @@
 import { Array as Arr, Effect, HashMap, Match, Option, pipe } from "effect";
 
-import { PLANETS, RASHIS } from "../../chart/internal/constants.js";
-import { signAt } from "../../chart/internal/position.js";
+import { PLANETS } from "../../chart/internal/constants.js";
 import { Planets, Rashis, type Placements } from "../../chart/model.js";
 import { jaiminiArgala } from "../../provenance.js";
 import { Placement, Zodiac } from "../../utils/index.js";
@@ -17,13 +16,13 @@ const locate = Effect.fn("astro-ascendant/jaimini/argala/locate")(function* (
   const placement = yield* Placement.exactlyOnce(placements, planet, (actual) =>
     EvidenceError.make({ placement: planet, expected: 1, actual }),
   );
-  return { planet, placement, sign: yield* signAt(placement.longitude) };
+  return { planet, placement, sign: Zodiac.signOfLongitude(placement.longitude) };
 });
 
 /** Groups located planets by occupied sign; every sign stays present, even when empty. */
 function occupantsOf(located: ReadonlyArray<{ readonly planet: Planets; readonly sign: Rashis }>) {
   return pipe(
-    RASHIS,
+    Zodiac.SIGNS,
     Arr.map(
       (sign) =>
         [
@@ -51,9 +50,9 @@ export const calculate = Effect.fn("astro-ascendant/jaimini/argala/calculate")(f
     return yield* EvidenceError.make({ placement: "Ketu", expected: 1, actual: 0 });
   }
   const reverse = reference.kind === "Ketu";
-  const referenceSign = yield* Match.value(reference).pipe(
-    Match.when({ kind: "Sign" }, ({ sign }) => Effect.succeed(sign)),
-    Match.when({ kind: "Ketu" }, () => signAt(ketu.value.longitude)),
+  const referenceSign = Match.value(reference).pipe(
+    Match.when({ kind: "Sign" }, ({ sign }) => sign),
+    Match.when({ kind: "Ketu" }, () => Zodiac.signOfLongitude(ketu.value.longitude)),
     Match.exhaustive,
   );
   const referenceIndex = Zodiac.rashiIndexOf(referenceSign);
