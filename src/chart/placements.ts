@@ -1,62 +1,37 @@
-import { Array, Effect, Option } from "effect";
+import { Effect } from "effect";
 
 import type { HouseData, PlanetaryPosition } from "../ephemeris/model.js";
-import { ketuFromRahu, normalizeLongitude } from "../utils/position.js";
-import { ChartCalculationError, MissingPlacementError } from "./error.js";
+import { ChartCalculationError } from "./error.js";
 import { starOf } from "./helper.js";
-import { Placements, SourceLagna, SourcePlanet } from "./model.js";
+import { Longitude, Placements, SourceLagna, SourcePlanet } from "./model.js";
 
 export interface PlacementEvidence {
   readonly houses: HouseData;
   readonly planetEntries: readonly (readonly [SourcePlanet["name"], PlanetaryPosition])[];
 }
 
-export const placementsFromEvidence = Effect.fn("astro-ascendant/chart/placementsFromEvidence")(
+export const placementsFromEvidence = Effect.fnUntraced(
   function* (evidence: PlacementEvidence) {
-    const sourcePlanets: SourcePlanet[] = [];
-
-    for (const [name, position] of evidence.planetEntries) {
-      const longitude = yield* normalizeLongitude(position.longitude);
-      const star = yield* starOf(longitude);
-
-      sourcePlanets.push(
+    const planets = yield* Effect.forEach(evidence.planetEntries, ([name, position]) =>
+      Effect.map(starOf(position.longitude), (star) =>
         SourcePlanet.make({
           name,
-          longitude,
-          is_retrograde: name === "Rahu" ? false : position.longitudeSpeed < 0,
+          longitude: position.longitude,
+          // The nodes always move backwards, so a retrograde flag would carry no information.
+          is_retrograde: name === "Rahu" || name === "Ketu" ? false : position.longitudeSpeed < 0,
           star,
         }),
-      );
-    }
-
-    const rahuOption = Array.findFirst(sourcePlanets, (planet) => planet.name === "Rahu");
-
-    if (Option.isNone(rahuOption)) {
-      return yield* MissingPlacementError.make({ placement: "Rahu" });
-    }
-
-    const rahu = rahuOption.value;
-
-    const ketuLongitude = yield* ketuFromRahu(rahu.longitude);
-    const ketuStar = yield* starOf(ketuLongitude);
-    const ascendant = yield* normalizeLongitude(evidence.houses.ascendant);
-    const ascendantStar = yield* starOf(ascendant);
+      ),
+    );
+    const ascendant = evidence.houses.angles.ascendant;
 
     return Placements.make({
       lagna: SourceLagna.make({
         name: "Lagna",
-        longitude: ascendant,
-        star: ascendantStar,
+        longitude: Longitude.make(ascendant),
+        star: yield* starOf(Longitude.make(ascendant)),
       }),
-      planets: [
-        ...sourcePlanets,
-        SourcePlanet.make({
-          name: "Ketu",
-          longitude: ketuLongitude,
-          is_retrograde: false,
-          star: ketuStar,
-        }),
-      ],
+      planets,
     });
   },
   Effect.mapError((cause) =>

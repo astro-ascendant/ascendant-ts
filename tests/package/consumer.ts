@@ -51,7 +51,8 @@ const packageWorkflow = Effect.gen(function* () {
 });
 
 void Chart.generate;
-void Chart.project;
+void Chart.D1Chart;
+void Chart.DivisionalChart;
 void Chart.ChartCalculation;
 void Chart.LocatedMoment;
 void Chart.Moment;

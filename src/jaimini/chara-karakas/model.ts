@@ -3,6 +3,7 @@ import { Schema } from "effect";
 import { CLASSICAL_PLANETS } from "../../chart/internal/constants.js";
 import { Degree } from "../../chart/model.js";
 import { JaiminiCharaKarakasProvenance } from "../../provenance.js";
+import type { ExactDegree as ExactDegreeValue } from "../../utils/exact-degree.js";
 
 export { JaiminiCharaKarakasProvenance as Provenance } from "../../provenance.js";
 
@@ -26,14 +27,10 @@ export const Holder = Schema.Struct({
 });
 export interface Holder extends Schema.Schema.Type<typeof Holder> {}
 
-export interface ExactDegree {
-  readonly coefficient: bigint;
-  readonly scale: number;
-  readonly value: Degree;
-}
+export type { ExactDegree } from "../../utils/exact-degree.js";
 
 export interface RankedHolder extends Holder {
-  readonly exactDegree: ExactDegree;
+  readonly exactDegree: ExactDegreeValue;
 }
 
 export const Assignments = Schema.Record(Roles, Schema.NonEmptyArray(Holder));
@@ -45,15 +42,18 @@ export const Result = Schema.Struct({
 });
 export interface Result extends Schema.Schema.Type<typeof Result> {}
 
-export class EvidenceError extends Schema.TaggedError<EvidenceError>()(
-  "CharaKarakasEvidenceError",
+export class EvidenceError extends Schema.TaggedError<
+  EvidenceError,
+  { readonly brand: unique symbol }
+>()("CharaKarakasEvidenceError", {
+  placement: ClassicalPlanets,
+  expected: Schema.Literal(1),
+  actual: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+}) {}
+
+export class ParseError extends Schema.TaggedError<ParseError, { readonly brand: unique symbol }>()(
+  "CharaKarakasParseError",
   {
-    placement: ClassicalPlanets,
-    expected: Schema.Literal(1),
-    actual: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    message: Schema.String,
   },
 ) {}
-
-export class ParseError extends Schema.TaggedError<ParseError>()("CharaKarakasParseError", {
-  message: Schema.String,
-}) {}

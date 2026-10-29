@@ -5,14 +5,11 @@ import { jaiminiRashiDrishti } from "../../provenance.js";
 import { targetsOf } from "./helper.js";
 import type { Result } from "./model.js";
 
-export const calculate = Effect.fn("astro-ascendant/jaimini/rashi-drishti/calculate")(function* (
-  reference: Rashis,
-) {
-  const targets = yield* targetsOf(reference);
-
-  return {
+/** Calculates the Signs one reference Sign aspects under Jaimini Rashi Drishti; it cannot fail. */
+export function calculate(reference: Rashis): Effect.Effect<Result> {
+  return Effect.succeed({
     provenance: jaiminiRashiDrishti.provenance,
     reference,
-    targets,
-  } satisfies Result;
-});
+    targets: targetsOf(reference),
+  } satisfies Result);
+}

@@ -1,44 +1,46 @@
-import { DateTime } from "effect";
+import type { DateTime } from "effect";
 
 import type { Rashis } from "../chart/model.js";
-import { Zodiac } from "../utils/index.js";
 import { Calendar } from "./calendar.js";
 import { RashiAntarDasha, RashiMahaDasha } from "./model.js";
+import * as Timeline from "./timeline.js";
 
 export type Direction = 1 | -1;
 
-const sequenceFrom = Zodiac.sequenceFrom;
+/** One Rashi Mahadasha to lay out: its Sign, its years, and its Antardasha Signs in order. */
+export interface RashiMahaDashaSpec {
+  readonly mahadasha: Rashis;
+  readonly years: number;
+  readonly antardashas: readonly Rashis[];
+}
 
-/** The final child clamps to the parent end; fractional years must not gap or overrun. */
-function makeRashiMahaDasha(
-  mahadasha: Rashis,
+/** Lays Rashi Mahadashas end to end from `start`, each split evenly among its Antardasha Signs. */
+function rashiMahaDashas(
   start: DateTime.Utc,
-  years: number,
-  antardashaSequence: readonly Rashis[],
-): RashiMahaDasha {
-  const end = Calendar.shiftDate(start, years, 1);
-  let antardashaStart = start;
-  const antardashas = antardashaSequence.map((antardasha, index) => {
-    const antardashaEnd =
-      index === antardashaSequence.length - 1
-        ? end
-        : DateTime.add(start, { months: years * (index + 1) });
-    const period = RashiAntarDasha.make({
-      mahadasha,
-      antardasha,
-      start: antardashaStart,
-      end: antardashaEnd,
-    });
-    antardashaStart = antardashaEnd;
-    return period;
-  });
-
-  return RashiMahaDasha.make({
-    mahadasha,
+  specs: ReadonlyArray<RashiMahaDashaSpec>,
+): ReadonlyArray<RashiMahaDasha> {
+  const placed = Timeline.sequence(
     start,
-    end,
-    antardashas,
+    specs.map(({ mahadasha, years }) => ({ label: mahadasha, years })),
+    Calendar.wholeMonths,
+  );
+  return specs.map(({ years, antardashas }, index) => {
+    const period = placed[index]!;
+    const shares = antardashas.map((sign) => ({ label: sign, years: years / antardashas.length }));
+    return RashiMahaDasha.make({
+      mahadasha: period.label,
+      start: period.start,
+      end: period.end,
+      antardashas: Timeline.subdivide(period, shares, Calendar.wholeMonths).map((child) =>
+        RashiAntarDasha.make({
+          mahadasha: period.label,
+          antardasha: child.label,
+          start: child.start,
+          end: child.end,
+        }),
+      ),
+    });
   });
 }
 
-export const RashiInternal = { makeRashiMahaDasha, sequenceFrom };
+export const RashiInternal = { rashiMahaDashas };

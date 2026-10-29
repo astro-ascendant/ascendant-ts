@@ -18,16 +18,19 @@ export const Result = Schema.Struct({
 });
 export interface Result extends Schema.Schema.Type<typeof Result> {}
 
-export class EvidenceError extends Schema.TaggedError<EvidenceError>()("KarakamshaEvidenceError", {
+export class EvidenceError extends Schema.TaggedError<
+  EvidenceError,
+  { readonly brand: unique symbol }
+>()("KarakamshaEvidenceError", {
   placement: ClassicalPlanets,
   expected: Schema.Literal(1),
   actual: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
 }) {}
 
-export class CalculationError extends Schema.TaggedError<CalculationError>()(
-  "KarakamshaCalculationError",
-  {
-    message: Schema.String,
-    cause: Schema.Defect(),
-  },
-) {}
+export class CalculationError extends Schema.TaggedError<
+  CalculationError,
+  { readonly brand: unique symbol }
+>()("KarakamshaCalculationError", {
+  message: Schema.String,
+  cause: Schema.Defect(),
+}) {}

@@ -1,7 +1,14 @@
 import { Console, Effect, Record as EffectRecord } from "effect";
 
 import { starOf, subLordOf, subSubLordOf } from "../src/chart/helper.js";
-import type { ChartCalculation, Chart } from "../src/chart/index.js";
+import type {
+  Chart,
+  ChartCalculation,
+  DivisionalHouse,
+  Longitude,
+  D1Chart,
+  D1House,
+} from "../src/chart/index.js";
 
 type TableValue = string | number | boolean;
 type TableRow = Readonly<Record<string, TableValue>>;
@@ -13,6 +20,27 @@ function displayLongitude(longitude: number): number {
 function displayOptionalLongitude(longitude: number | undefined): TableValue {
   return longitude === undefined ? "—" : displayLongitude(longitude);
 }
+
+/** KP lords of a cusp, shown only on D1 houses, which alone carry them. */
+function cuspLords(house: D1House | DivisionalHouse) {
+  return {
+    "Star Lord": "starLord" in house ? house.starLord : "—",
+    "Sub Lord": "subLord" in house ? house.subLord : "—",
+    "Sub-Sub Lord": "subSubLord" in house ? house.subSubLord : "—",
+  };
+}
+
+/** KP lords of a point's longitude; divisional longitudes carry no star (Star placement). */
+const pointLords = Effect.fn(function* (chart: Chart, longitude: Longitude) {
+  if (chart.division !== 1) {
+    return { "Star Lord": "—", "Sub Lord": "—", "Sub-Sub Lord": "—" };
+  }
+  return {
+    "Star Lord": (yield* starOf(longitude)).lord,
+    "Sub Lord": yield* subLordOf(longitude),
+    "Sub-Sub Lord": yield* subSubLordOf(longitude),
+  };
+});
 
 const houseRows = Effect.fn(function* (chart: Chart) {
   const rows: TableRow[] = [];
@@ -29,9 +57,7 @@ const houseRows = Effect.fn(function* (chart: Chart) {
         Cusp: cusp,
         Point: lagna.name,
         "Sign Lord": lagna.sign.lord,
-        "Star Lord": (yield* starOf(lagna.longitude)).lord,
-        "Sub Lord": yield* subLordOf(lagna.longitude),
-        "Sub-Sub Lord": yield* subSubLordOf(lagna.longitude),
+        ...(yield* pointLords(chart, lagna.longitude)),
         Longitude: displayLongitude(lagna.longitude),
         Degree: displayLongitude(lagna.degree),
         Sign: lagna.sign.name,
@@ -46,9 +72,7 @@ const houseRows = Effect.fn(function* (chart: Chart) {
         Cusp: cusp,
         Point: planet.name,
         "Sign Lord": planet.sign.lord,
-        "Star Lord": (yield* starOf(planet.longitude)).lord,
-        "Sub Lord": yield* subLordOf(planet.longitude),
-        "Sub-Sub Lord": yield* subSubLordOf(planet.longitude),
+        ...(yield* pointLords(chart, planet.longitude)),
         Longitude: displayLongitude(planet.longitude),
         Degree: displayLongitude(planet.degree),
         Sign: planet.sign.name,
@@ -63,9 +87,7 @@ const houseRows = Effect.fn(function* (chart: Chart) {
         Cusp: cusp,
         Point: "—",
         "Sign Lord": houseData.signLord ?? "—",
-        "Star Lord": houseData.starLord ?? "—",
-        "Sub Lord": houseData.subLord ?? "—",
-        "Sub-Sub Lord": houseData.subSubLord ?? "—",
+        ...cuspLords(houseData),
         Longitude: "—",
         Degree: "—",
         Sign: "—",
@@ -83,16 +105,12 @@ function significationRows(chart: Chart): readonly TableRow[] {
     House: Number(houseNumber),
     Cusp: displayOptionalLongitude(houseData.cusp),
     "Sign Lord": houseData.signLord ?? "—",
-    "Star Lord": houseData.starLord ?? "—",
-    "Sub Lord": houseData.subLord ?? "—",
-    "Sub-Sub Lord": houseData.subSubLord ?? "—",
+    ...cuspLords(houseData),
     Significations: houseData.significations?.join(", ") ?? "—",
   }));
 }
 
-function planetSignificationRows(chart: Chart): readonly TableRow[] {
-  if (chart.planetSignifications === undefined) return [];
-
+function planetSignificationRows(chart: D1Chart): readonly TableRow[] {
   return EffectRecord.toEntries(chart.planetSignifications).map(([planet, signification]) => ({
     Planet: planet,
     "Level 1": signification.level1.join(", ") || "—",
@@ -102,9 +120,7 @@ function planetSignificationRows(chart: Chart): readonly TableRow[] {
   }));
 }
 
-function houseSignificatorRows(chart: Chart): readonly TableRow[] {
-  if (chart.houseSignificators === undefined) return [];
-
+function houseSignificatorRows(chart: D1Chart): readonly TableRow[] {
   return EffectRecord.toEntries(chart.houseSignificators).map(([houseNumber, significators]) => ({
     House: Number(houseNumber),
     "Level 1": significators.level1.join(", ") || "—",
@@ -138,7 +154,12 @@ export const printChartCalculation = Effect.fn(function* (
     if (includeSignificators) {
       yield* Console.log("House Significations");
       yield* Console.table(significationRows(chart));
+    }
 
+    // Only D1 carries KP significations and ruling planets.
+    if (chart.division !== 1) continue;
+
+    if (includeSignificators) {
       yield* Console.log("Planet Significations");
       yield* Console.table(planetSignificationRows(chart));
 
@@ -149,7 +170,7 @@ export const printChartCalculation = Effect.fn(function* (
     if (includeRulingPlanets) {
       yield* Console.log("Ruling Planets");
       yield* Console.table(
-        (chart.rulingPlanets ?? []).map((planet, index) => ({
+        chart.rulingPlanets.map((planet, index) => ({
           Rank: index + 1,
           Planet: planet,
         })),

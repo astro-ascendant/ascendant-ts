@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 
 import { Options as AstroParamsOptions } from "../astro-params/model.js";
-import { ChartProjectionProvenance } from "../provenance.js";
+import { DivisionalChartProvenance, D1ChartProvenance } from "../provenance.js";
 import { PLANETS, CLASSICAL_PLANETS, RASHIS, STARS, PLANET_DIGNITY } from "./internal/constants.js";
 
 export const Planets = Schema.Literals(PLANETS);
@@ -36,20 +36,67 @@ export const Division = Schema.Literals([
 ] as const);
 export type Division = typeof Division.Type;
 
-export const Longitude = Schema.Finite.check(
-  Schema.isBetween({ minimum: 0, maximum: 360, exclusiveMaximum: true }),
-).pipe(Schema.brand("Longitude"));
-export type Longitude = typeof Longitude.Type;
+/** Every supported Division other than D1. */
+export const DivisionalDivision = Schema.Literals([
+  2, 3, 4, 7, 9, 10, 12, 16, 20, 24, 27, 30, 40, 45, 60,
+] as const);
+export type DivisionalDivision = typeof DivisionalDivision.Type;
 
-export const CircleAngle = Schema.Finite.check(
-  Schema.isBetween({ minimum: 0, maximum: 360, exclusiveMaximum: true }),
-).pipe(Schema.brand("CircleAngle"));
-export type CircleAngle = typeof CircleAngle.Type;
+/** Wraps a finite angle onto the circle, [0, 360). */
+function wrap360(degrees: number): number {
+  return ((degrees % 360) + 360) % 360;
+}
 
-export const Degree = Schema.Finite.check(
+const DegreeSchema = Schema.Finite.check(
   Schema.isBetween({ minimum: 0, maximum: 30, exclusiveMaximum: true }),
 ).pipe(Schema.brand("Degree"));
-export type Degree = typeof Degree.Type;
+export type Degree = typeof DegreeSchema.Type;
+
+const LongitudeSchema = Schema.Finite.check(
+  Schema.isBetween({ minimum: 0, maximum: 360, exclusiveMaximum: true }),
+).pipe(Schema.brand("Longitude"));
+export type Longitude = typeof LongitudeSchema.Type;
+
+const CircleAngleSchema = Schema.Finite.check(
+  Schema.isBetween({ minimum: 0, maximum: 360, exclusiveMaximum: true }),
+).pipe(Schema.brand("CircleAngle"));
+export type CircleAngle = typeof CircleAngleSchema.Type;
+
+/**
+ * A position within its Sign, [0, 30). The schema carries its own functions,
+ * so `Degree.of(longitude)` reads like a method while the value stays a number.
+ */
+export const Degree = Object.assign(DegreeSchema, {
+  /** The Degree of a Longitude within the Sign that contains it. */
+  of(longitude: Longitude): Degree {
+    return DegreeSchema.make(longitude % 30);
+  },
+});
+
+/**
+ * A sidereal ecliptic longitude, [0, 360). The schema carries its own functions,
+ * so `Longitude.normalize(angle)` reads like a method while the value stays a
+ * number that arithmetic and JSON treat as one.
+ */
+export const Longitude = Object.assign(LongitudeSchema, {
+  /** Wraps any finite angle onto the circle; use `Position.normalizeLongitude` for unchecked input. */
+  normalize(degrees: number): Longitude {
+    return LongitudeSchema.make(wrap360(degrees));
+  },
+  /** The Longitude at a Degree within the Sign at a 0-based wheel position. */
+  inSign(signIndex: number, degree: number): Longitude {
+    // Wrapping the integer Sign index keeps the sum bit-exact for Degrees already in [0, 30).
+    return LongitudeSchema.make((((signIndex % 12) + 12) % 12) * 30 + degree);
+  },
+});
+
+/** An angle on the circle, [0, 360), that is not a graha or cusp longitude, such as the MC or ARMC. */
+export const CircleAngle = Object.assign(CircleAngleSchema, {
+  /** Wraps any finite angle onto the circle. */
+  normalize(degrees: number): CircleAngle {
+    return CircleAngleSchema.make(wrap360(degrees));
+  },
+});
 
 export const Star = Schema.Struct({
   name: Stars,
@@ -82,20 +129,31 @@ export const Lagna = Schema.Struct({
 });
 export interface Lagna extends Schema.Schema.Type<typeof Lagna> {}
 
-export const House = Schema.Struct({
+/** A whole-sign house of a divisional chart: its Sign, lord and occupants. */
+export const DivisionalHouse = Schema.Struct({
   sign: Rashis,
   cusp: Longitude,
   signLord: PlanetsLagna,
-  starLord: PlanetsLagna,
-  subLord: PlanetsLagna,
-  subSubLord: PlanetsLagna,
   significations: Schema.Array(Schema.String),
   planets: Schema.Array(Planet),
   lagna: Schema.NullOr(Lagna),
 });
-export interface House extends Schema.Schema.Type<typeof House> {}
+export interface DivisionalHouse extends Schema.Schema.Type<typeof DivisionalHouse> {}
 
-export const ChartHouses = Schema.Record(Houses, House);
+/** A D1 house beginning at its House system cusp, with the cusp's KP lords. */
+export const D1House = Schema.Struct({
+  ...DivisionalHouse.fields,
+  starLord: PlanetsLagna,
+  subLord: PlanetsLagna,
+  subSubLord: PlanetsLagna,
+});
+export interface D1House extends Schema.Schema.Type<typeof D1House> {}
+
+export const D1Houses = Schema.Record(Houses, D1House);
+export type D1Houses = typeof D1Houses.Type;
+
+export const DivisionalHouses = Schema.Record(Houses, DivisionalHouse);
+export type DivisionalHouses = typeof DivisionalHouses.Type;
 
 export const SourcePlanet = Schema.Struct({
   name: Planets,
@@ -118,7 +176,7 @@ export const Placements = Schema.Struct({
 });
 export interface Placements extends Schema.Schema.Type<typeof Placements> {}
 
-export { ChartProjectionProvenance as Provenance } from "../provenance.js";
+export { DivisionalChartProvenance, D1ChartProvenance } from "../provenance.js";
 
 export const Sex = Schema.Literals(["Male", "Female"]);
 export type Sex = typeof Sex.Type;
@@ -169,23 +227,32 @@ export const ChartAngles = Schema.Struct({
 });
 export interface ChartAngles extends Schema.Schema.Type<typeof ChartAngles> {}
 
-export const Chart = Schema.Struct({
+/** The D1 chart: House system cusps, angles and KP evidence. */
+export const D1Chart = Schema.Struct({
   sex: Schema.optionalKey(Sex),
-  provenance: ChartProjectionProvenance,
-  division: Division,
-  houses: ChartHouses,
-  angles: Schema.optionalKey(ChartAngles),
-  planetSignifications: Schema.optionalKey(Schema.Record(Planets, PlanetSignification)),
-  houseSignificators: Schema.optionalKey(Schema.Record(Houses, HouseSignificators)),
-  rulingPlanets: Schema.optionalKey(Schema.Tuple([Planets, Planets, Planets, Planets, Planets])),
+  provenance: D1ChartProvenance,
+  division: Schema.Literal(1),
+  houses: D1Houses,
+  angles: ChartAngles,
+  planetSignifications: Schema.Record(Planets, PlanetSignification),
+  houseSignificators: Schema.Record(Houses, HouseSignificators),
+  rulingPlanets: Schema.Tuple([Planets, Planets, Planets, Planets, Planets]),
 });
-export interface Chart extends Schema.Schema.Type<typeof Chart> {}
+export interface D1Chart extends Schema.Schema.Type<typeof D1Chart> {}
 
-export const CalculationCharts = Schema.NonEmptyArray(Chart).check(
-  Schema.makeFilter((charts) => charts[0].division === 1, {
-    expected: "A non-empty Chart collection beginning with D1",
-  }),
-);
+/** A divisional chart: whole-sign houses from the mapped Lagna, without KP evidence. */
+export const DivisionalChart = Schema.Struct({
+  sex: Schema.optionalKey(Sex),
+  provenance: DivisionalChartProvenance,
+  division: DivisionalDivision,
+  houses: DivisionalHouses,
+});
+export interface DivisionalChart extends Schema.Schema.Type<typeof DivisionalChart> {}
+
+export const Chart = Schema.Union([D1Chart, DivisionalChart]);
+export type Chart = D1Chart | DivisionalChart;
+
+export const CalculationCharts = Schema.TupleWithRest(Schema.Tuple([D1Chart]), [DivisionalChart]);
 
 export const ChartCalculation = Schema.Struct({
   placements: Placements,
@@ -201,13 +268,13 @@ export interface Moment extends Schema.Schema.Type<typeof Moment> {}
 
 export const LocatedMoment = Schema.Struct({
   moment: Moment,
-  latitude: Schema.Finite,
-  longitude: Schema.Finite,
+  latitude: Schema.Finite.check(Schema.isBetween({ minimum: -90, maximum: 90 })),
+  longitude: Schema.Finite.check(Schema.isBetween({ minimum: -180, maximum: 180 })),
 });
 export interface LocatedMoment extends Schema.Schema.Type<typeof LocatedMoment> {}
 
 export const ChartParams = Schema.Struct({
   ...LocatedMoment.fields,
-  sex: Chart.fields.sex,
+  sex: D1Chart.fields.sex,
 });
 export interface ChartParams extends Schema.Schema.Type<typeof ChartParams> {}

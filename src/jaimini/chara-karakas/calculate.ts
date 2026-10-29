@@ -2,18 +2,13 @@ import { Array, Effect, HashMap, Order } from "effect";
 
 import { Placements } from "../../chart/model.js";
 import { jaiminiCharaKarakas } from "../../provenance.js";
-import {
-  CLASSICAL_PLANET_ORDER,
-  ROLE_ORDER,
-  exactDegreeOf,
-  compareExactDegrees,
-  assignmentAt,
-} from "./helper.js";
+import { ExactDegree, Placement } from "../../utils/index.js";
+import { CLASSICAL_PLANET_ORDER, ROLE_ORDER, assignmentAt } from "./helper.js";
 import type { Result, Holder, Role, RankedHolder } from "./model.js";
 import { EvidenceError, ParseError } from "./model.js";
 
 const byExactDegreeDescending = Order.make<RankedHolder>((left, right) => {
-  const compared = compareExactDegrees(right.exactDegree, left.exactDegree);
+  const compared = ExactDegree.compare(right.exactDegree, left.exactDegree);
   return compared < 0 ? -1 : compared > 0 ? 1 : 0;
 });
 const byClassicalPlanetOrder = Order.mapInput(Order.Number, (holder: RankedHolder) =>
@@ -27,22 +22,18 @@ const byKarakaRank: Order.Order<RankedHolder> = Order.combine(
 export const calculate = Effect.fn("astro-ascendant/jaimini/chara-karakas/calculate")(function* (
   placements: Placements,
 ) {
-  let holders: RankedHolder[] = [];
-  for (const planet of CLASSICAL_PLANET_ORDER) {
-    const matches = placements.planets.filter((placement) => placement.name === planet);
-    const match = matches[0];
-    if (matches.length !== 1 || match === undefined) {
-      return yield* EvidenceError.make({
-        placement: planet,
-        expected: 1,
-        actual: matches.length,
-      });
-    }
-    const exactDegree = yield* exactDegreeOf(match.longitude);
-    holders.push({ planet, degree: exactDegree.value, exactDegree });
-  }
-
-  holders = Array.sort(holders, byKarakaRank);
+  const required = yield* Placement.requireEach(
+    placements,
+    CLASSICAL_PLANET_ORDER,
+    (placement, actual) => EvidenceError.make({ placement, expected: 1, actual }),
+  );
+  const holders = Array.sort(
+    CLASSICAL_PLANET_ORDER.map((planet): RankedHolder => {
+      const exactDegree = ExactDegree.of(required[planet].longitude);
+      return { planet, degree: exactDegree.value, exactDegree };
+    }),
+    byKarakaRank,
+  );
 
   let byRole = HashMap.empty<Role, readonly [Holder, ...Holder[]]>();
   let rank = 0;
@@ -57,7 +48,7 @@ export const calculate = Effect.fn("astro-ascendant/jaimini/chara-karakas/calcul
       const candidate = holders[nextRank];
       if (
         candidate === undefined ||
-        compareExactDegrees(candidate.exactDegree, first.exactDegree) !== 0
+        ExactDegree.compare(candidate.exactDegree, first.exactDegree) !== 0
       )
         break;
       nextRank += 1;

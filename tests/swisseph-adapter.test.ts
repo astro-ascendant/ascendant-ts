@@ -13,6 +13,8 @@ describe("Swiss Ephemeris adapter", () => {
           DateTime.makeUnsafe("2000-01-01T12:00:00.000Z"),
         );
         const sun = yield* ephemeris.calculatePosition(julianDay, "Sun", "Lahiri");
+        const rahu = yield* ephemeris.calculatePosition(julianDay, "Rahu", "Lahiri");
+        const ketu = yield* ephemeris.calculatePosition(julianDay, "Ketu", "Lahiri");
         const houses = yield* ephemeris.calculateHouses(
           julianDay,
           12.9716,
@@ -24,7 +26,10 @@ describe("Swiss Ephemeris adapter", () => {
         expect(julianDay).toBe(2_451_545);
         expect(sun.longitude).toBeGreaterThanOrEqual(0);
         expect(sun.longitude).toBeLessThan(360);
-        expect(houses.cusps[1]).toBe(Math.floor(houses.ascendant / 30) * 30);
+        expect((rahu.longitude + 180) % 360).toBeCloseTo(ketu.longitude, 9);
+        expect(ketu.longitudeSpeed).toBe(rahu.longitudeSpeed);
+        expect(ketu.latitude).toBe(-rahu.latitude);
+        expect(houses.cusps[1]).toBe(Math.floor(houses.angles.ascendant / 30) * 30);
       }),
     );
   });

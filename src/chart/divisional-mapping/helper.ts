@@ -1,19 +1,17 @@
-import { Array, Effect, Function } from "effect";
+import { Array, Function } from "effect";
 
-import { EPS_PART, signIndexOf } from "../../utils/position.js";
+import { Zodiac } from "../../utils/index.js";
+import { EPS_PART } from "../../utils/position.js";
 import { Degree, type Division, Longitude } from "../model.js";
 import type { SourcePosition, Subdivision } from "./model.js";
 
-export const sourcePositionOf = Effect.fn(
-  "astro-ascendant/chart/divisional-mapping/sourcePositionOf",
-)(function* (longitude: Longitude) {
-  const signIndex = yield* signIndexOf(longitude);
+export function sourcePositionOf(longitude: Longitude): SourcePosition {
   return {
     longitude,
-    signIndex,
-    degree: Degree.make(longitude % 30),
+    signIndex: Zodiac.indexOfLongitude(longitude),
+    degree: Degree.of(longitude),
   };
-});
+}
 
 /**
  * Locates a degree within one of a division's equal subdivisions. Exact internal
@@ -50,8 +48,9 @@ export const targetSignOf = Function.dual<
   const { partIndex } = subdivision;
 
   const oddRashi = sourceSignIndex % 2 === 0;
-  const movable = sourceSignIndex % 3 === 0;
-  const fixed = sourceSignIndex % 3 === 1;
+  const modality = Zodiac.modalityOf(Zodiac.signAt(sourceSignIndex));
+  const movable = modality === "Movable";
+  const fixed = modality === "Fixed";
 
   switch (division) {
     case 2:

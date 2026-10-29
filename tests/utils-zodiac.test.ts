@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
+import { Schema } from "effect";
 
-import type { Longitude } from "../src/chart/model.js";
+import { CircleAngle, Degree, Longitude } from "../src/chart/model.js";
 import { Zodiac } from "../src/utils/index.js";
 
 const SIGNS = [
@@ -38,6 +39,58 @@ describe("Zodiac", () => {
   it("wraps out-of-range positions to signs", () => {
     expect(Zodiac.signAt(12)).toBe("Aries");
     expect(Zodiac.signAt(-1)).toBe("Pisces");
+  });
+
+  it("builds Longitudes and Degrees through their schemas' own functions", () => {
+    expect(Longitude.inSign(11, 29.5)).toBe(359.5);
+    expect(Longitude.inSign(12, 5)).toBe(5);
+    expect(Degree.of(Longitude.make(207.85))).toBeCloseTo(27.85, 10);
+    expect(Degree.of(Longitude.make(30))).toBe(0);
+    expect(CircleAngle.normalize(-90)).toBe(270);
+    expect(Schema.is(Longitude)(Longitude.normalize(725))).toBe(true);
+  });
+
+  it("wraps angles onto the circle and into the signed range", () => {
+    expect(Longitude.normalize(360)).toBe(0);
+    expect(Longitude.normalize(-0.5)).toBeCloseTo(359.5, 10);
+    expect(Zodiac.wrapSigned(359.9)).toBeCloseTo(-0.1, 10);
+    expect(Zodiac.wrapSigned(181)).toBeCloseTo(-179, 10);
+    expect(Zodiac.wrapSigned(-180)).toBe(-180);
+  });
+
+  it("gives every Sign its lord, modality and starting longitude", () => {
+    expect(SIGNS.map((sign) => Zodiac.lordOf(sign))).toEqual([
+      "Mars",
+      "Venus",
+      "Mercury",
+      "Moon",
+      "Sun",
+      "Mercury",
+      "Venus",
+      "Mars",
+      "Jupiter",
+      "Saturn",
+      "Saturn",
+      "Jupiter",
+    ]);
+    expect(SIGNS.slice(0, 6).map((sign) => Zodiac.modalityOf(sign))).toEqual([
+      "Movable",
+      "Fixed",
+      "Dual",
+      "Movable",
+      "Fixed",
+      "Dual",
+    ]);
+    expect(Zodiac.signStartOf("Aries")).toBe(0);
+    expect(Zodiac.signStartOf("Pisces")).toBe(330);
+    expect(Zodiac.signOfLongitude(Longitude.normalize(359.99))).toBe("Pisces");
+  });
+
+  it("measures arcs forward and the shorter way round", () => {
+    expect(Zodiac.forwardArc(350, 10)).toBeCloseTo(20, 10);
+    expect(Zodiac.forwardArc(10, 350)).toBeCloseTo(340, 10);
+    expect(Zodiac.separation(350, 10)).toBeCloseTo(20, 10);
+    expect(Zodiac.separation(0, 180)).toBe(180);
   });
 
   it("locates the sign containing a longitude", () => {

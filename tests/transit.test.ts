@@ -3,23 +3,16 @@ import { DateTime, Effect, Layer } from "effect";
 import type { DateTime as DateTimeType } from "effect/DateTime";
 
 import * as AstroParams from "../src/astro-params/index.js";
-import { Ayanamsa, HouseSystem } from "../src/astro-params/model.js";
 import * as Chart from "../src/chart/index.js";
-import {
-  CelestialBody,
-  type HouseData,
-  JulianDay,
-  type PlanetaryPosition,
-} from "../src/ephemeris/model.js";
-import { Ephemeris } from "../src/ephemeris/service.js";
+import { julianDayOfDateTime } from "../src/ephemeris/model.js";
 import * as Swisseph from "../src/swisseph/index.js";
 import * as Transit from "../src/transit/index.js";
-import { planetaryPosition, wholeSignHouses } from "./support/ephemeris.js";
+import { ephemerisTestLayer, planetaryPosition } from "./support/ephemeris.js";
 import { fixtures } from "./support/fixtures.js";
 
 const DAY_MS = 86_400_000;
 const FROM_ISO = "2026-01-01T00:00:00.000Z";
-const JD0 = Date.parse(FROM_ISO) / DAY_MS + Transit.JD_UNIX_EPOCH;
+const JD0 = julianDayOfDateTime(DateTime.makeUnsafe(FROM_ISO));
 
 function locatedMoment(): Chart.LocatedMoment {
   return fixtures.locatedMoment(FROM_ISO);
@@ -49,34 +42,13 @@ function motionAt(
   return { longitude: longitude + last.rate * (julianDay - cursor), speed: last.rate };
 }
 
-function fakeEphemerisLayer(
-  base: number,
-  segments: ReadonlyArray<MotionSegment>,
-  cusps: ReadonlyArray<number> = [0, 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
-) {
-  const dateToJulianDay = (date: DateTimeType) =>
-    Effect.succeed(
-      JulianDay.make(DateTime.toDate(date).getTime() / DAY_MS + Transit.JD_UNIX_EPOCH),
-    );
-  const calculatePosition = (
-    julianDay: JulianDay,
-    _body: CelestialBody,
-    _ayanamsa: Ayanamsa,
-  ): Effect.Effect<PlanetaryPosition, never> => {
-    const { longitude, speed } = motionAt(base, JD0, segments, Number(julianDay));
-    return Effect.succeed(planetaryPosition(Transit.normalize360(longitude), speed));
-  };
-  const calculateHouses = (
-    _julianDay: JulianDay,
-    _latitude: number,
-    _longitude: number,
-    houseSystem: HouseSystem,
-    _ayanamsa: Ayanamsa,
-  ): Effect.Effect<HouseData, never> => Effect.succeed(wholeSignHouses(cusps, houseSystem));
-  return Layer.succeed(
-    Ephemeris,
-    Ephemeris.of({ dateToJulianDay, calculatePosition, calculateHouses }),
-  );
+function fakeEphemerisLayer(base: number, segments: ReadonlyArray<MotionSegment>) {
+  return ephemerisTestLayer({
+    position: (julianDay) => {
+      const { longitude, speed } = motionAt(base, JD0, segments, Number(julianDay));
+      return Effect.succeed(planetaryPosition(longitude, speed));
+    },
+  });
 }
 
 const astroLayer = AstroParams.layer({ ayanamsa: "Lahiri", houseSystem: "WholeSign" });
@@ -89,23 +61,13 @@ function minutesBetween(a: DateTimeType, b: DateTimeType): number {
 }
 
 function distanceToBoundary(longitude: number): number {
-  const remainder = Transit.normalize360(longitude) % 30;
+  const remainder = Chart.Longitude.normalize(longitude) % 30;
   return Math.min(remainder, 30 - remainder);
 }
 
 function expectedMoment(daysAfterJd0: number) {
   return DateTime.makeUnsafe(Date.parse(FROM_ISO) + daysAfterJd0 * DAY_MS);
 }
-
-describe("Transit angle helpers", () => {
-  it("normalizes and wraps circle angles", () => {
-    expect(Transit.normalize360(360)).toBe(0);
-    expect(Transit.normalize360(-0.5)).toBeCloseTo(359.5, 10);
-    expect(Transit.wrap180(359.9)).toBeCloseTo(-0.1, 10);
-    expect(Transit.wrap180(181)).toBeCloseTo(-179, 10);
-    expect(Transit.millisFromJd(Transit.JD_UNIX_EPOCH)).toBe(0);
-  });
-});
 
 describe("Transit search over linear motion", () => {
   it.layer(Layer.merge(astroLayer, jupiterLayer))((it) => {

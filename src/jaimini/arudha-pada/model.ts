@@ -15,7 +15,10 @@ export const Result = Schema.Struct({
 });
 export interface Result extends Schema.Schema.Type<typeof Result> {}
 
-export class EvidenceError extends Schema.TaggedError<EvidenceError>()("ArudhaPadaEvidenceError", {
+export class EvidenceError extends Schema.TaggedError<
+  EvidenceError,
+  { readonly brand: unique symbol }
+>()("ArudhaPadaEvidenceError", {
   placement: RashiLords,
   expected: Schema.Literal(1),
   actual: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),

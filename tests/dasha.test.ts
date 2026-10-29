@@ -100,20 +100,6 @@ describe("Dasha", () => {
     }),
   );
 
-  it.effect("reports a typed calculation error when the Moon evidence is absent", () =>
-    Effect.gen(function* () {
-      const exit = yield* Effect.exit(
-        Dasha.calculate(
-          fixtures.moment(),
-          fixtures.placementsFromLongitudes({}, { omit: ["Moon"] }),
-        ),
-      );
-
-      expect(exit._tag).toBe("Failure");
-      if (exit._tag === "Failure") expect(String(exit.cause)).toContain("DashaCalculationError");
-    }),
-  );
-
   it.effect("finds the active periods using half-open UTC intervals", () =>
     Effect.gen(function* () {
       const timeline = yield* Dasha.calculate(

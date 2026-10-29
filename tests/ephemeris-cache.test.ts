@@ -1,40 +1,31 @@
 import { describe, expect, it } from "@effect/vitest";
 import { Context, Effect, Layer, Ref } from "effect";
 
-import type { Ayanamsa } from "../src/astro-params/model.js";
 import { withPositionCache } from "../src/ephemeris/cached.js";
 import { EphemerisError } from "../src/ephemeris/error.js";
-import { type CelestialBody, JulianDay, type PlanetaryPosition } from "../src/ephemeris/model.js";
+import { JulianDay } from "../src/ephemeris/model.js";
 import { Ephemeris } from "../src/ephemeris/service.js";
-import { planetaryPosition, wholeSignHouses } from "./support/ephemeris.js";
+import {
+  ephemerisTestLayer,
+  houseData,
+  planetaryPosition,
+  WHOLE_SIGN_CUSPS,
+} from "./support/ephemeris.js";
 
 const JULIAN_DAY = JulianDay.make(2_460_000);
 
 function succeedBackend(calls: Ref.Ref<number>, houseCalls?: Ref.Ref<number>) {
-  return Layer.succeed(
-    Ephemeris,
-    Ephemeris.of({
-      dateToJulianDay: () => Effect.succeed(JulianDay.make(2_451_545)),
-      calculatePosition: (
-        _julianDay: JulianDay,
-        _body: CelestialBody,
-        _ayanamsa: Ayanamsa,
-      ): Effect.Effect<PlanetaryPosition, EphemerisError> =>
-        Effect.as(
-          Ref.update(calls, (count) => count + 1),
-          planetaryPosition(100, 1),
-        ),
-      calculateHouses: (_julianDay, _latitude, _longitude, houseSystem, _ayanamsa) =>
-        (houseCalls === undefined
-          ? Effect.void
-          : Ref.update(houseCalls, (count) => count + 1)
-        ).pipe(
-          Effect.as(
-            wholeSignHouses([0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330], houseSystem),
-          ),
-        ),
-    }),
-  );
+  return ephemerisTestLayer({
+    position: () =>
+      Effect.as(
+        Ref.update(calls, (count) => count + 1),
+        planetaryPosition(100, 1),
+      ),
+    houses: (houseSystem) =>
+      (houseCalls === undefined ? Effect.void : Ref.update(houseCalls, (count) => count + 1)).pipe(
+        Effect.as(houseData(WHOLE_SIGN_CUSPS, houseSystem)),
+      ),
+  });
 }
 
 function buildCached(backend: Layer.Layer<Ephemeris>) {
@@ -83,29 +74,17 @@ describe("Ephemeris position cache", () => {
     Effect.gen(function* () {
       const calls = yield* Ref.make(0);
       const failNext = yield* Ref.make(true);
-      const flaky = Layer.succeed(
-        Ephemeris,
-        Ephemeris.of({
-          dateToJulianDay: () => Effect.succeed(JulianDay.make(2_451_545)),
-          calculatePosition: (
-            _julianDay: JulianDay,
-            _body: CelestialBody,
-            _ayanamsa: Ayanamsa,
-          ): Effect.Effect<PlanetaryPosition, EphemerisError> =>
-            Ref.update(calls, (count) => count + 1).pipe(
-              Effect.andThen(Ref.getAndSet(failNext, false)),
-              Effect.flatMap((shouldFail) =>
-                shouldFail
-                  ? Effect.fail(
-                      EphemerisError.make({ operation: "test", cause: new Error("boom") }),
-                    )
-                  : Effect.succeed(planetaryPosition(100, 1)),
-              ),
+      const flaky = ephemerisTestLayer({
+        position: () =>
+          Ref.update(calls, (count) => count + 1).pipe(
+            Effect.andThen(Ref.getAndSet(failNext, false)),
+            Effect.flatMap((shouldFail) =>
+              shouldFail
+                ? Effect.fail(EphemerisError.make({ operation: "test", cause: new Error("boom") }))
+                : Effect.succeed(planetaryPosition(100, 1)),
             ),
-          calculateHouses: (_julianDay, _latitude, _longitude, houseSystem, _ayanamsa) =>
-            Effect.succeed(wholeSignHouses([0], houseSystem)),
-        }),
-      );
+          ),
+      });
       const cached = yield* buildCached(flaky);
 
       const first = yield* Effect.flip(cached.calculatePosition(JULIAN_DAY, "Sun", "Lahiri"));

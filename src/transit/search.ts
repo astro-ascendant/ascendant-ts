@@ -1,47 +1,17 @@
-import { DateTime, Effect } from "effect";
+import { Effect } from "effect";
 
 import { Ayanamsa } from "../astro-params/model.js";
-import { Longitude, Rashis } from "../chart/model.js";
-import { JulianDay, type CelestialBody } from "../ephemeris/model.js";
+import { Longitude, type Rashis } from "../chart/model.js";
+import { JulianDay } from "../ephemeris/model.js";
 import { Ephemeris } from "../ephemeris/service.js";
 import { Zodiac } from "../utils/index.js";
-import { EPS_BOUNDARY, normalizeLongitude } from "../utils/position.js";
+import { EPS_BOUNDARY } from "../utils/position.js";
 import { type Planets, type TransitDirection, type TransitKind } from "./model.js";
 
-export const JD_UNIX_EPOCH = 2_440_587.5;
-export const MS_PER_DAY = 86_400_000;
 export const MINUTES_PER_DAY = 1440;
 export const DEFAULT_MAX_YEARS = 30;
 export const DEFAULT_PRECISION_MINUTES = 1;
 const DAYS_PER_YEAR = 365.25;
-
-export function normalize360(degrees: number): Longitude {
-  return Longitude.make(((degrees % 360) + 360) % 360);
-}
-
-export function wrap180(degrees: number): number {
-  return ((((degrees + 180) % 360) + 360) % 360) - 180;
-}
-
-export function millisFromJd(julianDay: number): number {
-  return (julianDay - JD_UNIX_EPOCH) * MS_PER_DAY;
-}
-
-export function dateTimeFromJd(julianDay: number) {
-  return DateTime.makeUnsafe(millisFromJd(julianDay));
-}
-
-const PLANET_BODY: Record<Planets, CelestialBody> = {
-  Sun: "Sun",
-  Moon: "Moon",
-  Mars: "Mars",
-  Mercury: "Mercury",
-  Jupiter: "Jupiter",
-  Venus: "Venus",
-  Saturn: "Saturn",
-  Rahu: "MeanNode",
-  Ketu: "MeanNode",
-};
 
 export const COARSE_STEP_DAYS: Record<Planets, number> = {
   Sun: 1,
@@ -94,23 +64,17 @@ export interface SearchOutcome {
   readonly endJulianDay: number;
 }
 
-export const sampleAt = Effect.fn("astro-ascendant/transit/sampleAt")(function* (
+export const sampleAt = Effect.fnUntraced(function* (
   julianDay: number,
   planet: Planets,
   ayanamsa: Ayanamsa,
 ) {
   const ephemeris = yield* Ephemeris;
   const julianDayValue = yield* JulianDay.makeEffect(julianDay);
-  const position = yield* ephemeris.calculatePosition(
-    julianDayValue,
-    PLANET_BODY[planet],
-    ayanamsa,
-  );
-  const raw = planet === "Ketu" ? position.longitude + 180 : position.longitude;
-  const longitude = yield* normalizeLongitude(raw);
+  const position = yield* ephemeris.calculatePosition(julianDayValue, planet, ayanamsa);
   return {
     julianDay,
-    longitude,
+    longitude: position.longitude,
     speed: position.longitudeSpeed,
   } satisfies LongitudeSample;
 });
@@ -120,13 +84,13 @@ function enteredSign(
   direction: TransitDirection,
   longitudeRising: boolean,
 ): Rashis {
-  const index = Math.round(normalize360(boundary) / 30) % 12;
+  const index = Math.round(Longitude.normalize(boundary) / 30) % 12;
   const rising = direction === "forward" ? longitudeRising : !longitudeRising;
   return rising ? Zodiac.signAt(index) : Zodiac.signAt(index - 1);
 }
 
 function isBoundaryTarget(target: number): boolean {
-  return normalize360(target) % 30 === 0;
+  return Longitude.normalize(target) % 30 === 0;
 }
 
 function crossedBoundary(
@@ -134,7 +98,8 @@ function crossedBoundary(
   later: number,
 ): { boundary: number; rising: boolean } | null {
   if (
-    Zodiac.indexOfLongitude(normalize360(earlier)) === Zodiac.indexOfLongitude(normalize360(later))
+    Zodiac.indexOfLongitude(Longitude.normalize(earlier)) ===
+    Zodiac.indexOfLongitude(Longitude.normalize(later))
   )
     return null;
   const low = Math.min(earlier, later);
@@ -145,7 +110,7 @@ function crossedBoundary(
   return { boundary, rising: later > earlier };
 }
 
-const refineValue = Effect.fn("astro-ascendant/transit/refineValue")(function* (
+const refineValue = Effect.fnUntraced(function* (
   low: LongitudeSample,
   high: LongitudeSample,
   planet: Planets,
@@ -171,7 +136,7 @@ const refineValue = Effect.fn("astro-ascendant/transit/refineValue")(function* (
   return yield* sampleAt((lower.julianDay + upper.julianDay) / 2, planet, ayanamsa);
 });
 
-const refineLongitude = Effect.fn("astro-ascendant/transit/refineLongitude")(function* (
+const refineLongitude = Effect.fnUntraced(function* (
   low: LongitudeSample,
   high: LongitudeSample,
   planet: Planets,
@@ -180,11 +145,11 @@ const refineLongitude = Effect.fn("astro-ascendant/transit/refineLongitude")(fun
   target: number,
 ) {
   return yield* refineValue(low, high, planet, ayanamsa, precisionMinutes, (sample) =>
-    wrap180(sample.longitude - target),
+    Zodiac.wrapSigned(sample.longitude - target),
   );
 });
 
-const refineStation = Effect.fn("astro-ascendant/transit/refineStation")(function* (
+const refineStation = Effect.fnUntraced(function* (
   low: LongitudeSample,
   high: LongitudeSample,
   planet: Planets,
@@ -225,7 +190,7 @@ function pushDedup(hits: Array<RawHit>, hit: RefinedHit, precision: number): voi
   });
 }
 
-const ingressHit = Effect.fn("astro-ascendant/transit/ingressHit")(function* (
+const ingressHit = Effect.fnUntraced(function* (
   earlier: LongitudeSample,
   later: LongitudeSample,
   options: SearchOptions,
@@ -249,15 +214,15 @@ const ingressHit = Effect.fn("astro-ascendant/transit/ingressHit")(function* (
   return hit;
 });
 
-const fixedTargetHit = Effect.fn("astro-ascendant/transit/fixedTargetHit")(function* (
+const fixedTargetHit = Effect.fnUntraced(function* (
   earlier: LongitudeSample,
   later: LongitudeSample,
   options: SearchOptions,
   precision: number,
   target: FixedTarget,
 ) {
-  const early = wrap180(earlier.longitude - target.longitude);
-  const late = wrap180(later.longitude - target.longitude);
+  const early = Zodiac.wrapSigned(earlier.longitude - target.longitude);
+  const late = Zodiac.wrapSigned(later.longitude - target.longitude);
   if (early !== 0 && late !== 0 && Math.sign(early) === Math.sign(late)) return null;
   const refined = yield* refineLongitude(
     earlier,
@@ -267,18 +232,18 @@ const fixedTargetHit = Effect.fn("astro-ascendant/transit/fixedTargetHit")(funct
     precision,
     target.longitude,
   );
-  const rising = wrap180(later.longitude - earlier.longitude) > 0;
+  const rising = Zodiac.wrapSigned(later.longitude - earlier.longitude) > 0;
   const hit: RefinedHit = {
     sample: refined,
     kind: target.kind,
     sign: isBoundaryTarget(target.longitude)
       ? enteredSign(target.longitude, options.direction, rising)
-      : Zodiac.signAt(Zodiac.indexOfLongitude(normalize360(refined.longitude))),
+      : Zodiac.signAt(Zodiac.indexOfLongitude(Longitude.normalize(refined.longitude))),
   };
   return hit;
 });
 
-const stationHit = Effect.fn("astro-ascendant/transit/stationHit")(function* (
+const stationHit = Effect.fnUntraced(function* (
   earlier: LongitudeSample,
   later: LongitudeSample,
   options: SearchOptions,
@@ -291,12 +256,12 @@ const stationHit = Effect.fn("astro-ascendant/transit/stationHit")(function* (
   const hit: RefinedHit = {
     sample: refined,
     kind: "station",
-    sign: Zodiac.signAt(Zodiac.indexOfLongitude(normalize360(refined.longitude))),
+    sign: Zodiac.signAt(Zodiac.indexOfLongitude(Longitude.normalize(refined.longitude))),
   };
   return hit;
 });
 
-const refineStep = Effect.fn("astro-ascendant/transit/refineStep")(function* (
+const refineStep = Effect.fnUntraced(function* (
   earlier: LongitudeSample,
   later: LongitudeSample,
   options: SearchOptions,
@@ -331,7 +296,7 @@ const refineStep = Effect.fn("astro-ascendant/transit/refineStep")(function* (
   );
 });
 
-const advanceCursor = Effect.fn("astro-ascendant/transit/advanceCursor")(function* (
+const advanceCursor = Effect.fnUntraced(function* (
   cursor: number,
   previous: LongitudeSample,
   step: number,
@@ -366,9 +331,7 @@ function appendStepHits(
 }
 
 /** Every zero-crossing counts, so retrograde triples yield three hits in time order. */
-export const searchRawHits = Effect.fn("astro-ascendant/transit/searchRawHits")(function* (
-  options: SearchOptions,
-) {
+export const searchRawHits = Effect.fnUntraced(function* (options: SearchOptions) {
   const forward = options.direction === "forward";
   const sign = forward ? 1 : -1;
   const step = (options.stepDays ?? COARSE_STEP_DAYS[options.planet]) * sign;

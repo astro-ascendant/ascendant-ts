@@ -15,7 +15,7 @@ export const getDivisionalTarget = Effect.fn(
       DivisionalMappingError.make({ message: "Invalid longitude for divisional mapping", cause }),
     ),
   );
-  const source = yield* sourcePositionOf(normalizedLongitude);
+  const source = sourcePositionOf(normalizedLongitude);
 
   if (division === 1) {
     return source;
@@ -27,6 +27,6 @@ export const getDivisionalTarget = Effect.fn(
   return {
     signIndex,
     degree: Degree.make(subdivision.degree),
-    longitude: Longitude.make(signIndex * 30 + subdivision.degree),
+    longitude: Longitude.inSign(signIndex, subdivision.degree),
   } satisfies DivisionalTarget;
 });

@@ -40,16 +40,19 @@ export const Result = Schema.Struct({
 });
 export interface Result extends Schema.Schema.Type<typeof Result> {}
 
-export class EvidenceError extends Schema.TaggedError<EvidenceError>()("ArgalaEvidenceError", {
+export class EvidenceError extends Schema.TaggedError<
+  EvidenceError,
+  { readonly brand: unique symbol }
+>()("ArgalaEvidenceError", {
   placement: Planets,
   expected: Schema.Literal(1),
   actual: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
 }) {}
 
-export class CalculationError extends Schema.TaggedError<CalculationError>()(
-  "ArgalaCalculationError",
-  {
-    message: Schema.String,
-    cause: Schema.Defect(),
-  },
-) {}
+export class CalculationError extends Schema.TaggedError<
+  CalculationError,
+  { readonly brand: unique symbol }
+>()("ArgalaCalculationError", {
+  message: Schema.String,
+  cause: Schema.Defect(),
+}) {}

@@ -53,13 +53,13 @@ For repeated or overlapping workloads (transit scans, dashboards), swap in
 cache instead of the native library. See `benchmarks/stress.md` for measured
 speedups.
 
-`calculation.placements` contains the shared sidereal positions. `calculation.charts` contains D1 first, followed by the requested divisions in numeric order. Optional birth `sex` is copied into each chart. Every chart uses cusp-defined houses and includes KP house significations, four-level planet significations, four-level house significators, and the five ordered ruling planets.
+`calculation.placements` contains the shared sidereal positions. `calculation.charts` contains D1 first, followed by the requested divisions in numeric order. Optional birth `sex` is copied into each chart. D1 is a `D1Chart`: its houses begin at the selected house system's cusps, and it alone carries the chart angles, KP star, sub and sub-sub lords, four-level planet significations, four-level house significators, and the five ordered ruling planets. Each divisional chart is a `DivisionalChart` whose houses are whole signs counted from its mapped Lagna.
 
 ## Calculations
 
 The package exposes named operations for each calculation surface:
 
-- **Charts**: D1 and 15 cusp-aware divisional charts
+- **Charts**: a cusp-aware D1 with KP evidence and 15 whole-sign divisional charts
 - **Dasha**: Vimshottari planetary periods plus Jaimini Chara and Sthira sign periods with date queries
 - **Ashtakavarga**: Bhinnashtakavarga, Sarvashtakavarga, reduced BAV, and Shodhya Pinda
 - **Jaimini**: Chara Karakas, Rashi Drishti, Karakamsha, Arudha Pada, Upapada, and Argala

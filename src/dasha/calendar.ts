@@ -24,6 +24,13 @@ function calendarDuration(decimalYears: number): CalendarDuration {
   return { years, months, days, hours, minutes };
 }
 
+/** Moves a date forward by a number of years under one calendar convention. */
+export type CalendarStep = (date: DateTime.Utc, years: number) => DateTime.Utc;
+
+/**
+ * Shifts a date by decimal years, decomposed into whole years and months, then
+ * the remainder as 30-day months, days, hours and minutes.
+ */
 function shiftDate(date: DateTime.Utc, decimalYears: number, direction: 1 | -1): DateTime.Utc {
   const duration = calendarDuration(decimalYears);
   const months = duration.years * 12 + duration.months;
@@ -37,4 +44,14 @@ function shiftDate(date: DateTime.Utc, decimalYears: number, direction: 1 | -1):
   });
 }
 
-export const Calendar = { shiftDate };
+/** Vimshottari's convention: decimal years through 30-day months, days, hours and minutes. */
+function decimalYears(date: DateTime.Utc, years: number): DateTime.Utc {
+  return shiftDate(date, years, 1);
+}
+
+/** The Rashi dashas' convention: every period is a whole number of calendar months. */
+function wholeMonths(date: DateTime.Utc, years: number): DateTime.Utc {
+  return DateTime.add(date, { months: Math.round(years * 12) });
+}
+
+export const Calendar = { shiftDate, decimalYears, wholeMonths };

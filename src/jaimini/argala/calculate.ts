@@ -1,7 +1,6 @@
-import { Array as Arr, Effect, HashMap, Match, Option, pipe } from "effect";
+import { Array as Arr, Effect, HashMap, Match, pipe } from "effect";
 
-import { PLANETS, RASHIS } from "../../chart/internal/constants.js";
-import { signAt } from "../../chart/internal/position.js";
+import { PLANETS } from "../../chart/internal/constants.js";
 import { Planets, Rashis, type Placements } from "../../chart/model.js";
 import { jaiminiArgala } from "../../provenance.js";
 import { Placement, Zodiac } from "../../utils/index.js";
@@ -9,21 +8,10 @@ import { relation } from "./helper.js";
 import type { Reference, Relation, Result } from "./model.js";
 import { EvidenceError, Positions } from "./model.js";
 
-/** Locates one planet's placement and sign; fails when it does not appear exactly once. */
-const locate = Effect.fn("astro-ascendant/jaimini/argala/locate")(function* (
-  placements: Placements,
-  planet: Planets,
-) {
-  const placement = yield* Placement.exactlyOnce(placements, planet, (actual) =>
-    EvidenceError.make({ placement: planet, expected: 1, actual }),
-  );
-  return { planet, placement, sign: yield* signAt(placement.longitude) };
-});
-
 /** Groups located planets by occupied sign; every sign stays present, even when empty. */
 function occupantsOf(located: ReadonlyArray<{ readonly planet: Planets; readonly sign: Rashis }>) {
   return pipe(
-    RASHIS,
+    Zodiac.SIGNS,
     Arr.map(
       (sign) =>
         [
@@ -40,20 +28,17 @@ export const calculate = Effect.fn("astro-ascendant/jaimini/argala/calculate")(f
   placements: Placements,
   reference: Reference,
 ) {
-  const located = yield* Effect.forEach(PLANETS, (planet) => locate(placements, planet));
-  const byPlanet = HashMap.fromIterable(
-    located.map(({ planet, placement }) => [planet, placement] as const),
+  const required = yield* Placement.requireEach(placements, PLANETS, (placement, actual) =>
+    EvidenceError.make({ placement, expected: 1, actual }),
   );
-  const occupants = occupantsOf(located);
+  const occupants = occupantsOf(
+    PLANETS.map((planet) => ({ planet, sign: Zodiac.signOfLongitude(required[planet].longitude) })),
+  );
 
-  const ketu = HashMap.get(byPlanet, "Ketu");
-  if (Option.isNone(ketu)) {
-    return yield* EvidenceError.make({ placement: "Ketu", expected: 1, actual: 0 });
-  }
   const reverse = reference.kind === "Ketu";
-  const referenceSign = yield* Match.value(reference).pipe(
-    Match.when({ kind: "Sign" }, ({ sign }) => Effect.succeed(sign)),
-    Match.when({ kind: "Ketu" }, () => signAt(ketu.value.longitude)),
+  const referenceSign = Match.value(reference).pipe(
+    Match.when({ kind: "Sign" }, ({ sign }) => sign),
+    Match.when({ kind: "Ketu" }, () => Zodiac.signOfLongitude(required.Ketu.longitude)),
     Match.exhaustive,
   );
   const referenceIndex = Zodiac.rashiIndexOf(referenceSign);

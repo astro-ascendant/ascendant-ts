@@ -192,7 +192,10 @@ const addDotEnvProvider = Effect.fn(function* (
   );
 });
 
-class JsonConfigError extends Schema.TaggedError<JsonConfigError>()("JsonConfigError", {
+class JsonConfigError extends Schema.TaggedError<
+  JsonConfigError,
+  { readonly brand: unique symbol }
+>()("JsonConfigError", {
   message: Schema.String,
   cause: Schema.Defect(),
 }) {}

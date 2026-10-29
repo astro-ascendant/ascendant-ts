@@ -1,8 +1,9 @@
 import { Cache, Duration, Effect, Exit, Layer, Schema } from "effect";
 
 import { Ayanamsa } from "../astro-params/model.js";
+import { Planets } from "../chart/model.js";
 import { EphemerisError } from "./error.js";
-import { CelestialBody, JulianDay } from "./model.js";
+import { JulianDay } from "./model.js";
 import { Ephemeris } from "./service.js";
 
 export interface PositionCacheOptions {
@@ -18,21 +19,21 @@ const DEFAULT_TTL: Duration.Input = "10 minutes";
  * built here from schema-validated inputs; the lookup parses them back
  * through the same schemas instead of casting.
  */
-function positionCacheKey(julianDay: JulianDay, body: CelestialBody, ayanamsa: Ayanamsa): string {
-  return `${Number(julianDay)}|${body}|${ayanamsa}`;
+function positionCacheKey(julianDay: JulianDay, planet: Planets, ayanamsa: Ayanamsa): string {
+  return `${Number(julianDay)}|${planet}|${ayanamsa}`;
 }
 
-const parseCacheKey = Effect.fn("astro-ascendant/ephemeris/parseCacheKey")(function* (key: string) {
-  const [julianDayText, bodyText, ayanamsaText] = key.split("|");
+const parseCacheKey = Effect.fnUntraced(function* (key: string) {
+  const [julianDayText, planetText, ayanamsaText] = key.split("|");
   const julianDay = yield* JulianDay.makeEffect(Number(julianDayText));
-  const body = yield* Schema.decodeUnknownEffect(CelestialBody)(bodyText);
+  const planet = yield* Schema.decodeUnknownEffect(Planets)(planetText);
   const ayanamsa = yield* Schema.decodeUnknownEffect(Ayanamsa)(ayanamsaText);
-  return { julianDay, body, ayanamsa } as const;
+  return { julianDay, planet, ayanamsa } as const;
 });
 
 /**
  * Decorates any `Ephemeris` layer with a `calculatePosition` memoization
- * cache. Transits sample the same `(julianDay, body, ayanamsa)` repeatedly
+ * cache. Transits sample the same `(julianDay, planet, ayanamsa)` repeatedly
  * across coarse scans and bisection refinement; concurrent identical lookups
  * share one pending call (dedupe is built into `Cache`).
  *
@@ -44,7 +45,11 @@ const parseCacheKey = Effect.fn("astro-ascendant/ephemeris/parseCacheKey")(funct
  * Provide the backend with `Layer.provide`:
  *
  * ```ts
- * const Live = withPositionCache().pipe(Layer.provide(SwissephLayer));
+ * import { Layer } from "effect";
+ * import { withPositionCache } from "astro-ascendant/ephemeris";
+ * import { SwissephLayer } from "astro-ascendant/swisseph";
+ *
+ * export const Live = withPositionCache().pipe(Layer.provide(SwissephLayer));
  * ```
  */
 export const withPositionCache = (options?: PositionCacheOptions) =>
@@ -56,8 +61,8 @@ export const withPositionCache = (options?: PositionCacheOptions) =>
       const cache = yield* Cache.makeWith(
         (key: string) =>
           parseCacheKey(key).pipe(
-            Effect.flatMap(({ julianDay, body, ayanamsa }) =>
-              underlying.calculatePosition(julianDay, body, ayanamsa),
+            Effect.flatMap(({ julianDay, planet, ayanamsa }) =>
+              underlying.calculatePosition(julianDay, planet, ayanamsa),
             ),
             Effect.mapError((cause) =>
               Schema.is(EphemerisError)(cause)
@@ -72,8 +77,8 @@ export const withPositionCache = (options?: PositionCacheOptions) =>
       );
       return Ephemeris.of({
         dateToJulianDay: (date) => underlying.dateToJulianDay(date),
-        calculatePosition: (julianDay, body, ayanamsa) =>
-          Cache.get(cache, positionCacheKey(julianDay, body, ayanamsa)),
+        calculatePosition: (julianDay, planet, ayanamsa) =>
+          Cache.get(cache, positionCacheKey(julianDay, planet, ayanamsa)),
         calculateHouses: (julianDay, latitude, longitude, houseSystem, ayanamsa) =>
           underlying.calculateHouses(julianDay, latitude, longitude, houseSystem, ayanamsa),
       });

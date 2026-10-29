@@ -128,6 +128,14 @@
                 "unstableApiUsage": "off"
               }
             }
+          },
+          {
+            "include": ["tests/**/*.ts"],
+            "options": {
+              "diagnosticSeverity": {
+                "unstableApiUsage": "off"
+              }
+            }
           }
         ]
       }
