@@ -81,15 +81,19 @@ export function signStartOf(sign: Rashis): Longitude {
 }
 
 /** Degrees travelled forward along the zodiac from one angle to another, in [0, 360). */
-export function forwardArc(from: number, to: number): number {
-  return wrapLongitude(to - from);
-}
+export const forwardArc = Function.dual<
+  (to: number) => (from: number) => number,
+  (from: number, to: number) => number
+>(2, (from: number, to: number): number => wrapLongitude(to - from));
 
 /** The shorter separation between two angles, in [0, 180]. */
-export function separation(first: number, second: number): number {
+export const separation = Function.dual<
+  (second: number) => (first: number) => number,
+  (first: number, second: number) => number
+>(2, (first: number, second: number): number => {
   const distance = Math.abs(first - second) % 360;
   return Math.min(distance, 360 - distance);
-}
+});
 
 /** Signs forward from `fromIndex` to `toIndex` (0–11). */
 export const distanceBetween = Function.dual<

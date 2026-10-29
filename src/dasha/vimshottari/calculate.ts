@@ -7,27 +7,13 @@ import {
 } from "../../chart/internal/constants.js";
 import type { Moment, Placements, SourcePlanet } from "../../chart/model.js";
 import { Calendar } from "../calendar.js";
-import { DashaCalculationError } from "../error.js";
+import { placementOf } from "../evidence.js";
 import { AntarDasha, MahaDasha } from "../model.js";
 
 /** Minutes of arc in one nakshatra (13°20′). */
 const STAR_ARC_MINUTES = 800;
 
 type StarLord = (typeof STAR_LORD_CYCLE)[number];
-
-/** Finds the natal Moon; Vimshottari starts from its nakshatra, so its absence is a calculation error. */
-const moonOf = Effect.fn("astro-ascendant/dasha/vimshottari/moonOf")(function* (
-  placements: Placements,
-) {
-  const moon = placements.planets.find((planet) => planet.name === "Moon");
-  if (moon === undefined) {
-    return yield* DashaCalculationError.make({
-      message: "Placements must contain the Moon",
-      cause: placements,
-    });
-  }
-  return moon;
-});
 
 /** Derives the Mahadasha order from the Moon's nakshatra lord and the balance of its period left at birth. */
 function rotateLeft<A>(sequence: ReadonlyArray<A>, index: number): Array<A> {
@@ -96,16 +82,12 @@ function mahadashasFrom(sequence: readonly StarLord[], start: Moment["date"]) {
 }
 
 /** Calculates the full Vimshottari Dasha timeline from the natal Moon's nakshatra position. */
-export const calculate = Effect.fn("astro-ascendant/dasha/vimshottari/calculate")(
-  function* (moment: Moment, placements: Placements) {
-    const moon = yield* moonOf(placements);
-    const { sequence, elapsedYears } = balanceOf(moon);
-    return mahadashasFrom(sequence, Calendar.shiftDate(moment.date, elapsedYears, -1));
-  },
-  Effect.mapError((cause) =>
-    DashaCalculationError.make({
-      message: "Could not calculate Vimshottari Dasha",
-      cause,
-    }),
-  ),
-);
+export const calculate = Effect.fn("astro-ascendant/dasha/vimshottari/calculate")(function* (
+  moment: Moment,
+  placements: Placements,
+) {
+  // Vimshottari starts from the natal Moon's nakshatra, so the Moon is its only evidence.
+  const moon = yield* placementOf(placements, "Moon", "Vimshottari Moon nakshatra");
+  const { sequence, elapsedYears } = balanceOf(moon);
+  return mahadashasFrom(sequence, Calendar.shiftDate(moment.date, elapsedYears, -1));
+});

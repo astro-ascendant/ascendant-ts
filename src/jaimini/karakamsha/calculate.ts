@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { getDivisionalTarget } from "../../chart/divisional-mapping/calculate.js";
 import { Placements } from "../../chart/model.js";
 import { jaiminiKarakamsha } from "../../provenance.js";
-import { Zodiac } from "../../utils/index.js";
+import { Placement, Zodiac } from "../../utils/index.js";
 import { calculate as calculateCharaKarakas } from "../chara-karakas/calculate.js";
 import type {
   EvidenceError as CharaKarakasEvidenceError,
@@ -36,23 +36,23 @@ export const calculate = Effect.fn("astro-ascendant/jaimini/karakamsha/calculate
   );
 
   const karakamshaPlacements = yield* Effect.all(
-    charaKarakas.assignments.Atmakaraka.map((holder) => {
-      const source = placements.planets.find((planet) => planet.name === holder.planet);
-      if (source === undefined) {
-        return Effect.fail(
-          EvidenceError.make({ placement: holder.planet, expected: 1, actual: 0 }),
-        );
-      }
-      return getDivisionalTarget(source.longitude, 9).pipe(
-        Effect.mapError((cause) =>
-          CalculationError.make({
-            message: `Could not calculate the D9 Sign for ${holder.planet}`,
-            cause,
-          }),
+    charaKarakas.assignments.Atmakaraka.map((holder) =>
+      Placement.exactlyOnce(placements, holder.planet, (actual) =>
+        EvidenceError.make({ placement: holder.planet, expected: 1, actual }),
+      ).pipe(
+        Effect.flatMap((source) =>
+          getDivisionalTarget(source.longitude, 9).pipe(
+            Effect.mapError((cause) =>
+              CalculationError.make({
+                message: `Could not calculate the D9 Sign for ${holder.planet}`,
+                cause,
+              }),
+            ),
+          ),
         ),
         Effect.map((target) => ({ planet: holder.planet, sign: Zodiac.signAt(target.signIndex) })),
-      );
-    }),
+      ),
+    ),
     { concurrency: "unbounded" },
   );
 

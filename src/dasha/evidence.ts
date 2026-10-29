@@ -17,15 +17,7 @@ export const placementOf = Effect.fn("astro-ascendant/dasha/placementOf")(functi
 export const validateRequiredPlacements = Effect.fn(
   "astro-ascendant/dasha/validateRequiredPlacements",
 )(function* (placements: Placements, required: ReadonlyArray<Planets>, context: string) {
-  for (const planet of required) {
-    const actual = placements.planets.filter((placement) => placement.name === planet).length;
-    if (actual !== 1) {
-      return yield* DashaEvidenceError.make({
-        placement: planet,
-        expected: 1,
-        actual,
-        context,
-      });
-    }
-  }
+  return yield* Placement.requireEach(placements, required, (placement, actual) =>
+    DashaEvidenceError.make({ placement, expected: 1, actual, context }),
+  );
 });

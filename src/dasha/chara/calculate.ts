@@ -1,9 +1,8 @@
 import { Effect, HashSet, Array } from "effect";
 
 import { Planets, type Moment, type Placements, type Rashis } from "../../chart/model.js";
-import { compareExactDegrees, exactDegreeOf } from "../../jaimini/chara-karakas/helper.js";
 import { charaDasha } from "../../provenance.js";
-import { Zodiac } from "../../utils/index.js";
+import { ExactDegree, Zodiac } from "../../utils/index.js";
 import { placementOf, validateRequiredPlacements } from "../evidence.js";
 import { CharaDasha } from "../model.js";
 import { type Direction, RashiInternal } from "../rashi-internal.js";
@@ -69,9 +68,10 @@ const resolveCoLord = Effect.fn("astro-ascendant/dasha/chara/resolveCoLord")(fun
   const yCount = countAssociations(placements, y.planet, y.index);
   if (xCount !== yCount) return xCount > yCount ? x.planet : y.planet;
 
-  const [xDeg, yDeg] = yield* Effect.all([exactDegreeOf(x.longitude), exactDegreeOf(y.longitude)]);
   // Exact tie: `a` is the traditional planet (Mars, Saturn).
-  return compareExactDegrees(xDeg, yDeg) < 0 ? y.planet : x.planet;
+  return ExactDegree.compare(ExactDegree.of(x.longitude), ExactDegree.of(y.longitude)) < 0
+    ? y.planet
+    : x.planet;
 });
 
 /**

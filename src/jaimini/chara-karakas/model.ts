@@ -3,6 +3,7 @@ import { Schema } from "effect";
 import { CLASSICAL_PLANETS } from "../../chart/internal/constants.js";
 import { Degree } from "../../chart/model.js";
 import { JaiminiCharaKarakasProvenance } from "../../provenance.js";
+import type { ExactDegree as ExactDegreeValue } from "../../utils/exact-degree.js";
 
 export { JaiminiCharaKarakasProvenance as Provenance } from "../../provenance.js";
 
@@ -26,14 +27,10 @@ export const Holder = Schema.Struct({
 });
 export interface Holder extends Schema.Schema.Type<typeof Holder> {}
 
-export interface ExactDegree {
-  readonly coefficient: bigint;
-  readonly scale: number;
-  readonly value: Degree;
-}
+export type { ExactDegree } from "../../utils/exact-degree.js";
 
 export interface RankedHolder extends Holder {
-  readonly exactDegree: ExactDegree;
+  readonly exactDegree: ExactDegreeValue;
 }
 
 export const Assignments = Schema.Record(Roles, Schema.NonEmptyArray(Holder));

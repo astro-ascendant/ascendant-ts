@@ -3,15 +3,10 @@ import { Array as Arr, Effect, HashSet, Order, pipe } from "effect";
 import { inSignStatus } from "../../chart/helper.js";
 import type { Moment, Placements, Planets, Rashis } from "../../chart/model.js";
 import { calculate as calculateCharaKarakas } from "../../jaimini/chara-karakas/calculate.js";
-import { compareExactDegrees, exactDegreeOf } from "../../jaimini/chara-karakas/helper.js";
-import {
-  ClassicalPlanets,
-  type ExactDegree,
-  type Role,
-} from "../../jaimini/chara-karakas/model.js";
-import { targetsOf } from "../../jaimini/rashi-drishti/helper.js";
+import { ClassicalPlanets, type Role } from "../../jaimini/chara-karakas/model.js";
+import { targetsOf } from "../../jaimini/rashi-drishti/index.js";
 import { sthiraDasha } from "../../provenance.js";
-import { Zodiac } from "../../utils/index.js";
+import { ExactDegree, Zodiac } from "../../utils/index.js";
 import { DashaCalculationError, DashaEvidenceError } from "../error.js";
 import { placementOf, validateRequiredPlacements } from "../evidence.js";
 import type {
@@ -33,7 +28,7 @@ import {
 } from "./constants.js";
 
 type Karakas = Effect.Success<ReturnType<typeof calculateCharaKarakas>>;
-type Scored = BrahmaCandidateScore & { readonly exactDegree: ExactDegree };
+type Scored = BrahmaCandidateScore & { readonly exactDegree: ExactDegree.ExactDegree };
 
 /** Brahma must be a luminary or a benefic/malefic classical planet — never Saturn, Rahu, or Ketu. */
 function isEligibleBrahma(planet: Planets): planet is EligibleBrahmaPlanet {
@@ -44,7 +39,7 @@ function isEligibleBrahma(planet: Planets): planet is EligibleBrahmaPlanet {
 
 const byTotalDescending = Order.mapInput(Order.Number, (scored: Scored) => -scored.total);
 const byExactDegreeDescending = Order.make<Scored>((left, right) => {
-  const compared = compareExactDegrees(right.exactDegree, left.exactDegree);
+  const compared = ExactDegree.compare(right.exactDegree, left.exactDegree);
   return compared < 0 ? -1 : compared > 0 ? 1 : 0;
 });
 const byNaturalStrengthDescending = Order.mapInput(
@@ -174,7 +169,7 @@ const scoreCandidate = Effect.fn("astro-ascendant/dasha/sthira/scoreCandidate")(
   const signIndex = Zodiac.indexOfLongitude(placement.longitude);
   const kendradiHouseFromAtmakaraka = Zodiac.houseDistance(atmakarakaSignIndex, signIndex);
   const kendradiBala = KENDRADI_BALA[kendradiHouseFromAtmakaraka];
-  const exactDegree = yield* exactDegreeOf(placement.longitude);
+  const exactDegree = ExactDegree.of(placement.longitude);
   const sign = Zodiac.signAt(signIndex);
   return {
     planet: candidate,
