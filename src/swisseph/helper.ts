@@ -6,7 +6,7 @@ import { EphemerisError } from "../ephemeris/error.js";
 import { SIDEREAL_MODE, CELESTIAL_BODY, HOUSE_SYSTEM } from "./model.js";
 
 /** Reads one house's cusp from the native thirteen-slot array, where slot 0 is unused. */
-export const nativeCuspOf = Effect.fn("astro-ascendant/swisseph/nativeCuspOf")(function* (
+export const nativeCuspOf = Effect.fnUntraced(function* (
   houses: { readonly cusps: ReadonlyArray<number> },
   house: Houses,
 ) {
@@ -24,9 +24,7 @@ export function siderealModeOf(ayanamsa: Ayanamsa): (typeof SIDEREAL_MODE)[Ayana
   return SIDEREAL_MODE[ayanamsa];
 }
 
-export const celestialBodyOf = Effect.fn("astro-ascendant/swisseph/celestialBodyOf")(function* (
-  planet: Planets,
-) {
+export const celestialBodyOf = Effect.fnUntraced(function* (planet: Planets) {
   const cb = CELESTIAL_BODY[planet];
   if (cb === undefined) {
     return yield* EphemerisError.make({
@@ -37,9 +35,7 @@ export const celestialBodyOf = Effect.fn("astro-ascendant/swisseph/celestialBody
   return cb;
 });
 
-export const houseSystemOf = Effect.fn("astro-ascendant/swisseph/houseSystemOf")(function* (
-  system: HouseSystem,
-) {
+export const houseSystemOf = Effect.fnUntraced(function* (system: HouseSystem) {
   const hs = HOUSE_SYSTEM[system];
   if (hs === undefined) {
     return yield* EphemerisError.make({

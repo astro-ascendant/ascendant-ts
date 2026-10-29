@@ -46,9 +46,11 @@ function countAssociations(placements: Placements, exclude: Planets, index: numb
  * 4. If still tied, the candidate at the higher exact degree wins, and on an
  *    exact tie the first (traditional) planet is chosen.
  */
-const resolveCoLord = Effect.fn("astro-ascendant/dasha/chara/resolveCoLord")(function* <
-  Candidate extends Planets,
->(placements: Placements, sign: "Scorpio" | "Aquarius", [a, b]: readonly [Candidate, Candidate]) {
+const resolveCoLord = Effect.fnUntraced(function* <Candidate extends Planets>(
+  placements: Placements,
+  sign: "Scorpio" | "Aquarius",
+  [a, b]: readonly [Candidate, Candidate],
+) {
   const target = Zodiac.rashiIndexOf(sign);
 
   const describe = (planet: Candidate) =>
@@ -83,10 +85,7 @@ const resolveCoLord = Effect.fn("astro-ascendant/dasha/chara/resolveCoLord")(fun
  * signs use their single ruler. If the lord sits in the sign itself (distance
  * of 0), or if no co-lord can be resolved, the duration is 12 years.
  */
-const durationOf = Effect.fn("astro-ascendant/dasha/chara/durationOf")(function* (
-  placements: Placements,
-  sign: Rashis,
-) {
+const durationOf = Effect.fnUntraced(function* (placements: Placements, sign: Rashis) {
   const lord =
     sign === "Scorpio" || sign === "Aquarius"
       ? yield* resolveCoLord(placements, sign, CO_LORDS[sign])

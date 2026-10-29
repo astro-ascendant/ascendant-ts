@@ -23,7 +23,7 @@ function positionCacheKey(julianDay: JulianDay, planet: Planets, ayanamsa: Ayana
   return `${Number(julianDay)}|${planet}|${ayanamsa}`;
 }
 
-const parseCacheKey = Effect.fn("astro-ascendant/ephemeris/parseCacheKey")(function* (key: string) {
+const parseCacheKey = Effect.fnUntraced(function* (key: string) {
   const [julianDayText, planetText, ayanamsaText] = key.split("|");
   const julianDay = yield* JulianDay.makeEffect(Number(julianDayText));
   const planet = yield* Schema.decodeUnknownEffect(Planets)(planetText);

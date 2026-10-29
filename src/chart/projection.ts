@@ -48,7 +48,7 @@ function signOfIndex(signIndex: number): Sign {
 }
 
 /** Maps the Lagna and planets into a Division, keeping source retrograde state. */
-const mapPoints = Effect.fn("astro-ascendant/chart/mapPoints")(
+const mapPoints = Effect.fnUntraced(
   function* (placements: Placements, division: Division) {
     const mappedLagna = yield* getDivisionalTarget(placements.lagna.longitude, division);
     const lagna = Lagna.make({
@@ -82,9 +82,7 @@ const mapPoints = Effect.fn("astro-ascendant/chart/mapPoints")(
 );
 
 /** Forward span of each D1 house, failing when the cusps do not partition the circle. */
-const houseSpans = Effect.fn("astro-ascendant/chart/houseSpans")(function* (
-  cusps: ReadonlyArray<Longitude>,
-) {
+const houseSpans = Effect.fnUntraced(function* (cusps: ReadonlyArray<Longitude>) {
   const spans = cusps.map((cusp, index) =>
     Zodiac.forwardArc(cusp, Array.getUnsafe(cusps, (index + 1) % cusps.length)),
   );
@@ -118,11 +116,12 @@ function houseOfPlanet(planet: Planets, houses: readonly D1House[]): Houses {
 
 function ownedHouses(planet: Planets, houses: readonly D1House[]): readonly Houses[] {
   return Houses.literals.filter(
-    (house) => Zodiac.lordOf(Zodiac.signOfLongitude(Array.getUnsafe(houses, house - 1).cusp)) === planet,
+    (house) =>
+      Zodiac.lordOf(Zodiac.signOfLongitude(Array.getUnsafe(houses, house - 1).cusp)) === planet,
   );
 }
 
-const planetsInStarOf = Effect.fn("astro-ascendant/chart/planetsInStarOf")(function* (
+const planetsInStarOf = Effect.fnUntraced(function* (
   starLord: Planets,
   planets: readonly Planet[],
 ) {
@@ -151,7 +150,7 @@ function agentOf(node: Planet, houses: readonly D1House[]): Planets {
   return conjunction?.name ?? node.sign.lord;
 }
 
-const planetSignificationOf = Effect.fn("astro-ascendant/chart/planetSignificationOf")(function* (
+const planetSignificationOf = Effect.fnUntraced(function* (
   planet: Planets,
   byName: HashMap.HashMap<Planets, Planet>,
   allHouses: readonly D1House[],
@@ -192,7 +191,7 @@ const planetSignificationOf = Effect.fn("astro-ascendant/chart/planetSignificati
   ] as const;
 });
 
-const houseSignificatorsOf = Effect.fn("astro-ascendant/chart/houseSignificatorsOf")(function* (
+const houseSignificatorsOf = Effect.fnUntraced(function* (
   house: Houses,
   chartHouse: D1House,
   planets: readonly Planet[],
@@ -208,7 +207,7 @@ const houseSignificatorsOf = Effect.fn("astro-ascendant/chart/houseSignificators
   ] as const;
 });
 
-const significationsOf = Effect.fn("astro-ascendant/chart/significationsOf")(function* (
+const significationsOf = Effect.fnUntraced(function* (
   houses: D1Houses,
   lagna: Lagna,
   date: DateTimeType,
@@ -248,10 +247,7 @@ const significationsOf = Effect.fn("astro-ascendant/chart/significationsOf")(fun
   };
 });
 
-const decodeChart = Effect.fn("astro-ascendant/chart/decodeChart")(function* <A, I>(
-  schema: Schema.Codec<A, I>,
-  input: unknown,
-) {
+const decodeChart = Effect.fnUntraced(function* <A, I>(schema: Schema.Codec<A, I>, input: unknown) {
   return yield* Schema.decodeUnknownEffect(schema)(input).pipe(
     Effect.mapError((cause) =>
       ChartCalculationError.make({ stage: "mapping", message: "Could not build chart", cause }),
@@ -259,7 +255,7 @@ const decodeChart = Effect.fn("astro-ascendant/chart/decodeChart")(function* <A,
   );
 });
 
-const d1Chart = Effect.fn("astro-ascendant/chart/d1Chart")(function* (
+const d1Chart = Effect.fnUntraced(function* (
   placements: Placements,
   evidence: HouseData,
   date: DateTimeType,
@@ -303,7 +299,7 @@ const d1Chart = Effect.fn("astro-ascendant/chart/d1Chart")(function* (
   });
 });
 
-const divisionalChart = Effect.fn("astro-ascendant/chart/divisionalChart")(function* (
+const divisionalChart = Effect.fnUntraced(function* (
   placements: Placements,
   division: DivisionalDivision,
   sex: Sex | undefined,
@@ -345,7 +341,7 @@ export function requestedDivisions(divisions: readonly Division[]): readonly Div
 }
 
 /** Projects Placements and D1 house evidence into D1 followed by the requested divisional charts. */
-export const projectCharts = Effect.fn("astro-ascendant/chart/projectCharts")(function* (
+export const projectCharts = Effect.fnUntraced(function* (
   placements: Placements,
   houses: HouseData,
   date: DateTimeType,

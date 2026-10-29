@@ -23,9 +23,7 @@ interface RequestedTargets {
   readonly house: Houses | undefined;
 }
 
-const validateRequest = Effect.fn("astro-ascendant/transit/validateRequest")(function* (
-  request: TransitRequest,
-) {
+const validateRequest = Effect.fnUntraced(function* (request: TransitRequest) {
   const decoded = yield* Schema.decodeEffect(TransitRequest)(request).pipe(
     Effect.mapError((cause) =>
       TransitValidationError.make({
@@ -97,7 +95,7 @@ export const findTransits = Effect.fn("astro-ascendant/transit/findTransits")(fu
   return yield* enrichWithCharts(events, divisions, validated.from);
 });
 
-const buildFixedTargets = Effect.fn("astro-ascendant/transit/buildFixedTargets")(function* (
+const buildFixedTargets = Effect.fnUntraced(function* (
   targets: RequestedTargets,
   from: LocatedMoment,
   fromJulianDay: JulianDay,
@@ -141,7 +139,7 @@ function mapEvents(
   );
 }
 
-const enrichWithCharts = Effect.fn("astro-ascendant/transit/enrichWithCharts")(function* (
+const enrichWithCharts = Effect.fnUntraced(function* (
   events: ReadonlyArray<TransitEvent>,
   divisions: ReadonlyArray<Division>,
   from: LocatedMoment,

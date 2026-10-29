@@ -7,7 +7,7 @@ import { CalculationError, Positions } from "./model.js";
 
 type PositionType = typeof Positions.Type;
 
-export const relation = Effect.fn("astro-ascendant/jaimini/argala/relation")(function* (
+export const relation = Effect.fnUntraced(function* (
   referenceIndex: number,
   position: PositionType,
   occupants: HashMap.HashMap<Rashis, readonly Planets[]>,

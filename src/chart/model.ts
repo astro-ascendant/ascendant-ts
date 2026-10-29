@@ -268,8 +268,8 @@ export interface Moment extends Schema.Schema.Type<typeof Moment> {}
 
 export const LocatedMoment = Schema.Struct({
   moment: Moment,
-  latitude: Schema.Finite,
-  longitude: Schema.Finite,
+  latitude: Schema.Finite.check(Schema.isBetween({ minimum: -90, maximum: 90 })),
+  longitude: Schema.Finite.check(Schema.isBetween({ minimum: -180, maximum: 180 })),
 });
 export interface LocatedMoment extends Schema.Schema.Type<typeof LocatedMoment> {}
 

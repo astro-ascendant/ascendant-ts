@@ -11,7 +11,7 @@ import {
 } from "./internal/constants.js";
 import { Longitude, Star, type PlanetDignity, type Planets } from "./model.js";
 
-export const starOf = Effect.fn("astro-ascendant/chart/starOf")(function* (longitude: Longitude) {
+export const starOf = Effect.fnUntraced(function* (longitude: Longitude) {
   const position = yield* normalizeLongitude(longitude);
   const index = Math.floor(position / STAR_SPAN);
   const pada = Math.floor(((position % STAR_SPAN) / STAR_SPAN) * 4) + 1;
@@ -48,9 +48,7 @@ function pickLord(
   return undefined;
 }
 
-export const subLordOf = Effect.fn("astro-ascendant/chart/subLordOf")(function* (
-  longitude: Longitude,
-) {
+export const subLordOf = Effect.fnUntraced(function* (longitude: Longitude) {
   const star = yield* starOf(longitude);
   const offset = (yield* normalizeLongitude(longitude)) % STAR_SPAN;
   const position = offset / STAR_SPAN;
@@ -61,9 +59,7 @@ export const subLordOf = Effect.fn("astro-ascendant/chart/subLordOf")(function* 
   return picked === undefined ? star.lord : picked.lord;
 });
 
-export const subSubLordOf = Effect.fn("astro-ascendant/chart/subSubLordOf")(function* (
-  longitude: Longitude,
-) {
+export const subSubLordOf = Effect.fnUntraced(function* (longitude: Longitude) {
   const star = yield* starOf(longitude);
   const offset = (yield* normalizeLongitude(longitude)) % STAR_SPAN;
   const position = offset / STAR_SPAN;

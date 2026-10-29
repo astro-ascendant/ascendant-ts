@@ -25,7 +25,7 @@ export const dateToJulianDay = Effect.fn("astro-ascendant/swisseph/dateToJulianD
   return yield* JulianDay.makeEffect(raw).pipe(ephemerisError("dateToJulianDay"));
 });
 
-export const calculatePosition = Effect.fn("astro-ascendant/swisseph/calculatePosition")(function* (
+export const calculatePosition = Effect.fnUntraced(function* (
   julianDay: number,
   planet: Planets,
   ayanamsa: Ayanamsa,

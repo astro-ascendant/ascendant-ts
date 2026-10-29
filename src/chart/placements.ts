@@ -10,7 +10,7 @@ export interface PlacementEvidence {
   readonly planetEntries: readonly (readonly [SourcePlanet["name"], PlanetaryPosition])[];
 }
 
-export const placementsFromEvidence = Effect.fn("astro-ascendant/chart/placementsFromEvidence")(
+export const placementsFromEvidence = Effect.fnUntraced(
   function* (evidence: PlacementEvidence) {
     const planets = yield* Effect.forEach(evidence.planetEntries, ([name, position]) =>
       Effect.map(starOf(position.longitude), (star) =>

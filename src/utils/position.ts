@@ -20,9 +20,7 @@ export class LongitudeError extends Schema.TaggedError<
 }) {}
 
 // Converts an angle into branded Longitude in the range of [0, 360)
-export const normalizeLongitude = Effect.fn("astro-ascendant/utils/normalizeLongitude")(function* (
-  longitude: number,
-) {
+export const normalizeLongitude = Effect.fnUntraced(function* (longitude: number) {
   const finite = yield* Schema.Finite.makeEffect(longitude).pipe(
     Effect.mapError(() =>
       LongitudeError.make({

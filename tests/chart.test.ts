@@ -86,6 +86,21 @@ describe("Chart calculation", () => {
       }),
     );
 
+    it.effect("rejects coordinates or moments outside their valid ranges", () =>
+      Effect.gen(function* () {
+        const { moment, latitude, longitude } = fixtures.locatedMoment();
+        for (const input of [
+          { moment, latitude: 90.5, longitude },
+          { moment, latitude, longitude: -180.5 },
+          { moment, latitude: Number.NaN, longitude },
+          { moment: { date: "2000-01-01" }, latitude, longitude },
+        ]) {
+          const error = yield* Effect.flip(Chart.generate(input as Chart.ChartParams));
+          expect(error._tag).toBe("LocatedMomentValidationError");
+        }
+      }),
+    );
+
     it.effect("returns requested divisions exactly once, D1 first, in stable order", () =>
       Effect.gen(function* () {
         for (const [requested, expected] of [

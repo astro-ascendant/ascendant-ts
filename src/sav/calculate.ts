@@ -34,9 +34,7 @@ function signScoresFromArray(scores: readonly number[]): SignScores {
   ) as SignScores;
 }
 
-const signScores = Effect.fn("astro-ascendant/sav/signScores")(function* (
-  scores: readonly number[],
-) {
+const signScores = Effect.fnUntraced(function* (scores: readonly number[]) {
   if (scores.length !== Zodiac.SIGNS.length) {
     return yield* SAVCalculationError.make({
       message: `Expected 12 sign scores; received ${scores.length}`,
@@ -46,14 +44,11 @@ const signScores = Effect.fn("astro-ascendant/sav/signScores")(function* (
   return signScoresFromArray(scores);
 });
 
-const total = (scores: SignScores): number => Zodiac.SIGNS.reduce((sum, rashi) => sum + scores[rashi], 0);
+const total = (scores: SignScores): number =>
+  Zodiac.SIGNS.reduce((sum, rashi) => sum + scores[rashi], 0);
 
-const entityPositions = Effect.fn("astro-ascendant/sav/entityPositions")(function* (
-  placements: Placements,
-) {
-  const planetPosition = Effect.fn("astro-ascendant/sav/planetPosition")(function* (
-    name: AshtakavargaPlanets,
-  ) {
+const entityPositions = Effect.fnUntraced(function* (placements: Placements) {
+  const planetPosition = Effect.fnUntraced(function* (name: AshtakavargaPlanets) {
     const match = yield* Placement.exactlyOnce(placements, name, (count) =>
       SAVCalculationError.make({
         message: `Placements must contain exactly one ${name}; received ${count}`,
@@ -77,7 +72,7 @@ const entityPositions = Effect.fn("astro-ascendant/sav/entityPositions")(functio
   ) as EntityPositions;
 });
 
-const calculateSignScores = Effect.fn("astro-ascendant/sav/calculateSignScores")(function* (
+const calculateSignScores = Effect.fnUntraced(function* (
   target: AshtakavargaEntities,
   positions: EntityPositions,
 ) {
@@ -91,9 +86,7 @@ const calculateSignScores = Effect.fn("astro-ascendant/sav/calculateSignScores")
   );
 });
 
-const calculateBhinna = Effect.fn("astro-ascendant/sav/calculateBhinna")(function* (
-  positions: EntityPositions,
-) {
+const calculateBhinna = Effect.fnUntraced(function* (positions: EntityPositions) {
   const bhinnaEntries = yield* Effect.all(
     ASHTAKAVARGA_ENTITY_ORDER.map((entity) =>
       calculateSignScores(entity, positions).pipe(
@@ -105,9 +98,7 @@ const calculateBhinna = Effect.fn("astro-ascendant/sav/calculateBhinna")(functio
   return Record.fromEntries(bhinnaEntries) as BhinnaAshtakavarga;
 });
 
-const validateBhinna = Effect.fn("astro-ascendant/sav/validateBhinna")(function* (
-  bhinna: BhinnaAshtakavarga,
-) {
+const validateBhinna = Effect.fnUntraced(function* (bhinna: BhinnaAshtakavarga) {
   for (const entity of ASHTAKAVARGA_ENTITY_ORDER) {
     const actual = total(bhinna[entity]);
     const expected = EXPECTED_BAV_TOTALS[entity];
@@ -120,9 +111,7 @@ const validateBhinna = Effect.fn("astro-ascendant/sav/validateBhinna")(function*
   }
 });
 
-const calculateSarva = Effect.fn("astro-ascendant/sav/calculateSarva")(function* (
-  bhinna: BhinnaAshtakavarga,
-) {
+const calculateSarva = Effect.fnUntraced(function* (bhinna: BhinnaAshtakavarga) {
   const sarva = yield* signScores(
     Zodiac.SIGNS.map((rashi) =>
       ASHTAKAVARGA_PLANET_ORDER.reduce((score, planet) => score + bhinna[planet][rashi], 0),
@@ -138,7 +127,7 @@ const calculateSarva = Effect.fn("astro-ascendant/sav/calculateSarva")(function*
   return sarva;
 });
 
-const reduceScores = Effect.fn("astro-ascendant/sav/reduceScores")(function* (scores: SignScores) {
+const reduceScores = Effect.fnUntraced(function* (scores: SignScores) {
   const reduced = Zodiac.SIGNS.map((rashi) => scores[rashi]);
 
   for (const group of TRIKONA_GROUPS) {
@@ -161,9 +150,7 @@ const reduceScores = Effect.fn("astro-ascendant/sav/reduceScores")(function* (sc
   return yield* signScores(reduced);
 });
 
-const calculateReduced = Effect.fn("astro-ascendant/sav/calculateReduced")(function* (
-  bhinna: BhinnaAshtakavarga,
-) {
+const calculateReduced = Effect.fnUntraced(function* (bhinna: BhinnaAshtakavarga) {
   const reducedEntries = yield* Effect.forEach(
     ASHTAKAVARGA_PLANET_ORDER,
     (planet) =>
@@ -179,8 +166,7 @@ function calculatePlanetPinda(scores: SignScores, positions: EntityPositions): P
     0,
   );
   const graha_pinda = ASHTAKAVARGA_PLANET_ORDER.reduce(
-    (sum, planet) =>
-      sum + scores[Zodiac.signAt(positions[planet])] * GRAHA_GUNAKAR[planet],
+    (sum, planet) => sum + scores[Zodiac.signAt(positions[planet])] * GRAHA_GUNAKAR[planet],
     0,
   );
   return { rashi_pinda, graha_pinda, shodhya_pinda: rashi_pinda + graha_pinda } satisfies Pinda;
@@ -197,9 +183,7 @@ function calculateShodhyaPinda(
   ) as ShodhyaPinda;
 }
 
-const calculateTotals = Effect.fn("astro-ascendant/sav/calculateTotals")(function* (
-  bhinna: BhinnaAshtakavarga,
-) {
+const calculateTotals = Effect.fnUntraced(function* (bhinna: BhinnaAshtakavarga) {
   const entityTotals = yield* Effect.all(
     ASHTAKAVARGA_ENTITY_ORDER.map((entity) =>
       Effect.sync(() => total(bhinna[entity])).pipe(Effect.map((t) => [entity, t] as const)),

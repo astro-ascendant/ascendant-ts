@@ -16,9 +16,11 @@ Reach when: uncertain on API, checking generics, debugging inference.
 
 ### Function declarations
 - **Pure functions** — use named `function` declaration: `function add(a: number, b: number): number { return a + b }`
-- **Functions with side effects** (throwing, I/O, mutation) — use `Effect.fn` with `yield*`:
+- **Functions with side effects** (throwing, I/O, mutation) — use the generator syntax with `yield*`:
+  - `Effect.fn("name")` for public operations a caller invokes (`generate`, `findTransits`, each `calculate`) and once-per-call ephemeris work; it opens a tracing span.
+  - `Effect.fnUntraced` for everything internal, especially per-sample and per-point helpers such as the transit kernel and KP lords.
   ```ts
-  const parseUser = Effect.fn("parseUser")(function* (input: string) {
+  const parseUser = Effect.fnUntraced(function* (input: string) {
     const parsed = yield* Schema.decode(User)(input)
     return parsed
   })

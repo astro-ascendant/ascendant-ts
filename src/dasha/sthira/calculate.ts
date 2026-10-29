@@ -52,10 +52,7 @@ const byStrength: Order.Order<Scored> = Order.combine(
 );
 
 /** Rashi strength as Chara Bala (movability) + Sthira Bala (occupancy) + Drishti Bala (aspect). */
-const rashiBalaOf = Effect.fn("astro-ascendant/dasha/sthira/rashiBalaOf")(function* (
-  placements: Placements,
-  sign: Rashis,
-) {
+const rashiBalaOf = Effect.fnUntraced(function* (placements: Placements, sign: Rashis) {
   // Dedupe handles the case where the lord is Jupiter or Mercury
   const aspectingPlanets = yield* Effect.filter(
     Arr.dedupe([Zodiac.lordOf(sign), "Jupiter", "Mercury"] as const),
@@ -82,9 +79,7 @@ const rashiBalaOf = Effect.fn("astro-ascendant/dasha/sthira/rashiBalaOf")(functi
 });
 
 /** Picks the stronger of the Lagna and 7th signs as the Brahma reference; Lagna wins ties. */
-const referenceOf = Effect.fn("astro-ascendant/dasha/sthira/referenceOf")(function* (
-  placements: Placements,
-) {
+const referenceOf = Effect.fnUntraced(function* (placements: Placements) {
   const lagnaSign = Zodiac.signOfLongitude(placements.lagna.longitude);
   const seventhSign = Zodiac.houseSignOf(Zodiac.rashiIndexOf(lagnaSign), 7);
   const [lagnaRashiBala, seventhRashiBala] = yield* Effect.all([
@@ -110,9 +105,7 @@ function candidatesOf(referenceSign: Rashis): ReadonlyArray<EligibleBrahmaPlanet
 }
 
 /** Chara Karaka assignments plus the resolved Atmakaraka and its placement for Kendradi Bala. */
-const karakasOf = Effect.fn("astro-ascendant/dasha/sthira/karakasOf")(function* (
-  placements: Placements,
-) {
+const karakasOf = Effect.fnUntraced(function* (placements: Placements) {
   const karakas = yield* calculateCharaKarakas(placements).pipe(
     Effect.mapError((error) =>
       error._tag === "CharaKarakasEvidenceError"
@@ -144,7 +137,7 @@ const karakasOf = Effect.fn("astro-ascendant/dasha/sthira/karakasOf")(function* 
 });
 
 /** Scores one Brahma contender on dignity, Chara Karaka, and Kendradi-from-Atmakaraka balas. */
-const scoreCandidate = Effect.fn("astro-ascendant/dasha/sthira/scoreCandidate")(function* (
+const scoreCandidate = Effect.fnUntraced(function* (
   candidate: EligibleBrahmaPlanet,
   placements: Placements,
   karakas: Karakas,
@@ -188,7 +181,7 @@ const scoreCandidate = Effect.fn("astro-ascendant/dasha/sthira/scoreCandidate")(
 });
 
 /** Scores every contender, ranks by strength, and returns the winner with its selection record. */
-const scoredOf = Effect.fn("astro-ascendant/dasha/sthira/scoredOf")(function* (
+const scoredOf = Effect.fnUntraced(function* (
   candidates: ReadonlyArray<EligibleBrahmaPlanet>,
   placements: Placements,
   karakas: Karakas,

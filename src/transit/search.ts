@@ -64,7 +64,7 @@ export interface SearchOutcome {
   readonly endJulianDay: number;
 }
 
-export const sampleAt = Effect.fn("astro-ascendant/transit/sampleAt")(function* (
+export const sampleAt = Effect.fnUntraced(function* (
   julianDay: number,
   planet: Planets,
   ayanamsa: Ayanamsa,
@@ -110,7 +110,7 @@ function crossedBoundary(
   return { boundary, rising: later > earlier };
 }
 
-const refineValue = Effect.fn("astro-ascendant/transit/refineValue")(function* (
+const refineValue = Effect.fnUntraced(function* (
   low: LongitudeSample,
   high: LongitudeSample,
   planet: Planets,
@@ -136,7 +136,7 @@ const refineValue = Effect.fn("astro-ascendant/transit/refineValue")(function* (
   return yield* sampleAt((lower.julianDay + upper.julianDay) / 2, planet, ayanamsa);
 });
 
-const refineLongitude = Effect.fn("astro-ascendant/transit/refineLongitude")(function* (
+const refineLongitude = Effect.fnUntraced(function* (
   low: LongitudeSample,
   high: LongitudeSample,
   planet: Planets,
@@ -149,7 +149,7 @@ const refineLongitude = Effect.fn("astro-ascendant/transit/refineLongitude")(fun
   );
 });
 
-const refineStation = Effect.fn("astro-ascendant/transit/refineStation")(function* (
+const refineStation = Effect.fnUntraced(function* (
   low: LongitudeSample,
   high: LongitudeSample,
   planet: Planets,
@@ -190,7 +190,7 @@ function pushDedup(hits: Array<RawHit>, hit: RefinedHit, precision: number): voi
   });
 }
 
-const ingressHit = Effect.fn("astro-ascendant/transit/ingressHit")(function* (
+const ingressHit = Effect.fnUntraced(function* (
   earlier: LongitudeSample,
   later: LongitudeSample,
   options: SearchOptions,
@@ -214,7 +214,7 @@ const ingressHit = Effect.fn("astro-ascendant/transit/ingressHit")(function* (
   return hit;
 });
 
-const fixedTargetHit = Effect.fn("astro-ascendant/transit/fixedTargetHit")(function* (
+const fixedTargetHit = Effect.fnUntraced(function* (
   earlier: LongitudeSample,
   later: LongitudeSample,
   options: SearchOptions,
@@ -243,7 +243,7 @@ const fixedTargetHit = Effect.fn("astro-ascendant/transit/fixedTargetHit")(funct
   return hit;
 });
 
-const stationHit = Effect.fn("astro-ascendant/transit/stationHit")(function* (
+const stationHit = Effect.fnUntraced(function* (
   earlier: LongitudeSample,
   later: LongitudeSample,
   options: SearchOptions,
@@ -261,7 +261,7 @@ const stationHit = Effect.fn("astro-ascendant/transit/stationHit")(function* (
   return hit;
 });
 
-const refineStep = Effect.fn("astro-ascendant/transit/refineStep")(function* (
+const refineStep = Effect.fnUntraced(function* (
   earlier: LongitudeSample,
   later: LongitudeSample,
   options: SearchOptions,
@@ -296,7 +296,7 @@ const refineStep = Effect.fn("astro-ascendant/transit/refineStep")(function* (
   );
 });
 
-const advanceCursor = Effect.fn("astro-ascendant/transit/advanceCursor")(function* (
+const advanceCursor = Effect.fnUntraced(function* (
   cursor: number,
   previous: LongitudeSample,
   step: number,
@@ -331,9 +331,7 @@ function appendStepHits(
 }
 
 /** Every zero-crossing counts, so retrograde triples yield three hits in time order. */
-export const searchRawHits = Effect.fn("astro-ascendant/transit/searchRawHits")(function* (
-  options: SearchOptions,
-) {
+export const searchRawHits = Effect.fnUntraced(function* (options: SearchOptions) {
   const forward = options.direction === "forward";
   const sign = forward ? 1 : -1;
   const step = (options.stepDays ?? COARSE_STEP_DAYS[options.planet]) * sign;

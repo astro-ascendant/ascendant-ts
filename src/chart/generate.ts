@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 
 import { AstroParams } from "../astro-params/service.js";
 import { Ephemeris } from "../ephemeris/service.js";
@@ -7,27 +7,17 @@ import { ChartCalculation, type ChartParams, Division, LocatedMoment, Planets } 
 import { placementsFromEvidence, type PlacementEvidence } from "./placements.js";
 import { projectCharts } from "./projection.js";
 
-const validateInput = Effect.fn("astro-ascendant/chart/validateInput")(function* (
-  input: LocatedMoment,
-) {
-  const valid =
-    Number.isFinite(input.latitude) &&
-    input.latitude >= -90 &&
-    input.latitude <= 90 &&
-    Number.isFinite(input.longitude) &&
-    input.longitude >= -180 &&
-    input.longitude <= 180 &&
-    Number.isFinite(input.moment.date.epochMilliseconds);
-
-  if (!valid) {
-    return yield* LocatedMomentValidationError.make({
+/** Decodes the Located Moment, so out-of-range or malformed input fails typed before any ephemeris call. */
+function validateInput(input: ChartParams) {
+  return Effect.mapError(Schema.decodeEffect(LocatedMoment)(input), (cause) =>
+    LocatedMomentValidationError.make({
       message: "Moment and geographic coordinates must be valid",
-      cause: input,
-    });
-  }
-});
+      cause,
+    }),
+  );
+}
 
-const calculatePlacementEvidence = Effect.fn("astro-ascendant/chart/calculatePlacementEvidence")(
+const calculatePlacementEvidence = Effect.fnUntraced(
   function* (input: LocatedMoment) {
     const astroParams = yield* AstroParams;
     const ephemeris = yield* Ephemeris;
