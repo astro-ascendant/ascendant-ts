@@ -105,12 +105,12 @@ The weighted total for one classical planet derived from its reduced BAV. It is 
 _Avoid_: SAV total, probability, standalone prediction
 
 **Division**:
-The identity of a chart within the divisional system, written D1, D2, D3, and so on. D1 identifies the Rashi chart; the other supported values identify divisional charts.
+The identity of a chart within the divisional system, written D1, D2, D3, and so on. D1 identifies the D1 chart; the other supported values identify divisional charts.
 _Avoid_: Chart type, Varga number
 
-**D1 / Rashi chart**:
+**D1 chart**:
 The D1 chart derived from Placements. Its houses begin at the cusps of the selected House system, and it alone carries the chart angles, KP star and sub lords, significations, and ruling planets.
-_Avoid_: Base chart, raw chart
+_Avoid_: Rashi chart, natal chart (natal is a meaning given to a Chart calculation), base chart, raw chart
 
 **Divisional chart**:
 A chart derived from Placements by applying the mapping for its Division to the Lagna and grahas. Its houses are whole signs counted from the mapped Lagna's Sign, whatever the House system; it carries no angles or KP data, because those belong to source longitudes rather than mapped ones.

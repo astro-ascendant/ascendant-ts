@@ -8,7 +8,7 @@ import { Array, Effect, HashMap, Option, Order, pipe, Record, Schema } from "eff
 import type { DateTime as DateTimeType } from "effect/DateTime";
 
 import type { HouseData } from "../ephemeris/model.js";
-import { divisionalChartProjection, rashiChartProjection } from "../provenance.js";
+import { divisionalChartProjection, d1ChartProjection } from "../provenance.js";
 import { Zodiac } from "../utils/index.js";
 import { EPS_CIRCLE, normalizeLongitude } from "../utils/position.js";
 import { getDivisionalTarget } from "./divisional-mapping/calculate.js";
@@ -31,9 +31,9 @@ import {
   Planet,
   PlanetSignification,
   Planets,
-  RashiChart,
-  RashiHouse,
-  RashiHouses,
+  D1Chart,
+  D1House,
+  D1Houses,
   Rashis,
   type Sex,
   Sign,
@@ -122,14 +122,14 @@ function planetsInCuspHouses(
   return cusps.map((_, index) => planets.filter((planet) => houseIndexOf(planet) === index));
 }
 
-function houseOfPlanet(planet: Planets, houses: readonly RashiHouse[]): Houses {
+function houseOfPlanet(planet: Planets, houses: readonly D1House[]): Houses {
   const index = houses.findIndex((house) => house.planets.some((item) => item.name === planet));
   return (index + 1) as Houses;
 }
 
 const ownedHouses = Effect.fn("astro-ascendant/chart/ownedHouses")(function* (
   planet: Planets,
-  houses: readonly RashiHouse[],
+  houses: readonly D1House[],
 ) {
   const owned: Array<Houses> = [];
   for (const [index, house] of houses.entries()) {
@@ -152,7 +152,7 @@ const planetsInStarOf = Effect.fn("astro-ascendant/chart/planetsInStarOf")(funct
 });
 
 /** A node's agent: its nearest conjunct planet in the same house, else its Sign lord. */
-function agentOf(node: Planet, houses: readonly RashiHouse[]): Planets {
+function agentOf(node: Planet, houses: readonly D1House[]): Planets {
   const house = houses.find((item) => item.planets.some(({ name }) => name === node.name));
   const conjunction =
     house === undefined
@@ -170,7 +170,7 @@ function agentOf(node: Planet, houses: readonly RashiHouse[]): Planets {
 const planetSignificationOf = Effect.fn("astro-ascendant/chart/planetSignificationOf")(function* (
   planet: Planets,
   byName: HashMap.HashMap<Planets, Planet>,
-  allHouses: readonly RashiHouse[],
+  allHouses: readonly D1House[],
 ) {
   const item = HashMap.get(byName, planet);
 
@@ -210,7 +210,7 @@ const planetSignificationOf = Effect.fn("astro-ascendant/chart/planetSignificati
 
 const houseSignificatorsOf = Effect.fn("astro-ascendant/chart/houseSignificatorsOf")(function* (
   house: Houses,
-  chartHouse: RashiHouse,
+  chartHouse: D1House,
   planets: readonly Planet[],
 ) {
   const occupants = chartHouse.planets.map((planet) => planet.name);
@@ -225,7 +225,7 @@ const houseSignificatorsOf = Effect.fn("astro-ascendant/chart/houseSignificators
 });
 
 const significationsOf = Effect.fn("astro-ascendant/chart/significationsOf")(function* (
-  houses: RashiHouses,
+  houses: D1Houses,
   lagna: Lagna,
   date: DateTimeType,
 ) {
@@ -275,7 +275,7 @@ const decodeChart = Effect.fn("astro-ascendant/chart/decodeChart")(function* <A,
   );
 });
 
-const rashiChart = Effect.fn("astro-ascendant/chart/rashiChart")(function* (
+const d1Chart = Effect.fn("astro-ascendant/chart/d1Chart")(function* (
   placements: Placements,
   evidence: HouseData,
   date: DateTimeType,
@@ -292,7 +292,7 @@ const rashiChart = Effect.fn("astro-ascendant/chart/rashiChart")(function* (
       const sign = yield* signAt(cusp);
       return [
         String(house),
-        RashiHouse.make({
+        D1House.make({
           sign,
           cusp,
           signLord: SIGN_LORDS[sign],
@@ -306,12 +306,12 @@ const rashiChart = Effect.fn("astro-ascendant/chart/rashiChart")(function* (
       ] as const;
     }),
   );
-  const houses = yield* decodeChart(RashiHouses, Record.fromEntries(entries));
+  const houses = yield* decodeChart(D1Houses, Record.fromEntries(entries));
   const significations = yield* significationsOf(houses, lagna, date);
 
-  return yield* decodeChart(RashiChart, {
+  return yield* decodeChart(D1Chart, {
     ...(sex === undefined ? {} : { sex }),
-    provenance: rashiChartProjection.provenance,
+    provenance: d1ChartProjection.provenance,
     division: 1,
     houses,
     angles: evidence.angles,
@@ -372,7 +372,7 @@ export const projectCharts = Effect.fn("astro-ascendant/chart/projectCharts")(fu
 ) {
   const [d1, divisional] = yield* Effect.all(
     [
-      rashiChart(placements, houses, date, sex),
+      d1Chart(placements, houses, date, sex),
       Effect.forEach(requestedDivisions(divisions), (division) =>
         divisionalChart(placements, division, sex),
       ),

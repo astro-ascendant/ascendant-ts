@@ -86,7 +86,7 @@ export function mean(values: readonly number[]): number {
   return values.reduce((total, value) => total + value, 0) / values.length;
 }
 
-export function houseLordsOf(chart: Chart.RashiChart): readonly HouseLords[] {
+export function houseLordsOf(chart: Chart.D1Chart): readonly HouseLords[] {
   return HOUSES.map((house) => {
     const data = chart.houses[house];
     return {

@@ -53,7 +53,7 @@ For repeated or overlapping workloads (transit scans, dashboards), swap in
 cache instead of the native library. See `benchmarks/stress.md` for measured
 speedups.
 
-`calculation.placements` contains the shared sidereal positions. `calculation.charts` contains D1 first, followed by the requested divisions in numeric order. Optional birth `sex` is copied into each chart. D1 is a `RashiChart`: its houses begin at the selected house system's cusps, and it alone carries the chart angles, KP star, sub and sub-sub lords, four-level planet significations, four-level house significators, and the five ordered ruling planets. Each divisional chart is a `DivisionalChart` whose houses are whole signs counted from its mapped Lagna.
+`calculation.placements` contains the shared sidereal positions. `calculation.charts` contains D1 first, followed by the requested divisions in numeric order. Optional birth `sex` is copied into each chart. D1 is a `D1Chart`: its houses begin at the selected house system's cusps, and it alone carries the chart angles, KP star, sub and sub-sub lords, four-level planet significations, four-level house significators, and the five ordered ruling planets. Each divisional chart is a `DivisionalChart` whose houses are whole signs counted from its mapped Lagna.
 
 ## Calculations
 

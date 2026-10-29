@@ -64,7 +64,7 @@ describe("Astrology method provenance", () => {
             sthira.provenance,
           ],
           [
-            Provenance.methods.rashiChartProjection.provenance,
+            Provenance.methods.d1ChartProjection.provenance,
             Provenance.methods.divisionalChartProjection.provenance,
             Provenance.methods.jaiminiArgala.provenance,
             Provenance.methods.jaiminiArudhaPada.provenance,

@@ -157,7 +157,7 @@ describe("Chart calculation", () => {
         const { charts } = yield* Chart.generate(fixtures.locatedMoment(), [9]);
 
         expect(charts.map(({ provenance }) => provenance)).toEqual([
-          Provenance.methods.rashiChartProjection.provenance,
+          Provenance.methods.d1ChartProjection.provenance,
           Provenance.methods.divisionalChartProjection.provenance,
         ]);
       }),

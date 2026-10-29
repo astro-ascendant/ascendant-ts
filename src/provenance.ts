@@ -20,12 +20,12 @@ export const MethodSpecification = Schema.Struct({
 });
 export interface MethodSpecification extends Schema.Schema.Type<typeof MethodSpecification> {}
 
-export const RashiChartProvenance = Schema.Struct({
+export const D1ChartProvenance = Schema.Struct({
   school: Schema.Literal("Ascendant"),
   method: Schema.Literal("house-system-cusps"),
   version: Schema.Literal(1),
 });
-export interface RashiChartProvenance extends Schema.Schema.Type<typeof RashiChartProvenance> {}
+export interface D1ChartProvenance extends Schema.Schema.Type<typeof D1ChartProvenance> {}
 
 export const DivisionalChartProvenance = Schema.Struct({
   school: Schema.Literal("Ascendant"),
@@ -113,7 +113,7 @@ export interface TransitSearchProvenance extends Schema.Schema.Type<
   typeof TransitSearchProvenance
 > {}
 
-export const rashiChartProjection = {
+export const d1ChartProjection = {
   provenance: { school: "Ascendant", method: "house-system-cusps", version: 1 },
   steps: [
     { id: "place-points", description: "Use the Lagna and planets at their source longitudes." },
@@ -259,7 +259,7 @@ export const transitSearch = {
 } as const satisfies MethodSpecification;
 
 export const methods = {
-  rashiChartProjection,
+  d1ChartProjection,
   divisionalChartProjection,
   jaiminiArgala,
   jaiminiArudhaPada,

@@ -11,7 +11,7 @@ The public API includes:
 D1 is always included in generated results. Additional supported divisions
 are selected by their numeric division number.
 
-A `Chart` is either a `RashiChart` or a `DivisionalChart`, told apart by
+A `Chart` is either a `D1Chart` or a `DivisionalChart`, told apart by
 `division`. D1 houses begin at the selected house system's cusps and carry the
 angles, KP lords, significations and ruling planets. Divisional houses are
 whole signs counted from the mapped Lagna: mapping cusps through a division

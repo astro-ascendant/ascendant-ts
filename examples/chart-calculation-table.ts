@@ -6,8 +6,8 @@ import type {
   ChartCalculation,
   DivisionalHouse,
   Longitude,
-  RashiChart,
-  RashiHouse,
+  D1Chart,
+  D1House,
 } from "../src/chart/index.js";
 
 type TableValue = string | number | boolean;
@@ -22,7 +22,7 @@ function displayOptionalLongitude(longitude: number | undefined): TableValue {
 }
 
 /** KP lords of a cusp, shown only on D1 houses, which alone carry them. */
-function cuspLords(house: RashiHouse | DivisionalHouse) {
+function cuspLords(house: D1House | DivisionalHouse) {
   return {
     "Star Lord": "starLord" in house ? house.starLord : "—",
     "Sub Lord": "subLord" in house ? house.subLord : "—",
@@ -110,7 +110,7 @@ function significationRows(chart: Chart): readonly TableRow[] {
   }));
 }
 
-function planetSignificationRows(chart: RashiChart): readonly TableRow[] {
+function planetSignificationRows(chart: D1Chart): readonly TableRow[] {
   return EffectRecord.toEntries(chart.planetSignifications).map(([planet, signification]) => ({
     Planet: planet,
     "Level 1": signification.level1.join(", ") || "—",
@@ -120,7 +120,7 @@ function planetSignificationRows(chart: RashiChart): readonly TableRow[] {
   }));
 }
 
-function houseSignificatorRows(chart: RashiChart): readonly TableRow[] {
+function houseSignificatorRows(chart: D1Chart): readonly TableRow[] {
   return EffectRecord.toEntries(chart.houseSignificators).map(([houseNumber, significators]) => ({
     House: Number(houseNumber),
     "Level 1": significators.level1.join(", ") || "—",
