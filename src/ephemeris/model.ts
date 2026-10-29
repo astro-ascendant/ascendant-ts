@@ -9,28 +9,17 @@ export const JulianDay = Schema.Finite.check(Schema.isBetween({ minimum: 0, maxi
 
 export type JulianDay = typeof JulianDay.Type;
 
-export const CelestialBody = Schema.Literals([
-  "Sun",
-  "Moon",
-  "Mars",
-  "Mercury",
-  "Venus",
-  "Jupiter",
-  "Saturn",
-  "TrueNode",
-  "MeanNode",
-]);
-
-export type CelestialBody = typeof CelestialBody.Type;
-
+/**
+ * A graha's sidereal position in domain terms. Adapters resolve Rahu and Ketu
+ * to their own lunar-node conventions, so Ketu is a position like any other.
+ */
 export const PlanetaryPosition = Schema.Struct({
-  longitude: Schema.Finite,
+  longitude: Longitude,
   latitude: Schema.Finite,
   distance: Schema.Finite,
   longitudeSpeed: Schema.Finite,
   latitudeSpeed: Schema.Finite,
   distanceSpeed: Schema.Finite,
-  flags: Schema.Int,
 });
 export interface PlanetaryPosition extends Schema.Schema.Type<typeof PlanetaryPosition> {}
 

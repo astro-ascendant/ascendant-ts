@@ -2,10 +2,10 @@ import { DateTime, Effect } from "effect";
 
 import { Ayanamsa } from "../astro-params/model.js";
 import { Longitude, Rashis } from "../chart/model.js";
-import { JulianDay, type CelestialBody } from "../ephemeris/model.js";
+import { JulianDay } from "../ephemeris/model.js";
 import { Ephemeris } from "../ephemeris/service.js";
 import { Zodiac } from "../utils/index.js";
-import { EPS_BOUNDARY, normalizeLongitude } from "../utils/position.js";
+import { EPS_BOUNDARY } from "../utils/position.js";
 import { type Planets, type TransitDirection, type TransitKind } from "./model.js";
 
 export const JD_UNIX_EPOCH = 2_440_587.5;
@@ -30,18 +30,6 @@ export function millisFromJd(julianDay: number): number {
 export function dateTimeFromJd(julianDay: number) {
   return DateTime.makeUnsafe(millisFromJd(julianDay));
 }
-
-const PLANET_BODY: Record<Planets, CelestialBody> = {
-  Sun: "Sun",
-  Moon: "Moon",
-  Mars: "Mars",
-  Mercury: "Mercury",
-  Jupiter: "Jupiter",
-  Venus: "Venus",
-  Saturn: "Saturn",
-  Rahu: "MeanNode",
-  Ketu: "MeanNode",
-};
 
 export const COARSE_STEP_DAYS: Record<Planets, number> = {
   Sun: 1,
@@ -101,16 +89,10 @@ export const sampleAt = Effect.fn("astro-ascendant/transit/sampleAt")(function* 
 ) {
   const ephemeris = yield* Ephemeris;
   const julianDayValue = yield* JulianDay.makeEffect(julianDay);
-  const position = yield* ephemeris.calculatePosition(
-    julianDayValue,
-    PLANET_BODY[planet],
-    ayanamsa,
-  );
-  const raw = planet === "Ketu" ? position.longitude + 180 : position.longitude;
-  const longitude = yield* normalizeLongitude(raw);
+  const position = yield* ephemeris.calculatePosition(julianDayValue, planet, ayanamsa);
   return {
     julianDay,
-    longitude,
+    longitude: position.longitude,
     speed: position.longitudeSpeed,
   } satisfies LongitudeSample;
 });

@@ -9,6 +9,7 @@ Only D1 is cusp-aware; divisional charts are whole-sign (ADR-0008).
 - Degenerate D1 cusps (zero-width houses, or cusps that do not span the circle) fail with `ChartCalculationError` at the new `"houses"` stage instead of silently switching to equal houses.
 - `Chart.project` is removed. Use `Chart.generate`, providing an in-memory `Ephemeris` layer if you need charts without Swiss Ephemeris.
 - `HouseData` returned by `Ephemeris.calculateHouses` is now `{ houseSystem, cusps, angles }`, with `cusps` keyed by house `1`–`12` and `angles` as `ChartAngles`. `NativeHouseData` and `NativePlanetaryPosition` are no longer exported from `astro-ascendant/ephemeris`.
+- `Ephemeris.calculatePosition` takes a `Planets` value, Ketu included, instead of a `CelestialBody`, and returns a `PlanetaryPosition` whose `longitude` is a branded `Longitude`; the native `flags` field is gone. Adapters resolve the lunar nodes, so chart and transit code no longer derive Ketu from Rahu. `CelestialBody`, `Position.planetBodyOf`, `Position.ketuFromRahu` and the now-unused `MissingPlacementError` are removed.
 - `House`, `ChartHouses` and `Chart.Provenance` are replaced by `D1House`, `DivisionalHouse`, `D1Houses`, `DivisionalHouses`, `D1ChartProvenance` and `DivisionalChartProvenance`.
 
 Migrating: narrow on `chart.division === 1` (or use `calculation.charts[0]`) before reading KP fields; read cusps as `houses.cusps[house]` and angles as `houses.angles.ascendant`.

@@ -2,7 +2,7 @@ import * as Swisseph from "@swisseph/node";
 import { Schema } from "effect";
 
 import { type Ayanamsa, type HouseSystem } from "../astro-params/model.js";
-import { type CelestialBody } from "../ephemeris/model.js";
+import type { Planets } from "../chart/model.js";
 
 export const SIDEREAL_MODE: Record<Ayanamsa, Swisseph.SiderealMode> = {
   FaganBradley: Swisseph.SiderealMode.FaganBradley,
@@ -55,7 +55,8 @@ export const SIDEREAL_MODE: Record<Ayanamsa, Swisseph.SiderealMode> = {
   LahiriICRC: 46 as Swisseph.SiderealMode,
 };
 
-export const CELESTIAL_BODY: Record<CelestialBody, Swisseph.CelestialBody> = {
+/** Native body behind each graha: both nodes come from the mean lunar node. */
+export const CELESTIAL_BODY: Record<Planets, Swisseph.CelestialBody> = {
   Sun: Swisseph.Planet.Sun,
   Moon: Swisseph.Planet.Moon,
   Mars: Swisseph.Planet.Mars,
@@ -63,8 +64,8 @@ export const CELESTIAL_BODY: Record<CelestialBody, Swisseph.CelestialBody> = {
   Venus: Swisseph.Planet.Venus,
   Jupiter: Swisseph.Planet.Jupiter,
   Saturn: Swisseph.Planet.Saturn,
-  MeanNode: Swisseph.LunarPoint.MeanNode,
-  TrueNode: Swisseph.LunarPoint.TrueNode,
+  Rahu: Swisseph.LunarPoint.MeanNode,
+  Ketu: Swisseph.LunarPoint.MeanNode,
 };
 
 export const HOUSE_SYSTEM: Record<HouseSystem, Swisseph.HouseSystem> = {

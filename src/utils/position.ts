@@ -5,26 +5,13 @@
  */
 import { Effect, Schema } from "effect";
 
-import type { Planets, Rashis } from "../chart/model.js";
+import type { Rashis } from "../chart/model.js";
 import { Longitude } from "../chart/model.js";
-import type { CelestialBody } from "../ephemeris/model.js";
 import { indexOfLongitude, rashiIndexOf, wrapIndex } from "./zodiac.js";
 
 export const EPS_CIRCLE = 1e-7;
 export const EPS_BOUNDARY = 1e-9;
 export const EPS_PART = 1e-12;
-
-const PLANET_BODY: Record<Planets, CelestialBody> = {
-  Sun: "Sun",
-  Moon: "Moon",
-  Mars: "Mars",
-  Mercury: "Mercury",
-  Venus: "Venus",
-  Jupiter: "Jupiter",
-  Saturn: "Saturn",
-  Rahu: "MeanNode",
-  Ketu: "MeanNode",
-};
 
 export class LongitudeError extends Schema.TaggedError<LongitudeError>()("LongitudeError", {
   message: Schema.String,
@@ -35,11 +22,6 @@ export class SignIndexError extends Schema.TaggedError<SignIndexError>()("SignIn
   message: Schema.String,
   cause: Schema.Defect(),
 }) {}
-
-/** Ephemeris body backing a planet (nodes share the mean node). */
-export function planetBodyOf(planet: Planets): CelestialBody {
-  return PLANET_BODY[planet];
-}
 
 // Converts an angle into branded Longitude in the range of [0, 360)
 export const normalizeLongitude = Effect.fn("astro-ascendant/utils/normalizeLongitude")(function* (
@@ -120,11 +102,4 @@ export const signStartOf = Effect.fn("astro-ascendant/utils/signStartOf")(functi
       }),
     ),
   );
-});
-
-/** Ketu sits exactly opposite Rahu. */
-export const ketuFromRahu = Effect.fn("astro-ascendant/utils/ketuFromRahu")(function* (
-  rahuLongitude: number,
-) {
-  return yield* normalizeLongitude(rahuLongitude + 180);
 });

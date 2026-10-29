@@ -1,9 +1,8 @@
 import { Effect } from "effect";
 
 import type { Ayanamsa, HouseSystem } from "../astro-params/model.js";
-import type { Houses } from "../chart/model.js";
+import type { Houses, Planets } from "../chart/model.js";
 import { EphemerisError } from "../ephemeris/error.js";
-import { type CelestialBody } from "../ephemeris/model.js";
 import { SIDEREAL_MODE, CELESTIAL_BODY, HOUSE_SYSTEM } from "./model.js";
 
 /** Reads one house's cusp from the native thirteen-slot array, where slot 0 is unused. */
@@ -26,13 +25,13 @@ export function siderealModeOf(ayanamsa: Ayanamsa): (typeof SIDEREAL_MODE)[Ayana
 }
 
 export const celestialBodyOf = Effect.fn("astro-ascendant/swisseph/celestialBodyOf")(function* (
-  body: CelestialBody,
+  planet: Planets,
 ) {
-  const cb = CELESTIAL_BODY[body];
+  const cb = CELESTIAL_BODY[planet];
   if (cb === undefined) {
     return yield* EphemerisError.make({
       operation: "celestialBodyOf",
-      cause: new Error(`Unknown celestial body: ${body}`),
+      cause: new Error(`Unknown planet: ${planet}`),
     });
   }
   return cb;

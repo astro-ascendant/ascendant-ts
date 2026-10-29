@@ -234,7 +234,7 @@ describe("Chart calculation", () => {
       "WholeSign",
       ephemerisTestLayer({
         cusps: [180, 210, 240, 270, 300, 330, 0, 30, 60, 90, 120, 150],
-        longitudes: { MeanNode: 31.003451 },
+        longitudes: { Rahu: 31.003451 },
       }),
     ),
   )((it) => {

@@ -3,9 +3,9 @@ import { DateTime, Effect, Schema, Semaphore } from "effect";
 import type { DateTime as DateTimeType } from "effect/DateTime";
 
 import { type Ayanamsa, type HouseSystem } from "../astro-params/model.js";
-import { ChartAngles, CircleAngle, Houses } from "../chart/model.js";
+import { ChartAngles, CircleAngle, Houses, type Planets } from "../chart/model.js";
 import { EphemerisError } from "../ephemeris/error.js";
-import { type CelestialBody, HouseData, JulianDay } from "../ephemeris/model.js";
+import { HouseData, JulianDay, PlanetaryPosition } from "../ephemeris/model.js";
 import { operationError } from "../utils/operation-error.js";
 import { normalizeLongitude, signStartOf } from "../utils/position.js";
 import { siderealModeOf, celestialBodyOf, houseSystemOf, nativeCuspOf } from "./helper.js";
@@ -27,12 +27,12 @@ export const dateToJulianDay = Effect.fn("astro-ascendant/swisseph/dateToJulianD
 
 export const calculatePosition = Effect.fn("astro-ascendant/swisseph/calculatePosition")(function* (
   julianDay: number,
-  body: CelestialBody,
+  planet: Planets,
   ayanamsa: Ayanamsa,
 ) {
   const mode = siderealModeOf(ayanamsa);
-  const cb = yield* celestialBodyOf(body);
-  return yield* NATIVE_SIDEREAL_MODE_LOCK.withPermit(
+  const cb = yield* celestialBodyOf(planet);
+  const native = yield* NATIVE_SIDEREAL_MODE_LOCK.withPermit(
     Effect.try(() => {
       Swisseph.setSiderealMode(mode);
       return Swisseph.calculatePosition(
@@ -45,6 +45,18 @@ export const calculatePosition = Effect.fn("astro-ascendant/swisseph/calculatePo
       ephemerisError("calculatePosition"),
     ),
   );
+  // Ketu is the point opposite Rahu: same speed along the ecliptic, mirrored latitude.
+  const opposite = planet === "Ketu";
+  return yield* Effect.gen(function* () {
+    return PlanetaryPosition.make({
+      longitude: yield* normalizeLongitude(native.longitude + (opposite ? 180 : 0)),
+      latitude: opposite ? -native.latitude : native.latitude,
+      distance: native.distance,
+      longitudeSpeed: native.longitudeSpeed,
+      latitudeSpeed: opposite ? -native.latitudeSpeed : native.latitudeSpeed,
+      distanceSpeed: native.distanceSpeed,
+    });
+  }).pipe(ephemerisError("calculatePosition"));
 });
 
 export const calculateHouses = Effect.fn("astro-ascendant/swisseph/calculateHouses")(function* (

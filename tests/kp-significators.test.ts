@@ -12,7 +12,7 @@ const CUSPS = [
   207.85, 236.83, 266.36, 297.43, 329.47, 0.13, 27.85, 56.83, 86.36, 117.43, 149.47, 180.13,
 ];
 
-// Ketu is derived opposite the mean node, landing at 210.93 (Vishakha -> Jupiter).
+// Ketu sits opposite Rahu at 210.93 (Vishakha -> Jupiter).
 const AUDIT_LAYER = Layer.merge(
   AstroParams.layer({ ayanamsa: "Krishnamurti", houseSystem: "Placidus" }),
   ephemerisTestLayer({
@@ -25,7 +25,7 @@ const AUDIT_LAYER = Layer.merge(
       Jupiter: 124.32, // Magha -> Ketu
       Venus: 122.12, // Magha -> Ketu
       Saturn: 75.48, // Ardra -> Rahu
-      MeanNode: 30.93, // Krittika -> Sun
+      Rahu: 30.93, // Krittika -> Sun
     },
     retrograde: ["Mars"],
   }),

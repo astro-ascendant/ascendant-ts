@@ -2,7 +2,6 @@ import { Effect } from "effect";
 
 import { AstroParams } from "../astro-params/service.js";
 import { Ephemeris } from "../ephemeris/service.js";
-import { planetBodyOf } from "../utils/position.js";
 import { ChartCalculationError, LocatedMomentValidationError } from "./error.js";
 import { ChartCalculation, type ChartParams, Division, LocatedMoment, Planets } from "./model.js";
 import { placementsFromEvidence, type PlacementEvidence } from "./placements.js";
@@ -41,17 +40,12 @@ const calculatePlacementEvidence = Effect.fn("astro-ascendant/chart/calculatePla
       astroParams.ayanamsa,
     );
     const planetEntries = yield* Effect.forEach(
-      Planets.literals.filter((planet) => planet !== "Ketu"),
+      Planets.literals,
       (planet) =>
-        Effect.gen(function* () {
-          const body = planetBodyOf(planet);
-          const position = yield* ephemeris.calculatePosition(
-            julianDay,
-            body,
-            astroParams.ayanamsa,
-          );
-          return [planet, position] as const;
-        }),
+        Effect.map(
+          ephemeris.calculatePosition(julianDay, planet, astroParams.ayanamsa),
+          (position) => [planet, position] as const,
+        ),
       { concurrency: "unbounded" },
     );
 
