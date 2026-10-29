@@ -14,7 +14,7 @@
 import { Array as Arr, Function, Schema } from "effect";
 
 import { RASHIS } from "../chart/internal/constants.js";
-import type { Houses, Longitude, Rashis } from "../chart/model.js";
+import { type Houses, Longitude, type Rashis } from "../chart/model.js";
 
 export const RashiIndex = Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 11 })).pipe(
   Schema.brand("RashiIndex"),
@@ -34,6 +34,16 @@ export function rashiIndexOf(sign: Rashis): RashiIndex {
 /** Sign at a wheel position; any integer wraps. */
 export function signAt(index: number): Rashis {
   return Arr.getUnsafe(RASHIS, wrapIndex(index));
+}
+
+/** Wraps any finite angle onto the circle as a Longitude in [0, 360). */
+export function wrapLongitude(degrees: number): Longitude {
+  return Longitude.make(((degrees % 360) + 360) % 360);
+}
+
+/** Wraps any finite angle into the signed range [-180, 180). */
+export function wrapSigned(degrees: number): number {
+  return ((((degrees + 180) % 360) + 360) % 360) - 180;
 }
 
 /** 0-based index of the sign containing a normalized longitude. */

@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { DateTime, Schema } from "effect";
 
 import { HouseSystem } from "../astro-params/model.js";
 import { ChartAngles, Houses, Longitude } from "../chart/model.js";
@@ -8,6 +8,20 @@ export const JulianDay = Schema.Finite.check(Schema.isBetween({ minimum: 0, maxi
 );
 
 export type JulianDay = typeof JulianDay.Type;
+
+/** Julian Day of the Unix epoch, 1970-01-01T00:00Z, on the UT time scale. */
+const JD_UNIX_EPOCH = 2_440_587.5;
+const MS_PER_DAY = 86_400_000;
+
+/** The UTC instant of a Julian Day, treating the day as UT. */
+export function dateTimeOfJulianDay(julianDay: number): DateTime.Utc {
+  return DateTime.makeUnsafe((julianDay - JD_UNIX_EPOCH) * MS_PER_DAY);
+}
+
+/** The UT Julian Day of an instant: the inverse of `dateTimeOfJulianDay`. */
+export function julianDayOfDateTime(date: DateTime.DateTime): number {
+  return DateTime.toEpochMillis(date) / MS_PER_DAY + JD_UNIX_EPOCH;
+}
 
 /**
  * A graha's sidereal position in domain terms. Adapters resolve Rahu and Ketu

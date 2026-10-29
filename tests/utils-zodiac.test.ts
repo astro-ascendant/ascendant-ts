@@ -40,6 +40,14 @@ describe("Zodiac", () => {
     expect(Zodiac.signAt(-1)).toBe("Pisces");
   });
 
+  it("wraps angles onto the circle and into the signed range", () => {
+    expect(Zodiac.wrapLongitude(360)).toBe(0);
+    expect(Zodiac.wrapLongitude(-0.5)).toBeCloseTo(359.5, 10);
+    expect(Zodiac.wrapSigned(359.9)).toBeCloseTo(-0.1, 10);
+    expect(Zodiac.wrapSigned(181)).toBeCloseTo(-179, 10);
+    expect(Zodiac.wrapSigned(-180)).toBe(-180);
+  });
+
   it("locates the sign containing a longitude", () => {
     const at = (longitude: number) => Zodiac.indexOfLongitude(longitude as Longitude);
     expect(at(0)).toBe(0);

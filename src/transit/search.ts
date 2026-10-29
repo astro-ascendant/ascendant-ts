@@ -1,35 +1,17 @@
-import { DateTime, Effect } from "effect";
+import { Effect } from "effect";
 
 import { Ayanamsa } from "../astro-params/model.js";
-import { Longitude, Rashis } from "../chart/model.js";
+import type { Longitude, Rashis } from "../chart/model.js";
 import { JulianDay } from "../ephemeris/model.js";
 import { Ephemeris } from "../ephemeris/service.js";
 import { Zodiac } from "../utils/index.js";
 import { EPS_BOUNDARY } from "../utils/position.js";
 import { type Planets, type TransitDirection, type TransitKind } from "./model.js";
 
-export const JD_UNIX_EPOCH = 2_440_587.5;
-export const MS_PER_DAY = 86_400_000;
 export const MINUTES_PER_DAY = 1440;
 export const DEFAULT_MAX_YEARS = 30;
 export const DEFAULT_PRECISION_MINUTES = 1;
 const DAYS_PER_YEAR = 365.25;
-
-export function normalize360(degrees: number): Longitude {
-  return Longitude.make(((degrees % 360) + 360) % 360);
-}
-
-export function wrap180(degrees: number): number {
-  return ((((degrees + 180) % 360) + 360) % 360) - 180;
-}
-
-export function millisFromJd(julianDay: number): number {
-  return (julianDay - JD_UNIX_EPOCH) * MS_PER_DAY;
-}
-
-export function dateTimeFromJd(julianDay: number) {
-  return DateTime.makeUnsafe(millisFromJd(julianDay));
-}
 
 export const COARSE_STEP_DAYS: Record<Planets, number> = {
   Sun: 1,
@@ -102,13 +84,13 @@ function enteredSign(
   direction: TransitDirection,
   longitudeRising: boolean,
 ): Rashis {
-  const index = Math.round(normalize360(boundary) / 30) % 12;
+  const index = Math.round(Zodiac.wrapLongitude(boundary) / 30) % 12;
   const rising = direction === "forward" ? longitudeRising : !longitudeRising;
   return rising ? Zodiac.signAt(index) : Zodiac.signAt(index - 1);
 }
 
 function isBoundaryTarget(target: number): boolean {
-  return normalize360(target) % 30 === 0;
+  return Zodiac.wrapLongitude(target) % 30 === 0;
 }
 
 function crossedBoundary(
@@ -116,7 +98,8 @@ function crossedBoundary(
   later: number,
 ): { boundary: number; rising: boolean } | null {
   if (
-    Zodiac.indexOfLongitude(normalize360(earlier)) === Zodiac.indexOfLongitude(normalize360(later))
+    Zodiac.indexOfLongitude(Zodiac.wrapLongitude(earlier)) ===
+    Zodiac.indexOfLongitude(Zodiac.wrapLongitude(later))
   )
     return null;
   const low = Math.min(earlier, later);
@@ -162,7 +145,7 @@ const refineLongitude = Effect.fn("astro-ascendant/transit/refineLongitude")(fun
   target: number,
 ) {
   return yield* refineValue(low, high, planet, ayanamsa, precisionMinutes, (sample) =>
-    wrap180(sample.longitude - target),
+    Zodiac.wrapSigned(sample.longitude - target),
   );
 });
 
@@ -238,8 +221,8 @@ const fixedTargetHit = Effect.fn("astro-ascendant/transit/fixedTargetHit")(funct
   precision: number,
   target: FixedTarget,
 ) {
-  const early = wrap180(earlier.longitude - target.longitude);
-  const late = wrap180(later.longitude - target.longitude);
+  const early = Zodiac.wrapSigned(earlier.longitude - target.longitude);
+  const late = Zodiac.wrapSigned(later.longitude - target.longitude);
   if (early !== 0 && late !== 0 && Math.sign(early) === Math.sign(late)) return null;
   const refined = yield* refineLongitude(
     earlier,
@@ -249,13 +232,13 @@ const fixedTargetHit = Effect.fn("astro-ascendant/transit/fixedTargetHit")(funct
     precision,
     target.longitude,
   );
-  const rising = wrap180(later.longitude - earlier.longitude) > 0;
+  const rising = Zodiac.wrapSigned(later.longitude - earlier.longitude) > 0;
   const hit: RefinedHit = {
     sample: refined,
     kind: target.kind,
     sign: isBoundaryTarget(target.longitude)
       ? enteredSign(target.longitude, options.direction, rising)
-      : Zodiac.signAt(Zodiac.indexOfLongitude(normalize360(refined.longitude))),
+      : Zodiac.signAt(Zodiac.indexOfLongitude(Zodiac.wrapLongitude(refined.longitude))),
   };
   return hit;
 });
@@ -273,7 +256,7 @@ const stationHit = Effect.fn("astro-ascendant/transit/stationHit")(function* (
   const hit: RefinedHit = {
     sample: refined,
     kind: "station",
-    sign: Zodiac.signAt(Zodiac.indexOfLongitude(normalize360(refined.longitude))),
+    sign: Zodiac.signAt(Zodiac.indexOfLongitude(Zodiac.wrapLongitude(refined.longitude))),
   };
   return hit;
 });

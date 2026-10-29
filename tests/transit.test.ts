@@ -4,14 +4,16 @@ import type { DateTime as DateTimeType } from "effect/DateTime";
 
 import * as AstroParams from "../src/astro-params/index.js";
 import * as Chart from "../src/chart/index.js";
+import { julianDayOfDateTime } from "../src/ephemeris/model.js";
 import * as Swisseph from "../src/swisseph/index.js";
 import * as Transit from "../src/transit/index.js";
+import { Zodiac } from "../src/utils/index.js";
 import { ephemerisTestLayer, planetaryPosition } from "./support/ephemeris.js";
 import { fixtures } from "./support/fixtures.js";
 
 const DAY_MS = 86_400_000;
 const FROM_ISO = "2026-01-01T00:00:00.000Z";
-const JD0 = Date.parse(FROM_ISO) / DAY_MS + Transit.JD_UNIX_EPOCH;
+const JD0 = julianDayOfDateTime(DateTime.makeUnsafe(FROM_ISO));
 
 function locatedMoment(): Chart.LocatedMoment {
   return fixtures.locatedMoment(FROM_ISO);
@@ -60,23 +62,13 @@ function minutesBetween(a: DateTimeType, b: DateTimeType): number {
 }
 
 function distanceToBoundary(longitude: number): number {
-  const remainder = Transit.normalize360(longitude) % 30;
+  const remainder = Zodiac.wrapLongitude(longitude) % 30;
   return Math.min(remainder, 30 - remainder);
 }
 
 function expectedMoment(daysAfterJd0: number) {
   return DateTime.makeUnsafe(Date.parse(FROM_ISO) + daysAfterJd0 * DAY_MS);
 }
-
-describe("Transit angle helpers", () => {
-  it("normalizes and wraps circle angles", () => {
-    expect(Transit.normalize360(360)).toBe(0);
-    expect(Transit.normalize360(-0.5)).toBeCloseTo(359.5, 10);
-    expect(Transit.wrap180(359.9)).toBeCloseTo(-0.1, 10);
-    expect(Transit.wrap180(181)).toBeCloseTo(-179, 10);
-    expect(Transit.millisFromJd(Transit.JD_UNIX_EPOCH)).toBe(0);
-  });
-});
 
 describe("Transit search over linear motion", () => {
   it.layer(Layer.merge(astroLayer, jupiterLayer))((it) => {

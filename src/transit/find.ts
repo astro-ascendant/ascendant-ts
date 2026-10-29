@@ -2,9 +2,10 @@ import { Effect, Schema } from "effect";
 
 import { AstroParams } from "../astro-params/service.js";
 import { generate } from "../chart/generate.js";
-import { ChartParams, Moment, type Planets } from "../chart/model.js";
-import type { JulianDay } from "../ephemeris/model.js";
+import { ChartParams, type Houses, type Longitude, Moment, type Planets } from "../chart/model.js";
+import { dateTimeOfJulianDay, type JulianDay } from "../ephemeris/model.js";
 import { Ephemeris } from "../ephemeris/service.js";
+import { transitSearch } from "../provenance.js";
 import { TransitSearchExhausted, TransitValidationError } from "./error.js";
 import {
   TransitEvent,
@@ -14,13 +15,13 @@ import {
   type TransitDirection,
   type TransitKind,
 } from "./model.js";
-import {
-  DEFAULT_MAX_YEARS,
-  dateTimeFromJd,
-  searchRawHits,
-  type FixedTarget,
-  type RawHit,
-} from "./search.js";
+import { DEFAULT_MAX_YEARS, searchRawHits, type FixedTarget, type RawHit } from "./search.js";
+
+/** The fixed longitude and cusp-crossing targets a request asked for, each present exactly when requested. */
+interface RequestedTargets {
+  readonly longitude: Longitude | undefined;
+  readonly house: Houses | undefined;
+}
 
 const validateRequest = Effect.fn("astro-ascendant/transit/validateRequest")(function* (
   request: TransitRequest,
@@ -33,30 +34,36 @@ const validateRequest = Effect.fn("astro-ascendant/transit/validateRequest")(fun
       }),
     ),
   );
-  if (decoded.kinds.includes("longitude-hit") && decoded.targetLongitude === undefined) {
+  const wantsLongitude = decoded.kinds.includes("longitude-hit");
+  const wantsCusp = decoded.kinds.includes("cusp-crossing");
+  if (wantsLongitude && decoded.targetLongitude === undefined) {
     return yield* TransitValidationError.make({
       message: "targetLongitude is required for longitude-hit searches",
       cause: decoded.kinds,
     });
   }
-  if (decoded.kinds.includes("cusp-crossing") && decoded.house === undefined) {
+  if (wantsCusp && decoded.house === undefined) {
     return yield* TransitValidationError.make({
       message: "house is required for cusp-crossing searches",
       cause: decoded.kinds,
     });
   }
-  return decoded;
+  const targets: RequestedTargets = {
+    longitude: wantsLongitude ? decoded.targetLongitude : undefined,
+    house: wantsCusp ? decoded.house : undefined,
+  };
+  return { request: decoded, targets } as const;
 });
 
 export const findTransits = Effect.fn("astro-ascendant/transit/findTransits")(function* (
   request: TransitRequest,
 ) {
-  const validated = yield* validateRequest(request);
+  const { request: validated, targets } = yield* validateRequest(request);
   const astroParams = yield* AstroParams;
   const ephemeris = yield* Ephemeris;
 
   const fromJulianDay = yield* ephemeris.dateToJulianDay(validated.from.moment.date);
-  const fixedTargets = yield* buildFixedTargets(validated, fromJulianDay);
+  const fixedTargets = yield* buildFixedTargets(targets, validated.from, fromJulianDay);
 
   const planet: Planets = validated.planet;
   const direction: TransitDirection = validated.direction;
@@ -81,7 +88,7 @@ export const findTransits = Effect.fn("astro-ascendant/transit/findTransits")(fu
     return yield* TransitSearchExhausted.make({
       message: `Found ${events.length} of ${validated.count} events within ${validated.maxYears ?? DEFAULT_MAX_YEARS} years`,
       found: events,
-      searchedUntil: dateTimeFromJd(outcome.endJulianDay),
+      searchedUntil: dateTimeOfJulianDay(outcome.endJulianDay),
     });
   }
 
@@ -91,41 +98,26 @@ export const findTransits = Effect.fn("astro-ascendant/transit/findTransits")(fu
 });
 
 const buildFixedTargets = Effect.fn("astro-ascendant/transit/buildFixedTargets")(function* (
-  validated: TransitRequest,
+  targets: RequestedTargets,
+  from: LocatedMoment,
   fromJulianDay: JulianDay,
 ) {
-  const astroParams = yield* AstroParams;
-  const ephemeris = yield* Ephemeris;
-
   const fixedTargets: Array<FixedTarget> = [];
-  if (validated.kinds.includes("longitude-hit" satisfies TransitKind)) {
-    const target = validated.targetLongitude;
-    if (target === undefined) {
-      return yield* TransitValidationError.make({
-        message: "targetLongitude is required for longitude-hit searches",
-        cause: validated.kinds,
-      });
-    }
-    fixedTargets.push({ kind: "longitude-hit", longitude: target });
+  if (targets.longitude !== undefined) {
+    fixedTargets.push({ kind: "longitude-hit", longitude: targets.longitude });
   }
-  if (validated.kinds.includes("cusp-crossing" satisfies TransitKind)) {
-    const house = validated.house;
-    if (house === undefined) {
-      return yield* TransitValidationError.make({
-        message: "house is required for cusp-crossing searches",
-        cause: validated.kinds,
-      });
-    }
+  if (targets.house !== undefined) {
+    const astroParams = yield* AstroParams;
+    const ephemeris = yield* Ephemeris;
     const houses = yield* ephemeris.calculateHouses(
       fromJulianDay,
-      validated.from.latitude,
-      validated.from.longitude,
+      from.latitude,
+      from.longitude,
       astroParams.houseSystem,
       astroParams.ayanamsa,
     );
-    fixedTargets.push({ kind: "cusp-crossing", longitude: houses.cusps[house] });
+    fixedTargets.push({ kind: "cusp-crossing", longitude: houses.cusps[targets.house] });
   }
-
   return fixedTargets;
 });
 
@@ -134,15 +126,11 @@ function mapEvents(
   planet: Planets,
   direction: TransitDirection,
 ): ReadonlyArray<TransitEvent> {
-  const provenance = {
-    school: "Ascendant",
-    method: "transit-sample-bisect",
-    version: 1,
-  } as const;
+  const provenance = transitSearch.provenance;
   return hits.map((hit) =>
     TransitEvent.make({
       planet,
-      moment: dateTimeFromJd(hit.julianDay),
+      moment: dateTimeOfJulianDay(hit.julianDay),
       longitude: hit.longitude,
       kind: hit.kind,
       sign: hit.sign,

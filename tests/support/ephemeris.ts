@@ -3,11 +3,13 @@ import { DateTime, Effect, Function, Layer } from "effect";
 import type { Ayanamsa, HouseSystem } from "../../src/astro-params/model.js";
 import { CircleAngle, Houses, Longitude, type Planets } from "../../src/chart/model.js";
 import type { EphemerisError } from "../../src/ephemeris/error.js";
-import { type HouseData, JulianDay, type PlanetaryPosition } from "../../src/ephemeris/model.js";
+import {
+  type HouseData,
+  JulianDay,
+  julianDayOfDateTime,
+  type PlanetaryPosition,
+} from "../../src/ephemeris/model.js";
 import { Ephemeris } from "../../src/ephemeris/service.js";
-
-const JD_UNIX_EPOCH = 2_440_587.5;
-const MS_PER_DAY = 86_400_000;
 
 function normalized(longitude: number): Longitude {
   return Longitude.make(((longitude % 360) + 360) % 360);
@@ -110,7 +112,7 @@ export function ephemerisTestLayer(options: EphemerisTestOptions = {}) {
     Ephemeris,
     Ephemeris.of({
       dateToJulianDay: (date: DateTime.DateTime) =>
-        Effect.succeed(JulianDay.make(DateTime.toEpochMillis(date) / MS_PER_DAY + JD_UNIX_EPOCH)),
+        Effect.succeed(JulianDay.make(julianDayOfDateTime(date))),
       calculatePosition: (julianDay: JulianDay, planet: Planets, _ayanamsa: Ayanamsa) =>
         position(julianDay, planet),
       calculateHouses: (
