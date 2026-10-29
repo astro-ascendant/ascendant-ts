@@ -29,12 +29,5 @@ export const normalizeLongitude = Effect.fn("astro-ascendant/utils/normalizeLong
     ),
   );
 
-  return yield* Longitude.makeEffect(((finite % 360) + 360) % 360).pipe(
-    Effect.mapError(() =>
-      LongitudeError.make({
-        message: "Normalized longitude is outside [0, 360)",
-        cause: longitude,
-      }),
-    ),
-  );
+  return Longitude.normalize(finite);
 });

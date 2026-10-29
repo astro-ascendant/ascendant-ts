@@ -27,6 +27,6 @@ export const getDivisionalTarget = Effect.fn(
   return {
     signIndex,
     degree: Degree.make(subdivision.degree),
-    longitude: Longitude.make(signIndex * 30 + subdivision.degree),
+    longitude: Longitude.inSign(signIndex, subdivision.degree),
   } satisfies DivisionalTarget;
 });

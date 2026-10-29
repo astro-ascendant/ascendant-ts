@@ -9,7 +9,7 @@ import {
   VIMSHOTTARI_CYCLE_YEARS,
   VIMSHOTTARI_YEARS,
 } from "./internal/constants.js";
-import { type Longitude, Star, type PlanetDignity, type Planets } from "./model.js";
+import { Longitude, Star, type PlanetDignity, type Planets } from "./model.js";
 
 export const starOf = Effect.fn("astro-ascendant/chart/starOf")(function* (longitude: Longitude) {
   const position = yield* normalizeLongitude(longitude);
@@ -83,7 +83,7 @@ export const inSignStatus = Function.dual<
   (longitude: number) => (planet: Planets) => ReadonlyArray<PlanetDignity>,
   (planet: Planets, longitude: number) => ReadonlyArray<PlanetDignity>
 >(2, (planet, longitude) => {
-  const normalized = ((longitude % 360) + 360) % 360;
+  const normalized = Longitude.normalize(longitude);
   const planetDignityMap = DIGNITY_RANGES[planet];
 
   const match = planetDignityMap.find(({ ranges }) =>

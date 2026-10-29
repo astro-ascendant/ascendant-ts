@@ -42,20 +42,61 @@ export const DivisionalDivision = Schema.Literals([
 ] as const);
 export type DivisionalDivision = typeof DivisionalDivision.Type;
 
-export const Longitude = Schema.Finite.check(
-  Schema.isBetween({ minimum: 0, maximum: 360, exclusiveMaximum: true }),
-).pipe(Schema.brand("Longitude"));
-export type Longitude = typeof Longitude.Type;
+/** Wraps a finite angle onto the circle, [0, 360). */
+function wrap360(degrees: number): number {
+  return ((degrees % 360) + 360) % 360;
+}
 
-export const CircleAngle = Schema.Finite.check(
-  Schema.isBetween({ minimum: 0, maximum: 360, exclusiveMaximum: true }),
-).pipe(Schema.brand("CircleAngle"));
-export type CircleAngle = typeof CircleAngle.Type;
-
-export const Degree = Schema.Finite.check(
+const DegreeSchema = Schema.Finite.check(
   Schema.isBetween({ minimum: 0, maximum: 30, exclusiveMaximum: true }),
 ).pipe(Schema.brand("Degree"));
-export type Degree = typeof Degree.Type;
+export type Degree = typeof DegreeSchema.Type;
+
+const LongitudeSchema = Schema.Finite.check(
+  Schema.isBetween({ minimum: 0, maximum: 360, exclusiveMaximum: true }),
+).pipe(Schema.brand("Longitude"));
+export type Longitude = typeof LongitudeSchema.Type;
+
+const CircleAngleSchema = Schema.Finite.check(
+  Schema.isBetween({ minimum: 0, maximum: 360, exclusiveMaximum: true }),
+).pipe(Schema.brand("CircleAngle"));
+export type CircleAngle = typeof CircleAngleSchema.Type;
+
+/**
+ * A position within its Sign, [0, 30). The schema carries its own functions,
+ * so `Degree.of(longitude)` reads like a method while the value stays a number.
+ */
+export const Degree = Object.assign(DegreeSchema, {
+  /** The Degree of a Longitude within the Sign that contains it. */
+  of(longitude: Longitude): Degree {
+    return DegreeSchema.make(longitude % 30);
+  },
+});
+
+/**
+ * A sidereal ecliptic longitude, [0, 360). The schema carries its own functions,
+ * so `Longitude.normalize(angle)` reads like a method while the value stays a
+ * number that arithmetic and JSON treat as one.
+ */
+export const Longitude = Object.assign(LongitudeSchema, {
+  /** Wraps any finite angle onto the circle; use `Position.normalizeLongitude` for unchecked input. */
+  normalize(degrees: number): Longitude {
+    return LongitudeSchema.make(wrap360(degrees));
+  },
+  /** The Longitude at a Degree within the Sign at a 0-based wheel position. */
+  inSign(signIndex: number, degree: number): Longitude {
+    // Wrapping the integer Sign index keeps the sum bit-exact for Degrees already in [0, 30).
+    return LongitudeSchema.make((((signIndex % 12) + 12) % 12) * 30 + degree);
+  },
+});
+
+/** An angle on the circle, [0, 360), that is not a graha or cusp longitude, such as the MC or ARMC. */
+export const CircleAngle = Object.assign(CircleAngleSchema, {
+  /** Wraps any finite angle onto the circle. */
+  normalize(degrees: number): CircleAngle {
+    return CircleAngleSchema.make(wrap360(degrees));
+  },
+});
 
 export const Star = Schema.Struct({
   name: Stars,

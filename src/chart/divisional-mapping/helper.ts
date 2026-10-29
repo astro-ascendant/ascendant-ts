@@ -1,7 +1,7 @@
 import { Array, Function } from "effect";
 
-import { EPS_PART } from "../../utils/position.js";
 import { Zodiac } from "../../utils/index.js";
+import { EPS_PART } from "../../utils/position.js";
 import { Degree, type Division, Longitude } from "../model.js";
 import type { SourcePosition, Subdivision } from "./model.js";
 
@@ -9,7 +9,7 @@ export function sourcePositionOf(longitude: Longitude): SourcePosition {
   return {
     longitude,
     signIndex: Zodiac.indexOfLongitude(longitude),
-    degree: Degree.make(longitude % 30),
+    degree: Degree.of(longitude),
   };
 }
 

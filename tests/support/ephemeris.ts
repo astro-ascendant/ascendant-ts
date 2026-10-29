@@ -11,16 +11,12 @@ import {
 } from "../../src/ephemeris/model.js";
 import { Ephemeris } from "../../src/ephemeris/service.js";
 
-function normalized(longitude: number): Longitude {
-  return Longitude.make(((longitude % 360) + 360) % 360);
-}
-
 /** A position on the ecliptic plane at unit distance, with any longitude wrapped into [0, 360). */
 export const planetaryPosition: {
   (longitudeSpeed: number): (longitude: number) => PlanetaryPosition;
   (longitude: number, longitudeSpeed: number): PlanetaryPosition;
 } = Function.dual(2, (longitude: number, longitudeSpeed: number): PlanetaryPosition => ({
-  longitude: normalized(longitude),
+  longitude: Longitude.normalize(longitude),
   latitude: 0,
   distance: 1,
   longitudeSpeed,

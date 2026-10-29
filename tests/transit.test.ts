@@ -7,7 +7,6 @@ import * as Chart from "../src/chart/index.js";
 import { julianDayOfDateTime } from "../src/ephemeris/model.js";
 import * as Swisseph from "../src/swisseph/index.js";
 import * as Transit from "../src/transit/index.js";
-import { Zodiac } from "../src/utils/index.js";
 import { ephemerisTestLayer, planetaryPosition } from "./support/ephemeris.js";
 import { fixtures } from "./support/fixtures.js";
 
@@ -62,7 +61,7 @@ function minutesBetween(a: DateTimeType, b: DateTimeType): number {
 }
 
 function distanceToBoundary(longitude: number): number {
-  const remainder = Zodiac.wrapLongitude(longitude) % 30;
+  const remainder = Chart.Longitude.normalize(longitude) % 30;
   return Math.min(remainder, 30 - remainder);
 }
 

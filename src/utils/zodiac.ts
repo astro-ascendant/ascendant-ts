@@ -45,11 +45,6 @@ export function signAt(index: number): Rashis {
   return Arr.getUnsafe(RASHIS, wrapIndex(index));
 }
 
-/** Wraps any finite angle onto the circle as a Longitude in [0, 360). */
-export function wrapLongitude(degrees: number): Longitude {
-  return Longitude.make(((degrees % 360) + 360) % 360);
-}
-
 /** Wraps any finite angle into the signed range [-180, 180). */
 export function wrapSigned(degrees: number): number {
   return ((((degrees + 180) % 360) + 360) % 360) - 180;
@@ -77,14 +72,14 @@ export function modalityOf(sign: Rashis): Modality {
 
 /** The longitude at which a Sign begins. */
 export function signStartOf(sign: Rashis): Longitude {
-  return Longitude.make(rashiIndexOf(sign) * 30);
+  return Longitude.inSign(rashiIndexOf(sign), 0);
 }
 
 /** Degrees travelled forward along the zodiac from one angle to another, in [0, 360). */
 export const forwardArc = Function.dual<
   (to: number) => (from: number) => number,
   (from: number, to: number) => number
->(2, (from: number, to: number): number => wrapLongitude(to - from));
+>(2, (from: number, to: number): number => Longitude.normalize(to - from));
 
 /** The shorter separation between two angles, in [0, 180]. */
 export const separation = Function.dual<

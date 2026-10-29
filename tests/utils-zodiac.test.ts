@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
+import { Schema } from "effect";
 
-import type { Longitude } from "../src/chart/model.js";
+import { CircleAngle, Degree, Longitude } from "../src/chart/model.js";
 import { Zodiac } from "../src/utils/index.js";
 
 const SIGNS = [
@@ -40,9 +41,18 @@ describe("Zodiac", () => {
     expect(Zodiac.signAt(-1)).toBe("Pisces");
   });
 
+  it("builds Longitudes and Degrees through their schemas' own functions", () => {
+    expect(Longitude.inSign(11, 29.5)).toBe(359.5);
+    expect(Longitude.inSign(12, 5)).toBe(5);
+    expect(Degree.of(Longitude.make(207.85))).toBeCloseTo(27.85, 10);
+    expect(Degree.of(Longitude.make(30))).toBe(0);
+    expect(CircleAngle.normalize(-90)).toBe(270);
+    expect(Schema.is(Longitude)(Longitude.normalize(725))).toBe(true);
+  });
+
   it("wraps angles onto the circle and into the signed range", () => {
-    expect(Zodiac.wrapLongitude(360)).toBe(0);
-    expect(Zodiac.wrapLongitude(-0.5)).toBeCloseTo(359.5, 10);
+    expect(Longitude.normalize(360)).toBe(0);
+    expect(Longitude.normalize(-0.5)).toBeCloseTo(359.5, 10);
     expect(Zodiac.wrapSigned(359.9)).toBeCloseTo(-0.1, 10);
     expect(Zodiac.wrapSigned(181)).toBeCloseTo(-179, 10);
     expect(Zodiac.wrapSigned(-180)).toBe(-180);
@@ -73,7 +83,7 @@ describe("Zodiac", () => {
     ]);
     expect(Zodiac.signStartOf("Aries")).toBe(0);
     expect(Zodiac.signStartOf("Pisces")).toBe(330);
-    expect(Zodiac.signOfLongitude(Zodiac.wrapLongitude(359.99))).toBe("Pisces");
+    expect(Zodiac.signOfLongitude(Longitude.normalize(359.99))).toBe("Pisces");
   });
 
   it("measures arcs forward and the shorter way round", () => {
