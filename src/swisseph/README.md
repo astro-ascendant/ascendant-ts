@@ -3,7 +3,9 @@
 This module adapts the native `@swisseph/node` package to the runtime-neutral
 ephemeris service used by `astro-ascendant`. Native payloads are decoded into
 validated schemas at the adapter boundary, so corrupt library output fails
-typed (`EphemerisError`) instead of propagating.
+typed (`EphemerisError`) instead of propagating. The adapter turns the native
+thirteen-slot cusp array into twelve sidereal cusps keyed by house and applies
+the `WholeSign` convention itself.
 
 Provide `SwissephLayer` to an Effect program that needs planetary positions.
 For repeated or overlapping lookups (transit scans, dashboards), provide

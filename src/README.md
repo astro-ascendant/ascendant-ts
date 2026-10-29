@@ -11,7 +11,7 @@ Jaimini calculations.
 ## Modules
 
 - [`astro-params`](./astro-params/): ayanamsa and house-system configuration
-- [`chart`](./chart/): cusp-aware natal and divisional charts
+- [`chart`](./chart/): cusp-aware D1 and whole-sign divisional charts
 - [`dasha`](./dasha/): Vimshottari and sign-based dasha timelines
 - [`ephemeris`](./ephemeris/): runtime-neutral ephemeris contracts
 - [`jaimini`](./jaimini/): Jaimini astrology calculations
