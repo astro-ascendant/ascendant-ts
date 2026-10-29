@@ -3,18 +3,10 @@ import { Effect } from "effect";
 import { AstroParams } from "../astro-params/service.js";
 import { Ephemeris } from "../ephemeris/service.js";
 import { planetBodyOf } from "../utils/position.js";
-import { chartFromHouseData } from "./calculate.js";
-import { mappedPositions, requestedDivisions } from "./charts.js";
 import { ChartCalculationError, LocatedMomentValidationError } from "./error.js";
-import {
-  ChartCalculation,
-  Chart,
-  type ChartParams,
-  Division,
-  LocatedMoment,
-  Planets,
-} from "./model.js";
+import { ChartCalculation, type ChartParams, Division, LocatedMoment, Planets } from "./model.js";
 import { placementsFromEvidence, type PlacementEvidence } from "./placements.js";
+import { projectCharts } from "./projection.js";
 
 const validateInput = Effect.fn("astro-ascendant/chart/validateInput")(function* (
   input: LocatedMoment,
@@ -82,36 +74,13 @@ export const generate = Effect.fn("astro-ascendant/chart/generate")(function* (
   yield* validateInput(input);
   const evidence = yield* calculatePlacementEvidence(input);
   const placements = yield* placementsFromEvidence(evidence);
-  const requested = requestedDivisions(divisions);
-  const calculatedCharts = yield* Effect.all(
-    requested.map((division) =>
-      Effect.gen(function* () {
-        const positions = yield* mappedPositions(placements, division, input.sex).pipe(
-          Effect.mapError((cause) =>
-            ChartCalculationError.make({
-              stage: "mapping",
-              message: "Could not map one or more requested Divisions",
-              cause,
-            }),
-          ),
-        );
-        return yield* chartFromHouseData(evidence.houses, positions, input.moment.date);
-      }),
-    ),
-    { concurrency: "unbounded" },
-  );
-  if (calculatedCharts[0] === undefined) {
-    return yield* ChartCalculationError.make({
-      stage: "mapping",
-      message: "Could not calculate charts",
-      cause: requested,
-    });
-  }
-  const canonicalCharts = calculatedCharts as [Chart, ...Chart[]];
-
-  return ChartCalculation.make({
+  const charts = yield* projectCharts(
     placements,
-    charts: canonicalCharts,
-    astroParams,
-  });
+    evidence.houses,
+    input.moment.date,
+    divisions,
+    input.sex,
+  );
+
+  return ChartCalculation.make({ placements, charts, astroParams });
 });

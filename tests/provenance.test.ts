@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
-import { Effect, Equal, Schema } from "effect";
+import { Effect, Equal, Layer, Schema } from "effect";
 
+import * as AstroParams from "../src/astro-params/index.js";
 import * as Chart from "../src/chart/index.js";
 import * as Dasha from "../src/dasha/index.js";
 import * as Argala from "../src/jaimini/argala/index.js";
@@ -10,6 +11,7 @@ import * as Karakamsha from "../src/jaimini/karakamsha/index.js";
 import * as RashiDrishti from "../src/jaimini/rashi-drishti/index.js";
 import * as Upapada from "../src/jaimini/upapada/index.js";
 import * as Provenance from "../src/provenance.js";
+import { EphemerisTestLayer } from "./support/ephemeris.js";
 import { fixtures } from "./support/fixtures.js";
 
 describe("Astrology method provenance", () => {
@@ -34,7 +36,10 @@ describe("Astrology method provenance", () => {
   it.effect("binds every provenance-bearing calculation to its registry specification", () =>
     Effect.gen(function* () {
       const placements = fixtures.placementsFromLongitudes();
-      const [chart] = yield* Chart.project(placements);
+      const { charts } = yield* Chart.generate(fixtures.locatedMoment(), [9]).pipe(
+        Effect.provide(Layer.merge(AstroParams.DefaultAstroParams, EphemerisTestLayer)),
+      );
+      const [d1, d9] = charts;
       const chara = yield* Dasha.calculateChara(fixtures.moment(), placements);
       const sthira = yield* Dasha.calculateSthira(fixtures.moment(), placements);
       const argala = yield* Argala.calculate(placements, { kind: "Sign", sign: "Aries" });
@@ -47,7 +52,8 @@ describe("Astrology method provenance", () => {
       expect(
         Equal.equals(
           [
-            chart.provenance,
+            d1.provenance,
+            d9?.provenance,
             argala.provenance,
             arudha.provenance,
             karakas.provenance,
@@ -58,7 +64,8 @@ describe("Astrology method provenance", () => {
             sthira.provenance,
           ],
           [
-            Provenance.methods.chartProjection.provenance,
+            Provenance.methods.rashiChartProjection.provenance,
+            Provenance.methods.divisionalChartProjection.provenance,
             Provenance.methods.jaiminiArgala.provenance,
             Provenance.methods.jaiminiArudhaPada.provenance,
             Provenance.methods.jaiminiCharaKarakas.provenance,

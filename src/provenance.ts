@@ -20,13 +20,20 @@ export const MethodSpecification = Schema.Struct({
 });
 export interface MethodSpecification extends Schema.Schema.Type<typeof MethodSpecification> {}
 
-export const ChartProjectionProvenance = Schema.Struct({
+export const RashiChartProvenance = Schema.Struct({
   school: Schema.Literal("Ascendant"),
-  method: Schema.Literal("ascendant-divisional-mapping"),
+  method: Schema.Literal("house-system-cusps"),
   version: Schema.Literal(1),
 });
-export interface ChartProjectionProvenance extends Schema.Schema.Type<
-  typeof ChartProjectionProvenance
+export interface RashiChartProvenance extends Schema.Schema.Type<typeof RashiChartProvenance> {}
+
+export const DivisionalChartProvenance = Schema.Struct({
+  school: Schema.Literal("Ascendant"),
+  method: Schema.Literal("whole-sign-from-mapped-lagna"),
+  version: Schema.Literal(1),
+});
+export interface DivisionalChartProvenance extends Schema.Schema.Type<
+  typeof DivisionalChartProvenance
 > {}
 
 export const JaiminiArgalaProvenance = Schema.Struct({
@@ -106,13 +113,38 @@ export interface TransitSearchProvenance extends Schema.Schema.Type<
   typeof TransitSearchProvenance
 > {}
 
-export const chartProjection = {
-  provenance: { school: "Ascendant", method: "ascendant-divisional-mapping", version: 1 },
+export const rashiChartProjection = {
+  provenance: { school: "Ascendant", method: "house-system-cusps", version: 1 },
   steps: [
-    { id: "map-longitudes", description: "Map Lagna and planets into the requested division." },
-    { id: "build-whole-sign-houses", description: "Build twelve houses from the mapped Lagna." },
+    { id: "place-points", description: "Use the Lagna and planets at their source longitudes." },
+    {
+      id: "build-cusp-houses",
+      description: "Begin each house at the selected House system's cusp.",
+    },
+    {
+      id: "derive-kp",
+      description: "Derive KP lords, significations and ruling planets from the cusps.",
+    },
   ],
-  verification: ["D1 is an identity projection.", "Requested divisions are unique and ordered."],
+  verification: [
+    "D1 is an identity projection.",
+    "Planets fall in the house whose cusp span contains them.",
+    "Degenerate cusps fail rather than fall back to equal houses.",
+  ],
+} as const satisfies MethodSpecification;
+export const divisionalChartProjection = {
+  provenance: { school: "Ascendant", method: "whole-sign-from-mapped-lagna", version: 1 },
+  steps: [
+    { id: "map-longitudes", description: "Map the Lagna and planets into the Division." },
+    {
+      id: "build-whole-sign-houses",
+      description: "Count twelve whole-sign houses from the mapped Lagna's Sign.",
+    },
+  ],
+  verification: [
+    "Requested divisions are unique and ordered after D1.",
+    "Each house holds exactly the planets mapped into its Sign.",
+  ],
 } as const satisfies MethodSpecification;
 export const jaiminiArgala = {
   provenance: { school: "Jaimini", method: "structural-positions", version: 1 },
@@ -227,7 +259,8 @@ export const transitSearch = {
 } as const satisfies MethodSpecification;
 
 export const methods = {
-  chartProjection,
+  rashiChartProjection,
+  divisionalChartProjection,
   jaiminiArgala,
   jaiminiArudhaPada,
   jaiminiCharaKarakas,

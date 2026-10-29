@@ -56,33 +56,38 @@ export const houseData: {
   };
 });
 
-function positionAt(body: CelestialBody): PlanetaryPosition {
-  return planetaryPosition(CelestialBody.literals.indexOf(body) * 30, 1);
+export interface EphemerisTestOptions {
+  /** Twelve cusps in house order; defaults to whole signs from 0° Aries. */
+  readonly cusps?: ReadonlyArray<number>;
+  /** Sidereal longitude per body; unlisted bodies sit at 30° times their index. */
+  readonly longitudes?: Partial<Record<CelestialBody, number>>;
+  /** Bodies reported with negative longitude speed. */
+  readonly retrograde?: ReadonlyArray<CelestialBody>;
 }
 
-function dateToJulianDay(_date: DateTime) {
-  return Effect.succeed(JulianDay.make(2_451_545));
+/** In-memory Ephemeris adapter returning fixed positions and house evidence. */
+export function ephemerisTestLayer(options: EphemerisTestOptions = {}) {
+  const cusps = options.cusps ?? WHOLE_SIGN_CUSPS;
+  const retrograde = new Set(options.retrograde ?? []);
+  function positionAt(body: CelestialBody): PlanetaryPosition {
+    const longitude = options.longitudes?.[body] ?? CelestialBody.literals.indexOf(body) * 30;
+    return planetaryPosition(longitude, retrograde.has(body) ? -1 : 1);
+  }
+  return Layer.succeed(
+    Ephemeris,
+    Ephemeris.of({
+      dateToJulianDay: (_date: DateTime) => Effect.succeed(JulianDay.make(2_451_545)),
+      calculatePosition: (_julianDay: JulianDay, body: CelestialBody, _ayanamsa: Ayanamsa) =>
+        Effect.succeed(positionAt(body)),
+      calculateHouses: (
+        _julianDay: JulianDay,
+        _latitude: number,
+        _longitude: number,
+        houseSystem: HouseSystem,
+        _ayanamsa: Ayanamsa,
+      ) => Effect.succeed(houseData(cusps, houseSystem)),
+    }),
+  );
 }
 
-function calculatePosition(_julianDay: JulianDay, body: CelestialBody, _ayanamsa: Ayanamsa) {
-  return Effect.succeed(positionAt(body));
-}
-
-function calculateHouses(
-  _julianDay: JulianDay,
-  _latitude: number,
-  _longitude: number,
-  houseSystem: HouseSystem,
-  _ayanamsa: Ayanamsa,
-) {
-  return Effect.succeed(houseData(WHOLE_SIGN_CUSPS, houseSystem));
-}
-
-export const EphemerisTestLayer = Layer.succeed(
-  Ephemeris,
-  Ephemeris.of({
-    dateToJulianDay,
-    calculatePosition,
-    calculateHouses,
-  }),
-);
+export const EphemerisTestLayer = ephemerisTestLayer();

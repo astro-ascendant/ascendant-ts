@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 
 import { Options as AstroParamsOptions } from "../astro-params/model.js";
-import { ChartProjectionProvenance } from "../provenance.js";
+import { DivisionalChartProvenance, RashiChartProvenance } from "../provenance.js";
 import { PLANETS, CLASSICAL_PLANETS, RASHIS, STARS, PLANET_DIGNITY } from "./internal/constants.js";
 
 export const Planets = Schema.Literals(PLANETS);
@@ -35,6 +35,12 @@ export const Division = Schema.Literals([
   1, 2, 3, 4, 7, 9, 10, 12, 16, 20, 24, 27, 30, 40, 45, 60,
 ] as const);
 export type Division = typeof Division.Type;
+
+/** Every supported Division other than D1. */
+export const DivisionalDivision = Schema.Literals([
+  2, 3, 4, 7, 9, 10, 12, 16, 20, 24, 27, 30, 40, 45, 60,
+] as const);
+export type DivisionalDivision = typeof DivisionalDivision.Type;
 
 export const Longitude = Schema.Finite.check(
   Schema.isBetween({ minimum: 0, maximum: 360, exclusiveMaximum: true }),
@@ -82,20 +88,31 @@ export const Lagna = Schema.Struct({
 });
 export interface Lagna extends Schema.Schema.Type<typeof Lagna> {}
 
-export const House = Schema.Struct({
+/** A whole-sign house of a divisional chart: its Sign, lord and occupants. */
+export const DivisionalHouse = Schema.Struct({
   sign: Rashis,
   cusp: Longitude,
   signLord: PlanetsLagna,
-  starLord: PlanetsLagna,
-  subLord: PlanetsLagna,
-  subSubLord: PlanetsLagna,
   significations: Schema.Array(Schema.String),
   planets: Schema.Array(Planet),
   lagna: Schema.NullOr(Lagna),
 });
-export interface House extends Schema.Schema.Type<typeof House> {}
+export interface DivisionalHouse extends Schema.Schema.Type<typeof DivisionalHouse> {}
 
-export const ChartHouses = Schema.Record(Houses, House);
+/** A D1 house beginning at its House system cusp, with the cusp's KP lords. */
+export const RashiHouse = Schema.Struct({
+  ...DivisionalHouse.fields,
+  starLord: PlanetsLagna,
+  subLord: PlanetsLagna,
+  subSubLord: PlanetsLagna,
+});
+export interface RashiHouse extends Schema.Schema.Type<typeof RashiHouse> {}
+
+export const RashiHouses = Schema.Record(Houses, RashiHouse);
+export type RashiHouses = typeof RashiHouses.Type;
+
+export const DivisionalHouses = Schema.Record(Houses, DivisionalHouse);
+export type DivisionalHouses = typeof DivisionalHouses.Type;
 
 export const SourcePlanet = Schema.Struct({
   name: Planets,
@@ -118,7 +135,7 @@ export const Placements = Schema.Struct({
 });
 export interface Placements extends Schema.Schema.Type<typeof Placements> {}
 
-export { ChartProjectionProvenance as Provenance } from "../provenance.js";
+export { DivisionalChartProvenance, RashiChartProvenance } from "../provenance.js";
 
 export const Sex = Schema.Literals(["Male", "Female"]);
 export type Sex = typeof Sex.Type;
@@ -169,23 +186,34 @@ export const ChartAngles = Schema.Struct({
 });
 export interface ChartAngles extends Schema.Schema.Type<typeof ChartAngles> {}
 
-export const Chart = Schema.Struct({
+/** The D1 chart: House system cusps, angles and KP evidence. */
+export const RashiChart = Schema.Struct({
   sex: Schema.optionalKey(Sex),
-  provenance: ChartProjectionProvenance,
-  division: Division,
-  houses: ChartHouses,
-  angles: Schema.optionalKey(ChartAngles),
-  planetSignifications: Schema.optionalKey(Schema.Record(Planets, PlanetSignification)),
-  houseSignificators: Schema.optionalKey(Schema.Record(Houses, HouseSignificators)),
-  rulingPlanets: Schema.optionalKey(Schema.Tuple([Planets, Planets, Planets, Planets, Planets])),
+  provenance: RashiChartProvenance,
+  division: Schema.Literal(1),
+  houses: RashiHouses,
+  angles: ChartAngles,
+  planetSignifications: Schema.Record(Planets, PlanetSignification),
+  houseSignificators: Schema.Record(Houses, HouseSignificators),
+  rulingPlanets: Schema.Tuple([Planets, Planets, Planets, Planets, Planets]),
 });
-export interface Chart extends Schema.Schema.Type<typeof Chart> {}
+export interface RashiChart extends Schema.Schema.Type<typeof RashiChart> {}
 
-export const CalculationCharts = Schema.NonEmptyArray(Chart).check(
-  Schema.makeFilter((charts) => charts[0].division === 1, {
-    expected: "A non-empty Chart collection beginning with D1",
-  }),
-);
+/** A divisional chart: whole-sign houses from the mapped Lagna, without KP evidence. */
+export const DivisionalChart = Schema.Struct({
+  sex: Schema.optionalKey(Sex),
+  provenance: DivisionalChartProvenance,
+  division: DivisionalDivision,
+  houses: DivisionalHouses,
+});
+export interface DivisionalChart extends Schema.Schema.Type<typeof DivisionalChart> {}
+
+export const Chart = Schema.Union([RashiChart, DivisionalChart]);
+export type Chart = RashiChart | DivisionalChart;
+
+export const CalculationCharts = Schema.TupleWithRest(Schema.Tuple([RashiChart]), [
+  DivisionalChart,
+]);
 
 export const ChartCalculation = Schema.Struct({
   placements: Placements,
@@ -208,6 +236,6 @@ export interface LocatedMoment extends Schema.Schema.Type<typeof LocatedMoment> 
 
 export const ChartParams = Schema.Struct({
   ...LocatedMoment.fields,
-  sex: Chart.fields.sex,
+  sex: RashiChart.fields.sex,
 });
 export interface ChartParams extends Schema.Schema.Type<typeof ChartParams> {}

@@ -2,11 +2,15 @@ import { Array, Console, Effect, Record, Schema } from "effect";
 
 import type { ExampleInput } from "../examples/input.js";
 import * as AstroParams from "../src/astro-params/index.js";
-import { angularDistance } from "../src/chart/cusp.js";
 import { subLordOf } from "../src/chart/helper.js";
 import * as Chart from "../src/chart/index.js";
 
 export const HOUSES = Chart.Houses.literals;
+
+function angularDistance(first: number, second: number): number {
+  const distance = Math.abs(first - second) % 360;
+  return Math.min(distance, 360 - distance);
+}
 export const BASELINE_AYANAMSA = "KrishnamurtiVP291" satisfies AstroParams.Ayanamsa;
 export const BASELINE_HOUSE_SYSTEM = "Placidus" satisfies AstroParams.HouseSystem;
 
@@ -82,7 +86,7 @@ export function mean(values: readonly number[]): number {
   return values.reduce((total, value) => total + value, 0) / values.length;
 }
 
-export function houseLordsOf(chart: Chart.Chart): readonly HouseLords[] {
+export function houseLordsOf(chart: Chart.RashiChart): readonly HouseLords[] {
   return HOUSES.map((house) => {
     const data = chart.houses[house];
     return {
