@@ -14,7 +14,7 @@ const CUSPS = [
 
 // Ketu sits opposite Rahu at 210.93 (Vishakha -> Jupiter).
 const AUDIT_LAYER = Layer.merge(
-  AstroParams.layer({ ayanamsa: "Krishnamurti", houseSystem: "Placidus" }),
+  AstroParams.layer({ ayanamsa: "KrishnamurtiVP291", houseSystem: "Placidus" }),
   ephemerisTestLayer({
     cusps: CUSPS,
     longitudes: {
