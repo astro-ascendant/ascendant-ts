@@ -5,5 +5,18 @@
   "enforceDescriptions": false,
   "enforceExamples": false,
   "enforceVersion": false,
-  "exclude": ["src/internal/**/*.ts", "src/**/internal/**/*.ts"]
+  "exclude": ["src/internal/**/*.ts", "src/**/internal/**/*.ts"],
+  "examplesCompilerOptions": {
+    "target": "ES2022",
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "exactOptionalPropertyTypes": true,
+    "paths": {
+      "astro-ascendant/*": ["../../../src/*/index.ts"],
+      "astro-ascendant": ["../../../src/index.ts"]
+    }
+  }
 }

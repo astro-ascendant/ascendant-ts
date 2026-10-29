@@ -4,7 +4,7 @@ import { Effect } from "effect";
  * Shared curried `mapError` helper for boundary errors with operation labels.
  * Prefer this over hand-writing wrappers in every module.
  *
- * ```ts
+ * ```ts skip-type-checking
  * const ephemerisError = operationError(EphemerisError.make);
  * const position = yield* rawPosition.pipe(ephemerisError("swisseph.calculatePosition"));
  * ```

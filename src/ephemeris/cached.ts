@@ -45,7 +45,11 @@ const parseCacheKey = Effect.fn("astro-ascendant/ephemeris/parseCacheKey")(funct
  * Provide the backend with `Layer.provide`:
  *
  * ```ts
- * const Live = withPositionCache().pipe(Layer.provide(SwissephLayer));
+ * import { Layer } from "effect";
+ * import { withPositionCache } from "astro-ascendant/ephemeris";
+ * import { SwissephLayer } from "astro-ascendant/swisseph";
+ *
+ * export const Live = withPositionCache().pipe(Layer.provide(SwissephLayer));
  * ```
  */
 export const withPositionCache = (options?: PositionCacheOptions) =>
