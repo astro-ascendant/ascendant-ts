@@ -109,19 +109,19 @@ The identity of a chart within the divisional system, written D1, D2, D3, and so
 _Avoid_: Chart type, Varga number
 
 **D1 / Rashi chart**:
-The D1 chart derived from Placements. Its planets and houses use the same cusp-aware Chart model as every other supported division.
+The D1 chart derived from Placements. Its houses begin at the cusps of the selected House system, and it alone carries the chart angles, KP star and sub lords, significations, and ruling planets.
 _Avoid_: Base chart, raw chart
 
 **Divisional chart**:
-A chart derived from Placements by applying the mapping for its Division to the Lagna, grahas, and house cusps.
-_Avoid_: Derived D1, harmonic chart
+A chart derived from Placements by applying the mapping for its Division to the Lagna and grahas. Its houses are whole signs counted from the mapped Lagna's Sign, whatever the House system; it carries no angles or KP data, because those belong to source longitudes rather than mapped ones.
+_Avoid_: Derived D1, harmonic chart, divisional cusps
 
 **Degree**:
 A placement's position within its sign, from zero up to but not including thirty degrees. In D1 it is the source degree within the Rashi; in a divisional chart it is the degree produced by the divisional mapping.
 _Avoid_: Absolute longitude, source longitude
 
 **Chart calculation**:
-The Placements and requested cusp-aware Charts derived together under the same AstroParams. A Chart calculation always contains D1 and records its AstroParams; one given natal meaning is a natal calculation.
+The Placements and requested Charts derived together under the same AstroParams. A Chart calculation always contains D1 and records its AstroParams; one given natal meaning is a natal calculation.
 _Avoid_: Chart bundle, chart pack
 
 **Moment**:
@@ -133,7 +133,7 @@ A Moment paired with the latitude and longitude at which Placements are calculat
 _Avoid_: Birth, birth data, chart input, event data
 
 **AstroParams**:
-The parameters of the astrological computation: ayanamsa and house system. Separate from the Moment and location; the house system determines cusps on every Chart.
+The parameters of the astrological computation: ayanamsa and house system. Separate from the Moment and location; the house system determines the cusps of D1.
 _Avoid_: AstroConfig, settings, options, chart config
 
 **Planet**:
@@ -157,7 +157,7 @@ The sidereal reference frame used to align tropical longitudes to the fixed zodi
 _Avoid_: Reference frame, zodiac offset
 
 **House system**:
-The method selected in AstroParams for calculating twelve house cusps on every Chart. It is recorded on each Chart calculation and applies consistently to D1 and divisional charts.
+The method selected in AstroParams for calculating the twelve house cusps of D1. It is recorded on each Chart calculation; divisional charts do not use it.
 _Avoid_: House division, cusps method
 
 **Rahu / Ketu**:
