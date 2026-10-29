@@ -39,7 +39,7 @@ export const placementsFromEvidence = Effect.fn("astro-ascendant/chart/placement
 
     const ketuLongitude = yield* ketuFromRahu(rahu.longitude);
     const ketuStar = yield* starOf(ketuLongitude);
-    const ascendant = yield* normalizeLongitude(evidence.houses.ascendant);
+    const ascendant = yield* normalizeLongitude(evidence.houses.angles.ascendant);
     const ascendantStar = yield* starOf(ascendant);
 
     return Placements.make({

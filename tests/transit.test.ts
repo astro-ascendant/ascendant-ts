@@ -14,7 +14,7 @@ import {
 import { Ephemeris } from "../src/ephemeris/service.js";
 import * as Swisseph from "../src/swisseph/index.js";
 import * as Transit from "../src/transit/index.js";
-import { planetaryPosition, wholeSignHouses } from "./support/ephemeris.js";
+import { houseData, planetaryPosition, WHOLE_SIGN_CUSPS } from "./support/ephemeris.js";
 import { fixtures } from "./support/fixtures.js";
 
 const DAY_MS = 86_400_000;
@@ -52,7 +52,7 @@ function motionAt(
 function fakeEphemerisLayer(
   base: number,
   segments: ReadonlyArray<MotionSegment>,
-  cusps: ReadonlyArray<number> = [0, 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
+  cusps: ReadonlyArray<number> = WHOLE_SIGN_CUSPS,
 ) {
   const dateToJulianDay = (date: DateTimeType) =>
     Effect.succeed(
@@ -72,7 +72,7 @@ function fakeEphemerisLayer(
     _longitude: number,
     houseSystem: HouseSystem,
     _ayanamsa: Ayanamsa,
-  ): Effect.Effect<HouseData, never> => Effect.succeed(wholeSignHouses(cusps, houseSystem));
+  ): Effect.Effect<HouseData, never> => Effect.succeed(houseData(cusps, houseSystem));
   return Layer.succeed(
     Ephemeris,
     Ephemeris.of({ dateToJulianDay, calculatePosition, calculateHouses }),

@@ -4,6 +4,7 @@ import { DateTime, Effect } from "effect";
 import { chartFromHouseData } from "../src/chart/calculate.js";
 import { SIGN_LORDS } from "../src/chart/internal/constants.js";
 import * as Chart from "../src/chart/model.js";
+import { houseData } from "./support/ephemeris.js";
 
 const RASHIS = [
   "Aries",
@@ -54,18 +55,7 @@ const LONGITUDES: Record<Chart.Planets, number> = {
 };
 
 function input() {
-  const houses = {
-    cusps: [0, ...CUSPS],
-    ascendant: 207.85,
-    mc: 117.43,
-    armc: 117.43,
-    vertex: 90,
-    equatorialAscendant: 207.85,
-    coAscendant1: 207.85,
-    coAscendant2: 207.85,
-    polarAscendant: 207.85,
-    houseSystem: "Placidus",
-  } as const;
+  const houses = houseData(CUSPS, "Placidus");
   const lagnaLongitude = 207.85;
   const lagna = Chart.Lagna.make({
     name: "Lagna",

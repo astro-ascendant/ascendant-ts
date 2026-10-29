@@ -3,16 +3,13 @@ import { DateTime, Effect, Schema, Semaphore } from "effect";
 import type { DateTime as DateTimeType } from "effect/DateTime";
 
 import { type Ayanamsa, type HouseSystem } from "../astro-params/model.js";
+import { ChartAngles, CircleAngle, Houses } from "../chart/model.js";
 import { EphemerisError } from "../ephemeris/error.js";
-import {
-  NativeHouseData,
-  NativePlanetaryPosition,
-  type CelestialBody,
-  JulianDay,
-} from "../ephemeris/model.js";
+import { type CelestialBody, HouseData, JulianDay } from "../ephemeris/model.js";
 import { operationError } from "../utils/operation-error.js";
-import { normalizeLongitude } from "../utils/position.js";
-import { siderealModeOf, celestialBodyOf, houseSystemOf, wholeSignCusps } from "./helper.js";
+import { normalizeLongitude, signStartOf } from "../utils/position.js";
+import { siderealModeOf, celestialBodyOf, houseSystemOf, nativeCuspOf } from "./helper.js";
+import { NativeHouseData, NativePlanetaryPosition } from "./model.js";
 
 const NATIVE_SIDEREAL_MODE_LOCK = Semaphore.makeUnsafe(1);
 
@@ -76,23 +73,34 @@ export const calculateHouses = Effect.fn("astro-ascendant/swisseph/calculateHous
     ),
   );
   return yield* Effect.gen(function* () {
+    const sidereal = (angle: number) =>
+      Effect.map(normalizeLongitude(angle - offset), (longitude) => CircleAngle.make(longitude));
     const ascendant = yield* normalizeLongitude(houses.ascendant - offset);
-    const cusps =
-      houseSystem === "WholeSign"
-        ? yield* wholeSignCusps(houses, ascendant)
-        : yield* Effect.forEach(houses.cusps, (cusp) => normalizeLongitude(cusp - offset));
+    const signStart = yield* signStartOf(ascendant);
+    const cusps = yield* Effect.forEach(Houses.literals, (house) =>
+      Effect.gen(function* () {
+        const cusp =
+          houseSystem === "WholeSign"
+            ? signStart + (house - 1) * 30
+            : (yield* nativeCuspOf(houses, house)) - offset;
+        return [house, yield* normalizeLongitude(cusp)] as const;
+      }),
+    );
+    const angles = ChartAngles.make({
+      ascendant: CircleAngle.make(ascendant),
+      mc: yield* sidereal(houses.mc),
+      armc: CircleAngle.make(yield* normalizeLongitude(houses.armc)),
+      vertex: yield* sidereal(houses.vertex),
+      equatorialAscendant: yield* sidereal(houses.equatorialAscendant),
+      coAscendant1: yield* sidereal(houses.coAscendant1),
+      coAscendant2: yield* sidereal(houses.coAscendant2),
+      polarAscendant: yield* sidereal(houses.polarAscendant),
+    });
 
-    return {
-      cusps,
-      ascendant,
-      mc: yield* normalizeLongitude(houses.mc - offset),
-      armc: yield* normalizeLongitude(houses.armc),
-      vertex: yield* normalizeLongitude(houses.vertex - offset),
-      equatorialAscendant: yield* normalizeLongitude(houses.equatorialAscendant - offset),
-      coAscendant1: yield* normalizeLongitude(houses.coAscendant1 - offset),
-      coAscendant2: yield* normalizeLongitude(houses.coAscendant2 - offset),
-      polarAscendant: yield* normalizeLongitude(houses.polarAscendant - offset),
+    return yield* Schema.decodeUnknownEffect(HouseData)({
       houseSystem,
-    };
+      cusps: Object.fromEntries(cusps),
+      angles,
+    });
   }).pipe(ephemerisError("calculateHouses"));
 });

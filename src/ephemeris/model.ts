@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 
 import { HouseSystem } from "../astro-params/model.js";
+import { ChartAngles, Houses, Longitude } from "../chart/model.js";
 
 export const JulianDay = Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1e7 })).pipe(
   Schema.brand("JulianDay"),
@@ -33,48 +34,14 @@ export const PlanetaryPosition = Schema.Struct({
 });
 export interface PlanetaryPosition extends Schema.Schema.Type<typeof PlanetaryPosition> {}
 
+/**
+ * House evidence in domain terms: twelve sidereal cusps keyed by house and
+ * the chart angles. Adapters own any native layout (index-0-unused cusp
+ * arrays, tropical offsets, the WholeSign convention) before returning this.
+ */
 export const HouseData = Schema.Struct({
-  cusps: Schema.Array(Schema.Finite),
-  ascendant: Schema.Finite,
-  mc: Schema.Finite,
-  armc: Schema.Finite,
-  vertex: Schema.Finite,
-  equatorialAscendant: Schema.Finite,
-  coAscendant1: Schema.Finite,
-  coAscendant2: Schema.Finite,
-  polarAscendant: Schema.Finite,
   houseSystem: HouseSystem,
+  cusps: Schema.Record(Houses, Longitude),
+  angles: ChartAngles,
 });
 export interface HouseData extends Schema.Schema.Type<typeof HouseData> {}
-
-/**
- * Native `@swisseph/node` payloads, decoded at the adapter boundary before
- * entering domain types. Only consumed fields are modeled: the vendor house
- * system enum is ignored in favor of our validated `AstroParams` input, and
- * tropical longitudes flow into `normalizeLongitude` downstream.
- */
-export const NativePlanetaryPosition = Schema.Struct({
-  longitude: Schema.Finite,
-  latitude: Schema.Finite,
-  distance: Schema.Finite,
-  longitudeSpeed: Schema.Finite,
-  latitudeSpeed: Schema.Finite,
-  distanceSpeed: Schema.Finite,
-  flags: Schema.Finite,
-});
-export interface NativePlanetaryPosition extends Schema.Schema.Type<
-  typeof NativePlanetaryPosition
-> {}
-
-export const NativeHouseData = Schema.Struct({
-  cusps: Schema.Array(Schema.Finite),
-  ascendant: Schema.Finite,
-  mc: Schema.Finite,
-  armc: Schema.Finite,
-  vertex: Schema.Finite,
-  equatorialAscendant: Schema.Finite,
-  coAscendant1: Schema.Finite,
-  coAscendant2: Schema.Finite,
-  polarAscendant: Schema.Finite,
-});
-export interface NativeHouseData extends Schema.Schema.Type<typeof NativeHouseData> {}

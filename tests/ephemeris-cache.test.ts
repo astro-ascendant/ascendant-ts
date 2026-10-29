@@ -6,7 +6,7 @@ import { withPositionCache } from "../src/ephemeris/cached.js";
 import { EphemerisError } from "../src/ephemeris/error.js";
 import { type CelestialBody, JulianDay, type PlanetaryPosition } from "../src/ephemeris/model.js";
 import { Ephemeris } from "../src/ephemeris/service.js";
-import { planetaryPosition, wholeSignHouses } from "./support/ephemeris.js";
+import { houseData, planetaryPosition, WHOLE_SIGN_CUSPS } from "./support/ephemeris.js";
 
 const JULIAN_DAY = JulianDay.make(2_460_000);
 
@@ -28,11 +28,7 @@ function succeedBackend(calls: Ref.Ref<number>, houseCalls?: Ref.Ref<number>) {
         (houseCalls === undefined
           ? Effect.void
           : Ref.update(houseCalls, (count) => count + 1)
-        ).pipe(
-          Effect.as(
-            wholeSignHouses([0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330], houseSystem),
-          ),
-        ),
+        ).pipe(Effect.as(houseData(WHOLE_SIGN_CUSPS, houseSystem))),
     }),
   );
 }
@@ -103,7 +99,7 @@ describe("Ephemeris position cache", () => {
               ),
             ),
           calculateHouses: (_julianDay, _latitude, _longitude, houseSystem, _ayanamsa) =>
-            Effect.succeed(wholeSignHouses([0], houseSystem)),
+            Effect.succeed(houseData(WHOLE_SIGN_CUSPS, houseSystem)),
         }),
       );
       const cached = yield* buildCached(flaky);

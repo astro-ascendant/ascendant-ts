@@ -5,7 +5,6 @@ import { generate } from "../chart/generate.js";
 import { ChartParams, Moment, type Planets } from "../chart/model.js";
 import type { JulianDay } from "../ephemeris/model.js";
 import { Ephemeris } from "../ephemeris/service.js";
-import { normalizeLongitude } from "../utils/position.js";
 import { TransitSearchExhausted, TransitValidationError } from "./error.js";
 import {
   TransitEvent,
@@ -124,14 +123,7 @@ const buildFixedTargets = Effect.fn("astro-ascendant/transit/buildFixedTargets")
       astroParams.houseSystem,
       astroParams.ayanamsa,
     );
-    const cusp = houses.cusps[house];
-    if (cusp === undefined || !Number.isFinite(cusp)) {
-      return yield* TransitValidationError.make({
-        message: `No cusp found for house ${house}`,
-        cause: houses.cusps,
-      });
-    }
-    fixedTargets.push({ kind: "cusp-crossing", longitude: yield* normalizeLongitude(cusp) });
+    fixedTargets.push({ kind: "cusp-crossing", longitude: houses.cusps[house] });
   }
 
   return fixedTargets;

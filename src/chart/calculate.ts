@@ -12,10 +12,8 @@ import { starOf, subLordOf, subSubLordOf } from "./helper.js";
 import { SIGN_LORDS } from "./internal/constants.js";
 import { dayLord, signAt, signLordOf } from "./internal/position.js";
 import {
-  ChartAngles,
   Chart,
   ChartHouses,
-  CircleAngle,
   type Division,
   HouseSignificators,
   House,
@@ -192,53 +190,26 @@ export const chartFromHouseData = Effect.fn("astro-ascendant/chart/chartFromHous
   positions: MappedPositions,
   date: DateTimeType,
 ) {
-  const { rawCusps } = yield* validateHouseInputs(houses);
+  const rawCusps = cuspsInHouseOrder(houses);
   const { division, lagna, planets, sex } = positions;
 
   const { cusps, spans } = yield* mapCusps(rawCusps, houses.houseSystem, division, lagna);
   const chartHouses = yield* buildHouses(cusps, spans, planets, lagna);
   const significations = yield* calculateSignifications(chartHouses, lagna, date);
-  const angles = yield* buildAngles(houses);
 
   return Chart.make({
     ...(sex === undefined ? {} : { sex }),
     provenance: chartProjection.provenance,
     division,
     houses: chartHouses,
-    angles,
+    angles: houses.angles,
     ...significations,
   });
 });
 
-const validateHouseInputs = Effect.fn("astro-ascendant/chart/validateHouseInputs")(function* (
-  houses: HouseData,
-) {
-  const rawCusps = houses.cusps.slice(1, 13);
-  const rawAngles = [
-    houses.ascendant,
-    houses.mc,
-    houses.armc,
-    houses.vertex,
-    houses.equatorialAscendant,
-    houses.coAscendant1,
-    houses.coAscendant2,
-    houses.polarAscendant,
-  ];
-
-  if (
-    rawCusps.length !== Houses.literals.length ||
-    rawCusps.some((cusp) => !Number.isFinite(cusp)) ||
-    rawAngles.some((angle) => !Number.isFinite(angle))
-  ) {
-    return yield* ChartCalculationError.make({
-      stage: "mapping",
-      message: "Could not calculate chart",
-      cause: houses,
-    });
-  }
-
-  return { rawCusps } as const;
-});
+function cuspsInHouseOrder(houses: HouseData): ReadonlyArray<Longitude> {
+  return Houses.literals.map((house) => houses.cusps[house]);
+}
 
 const mapCusps = Effect.fn("astro-ascendant/chart/mapCusps")(function* (
   rawCusps: ReadonlyArray<number>,
@@ -340,26 +311,4 @@ const buildHouses = Effect.fn("astro-ascendant/chart/buildHouses")(function* (
       }),
     ),
   );
-});
-
-const buildAngles = Effect.fn("astro-ascendant/chart/buildAngles")(function* (houses: HouseData) {
-  const ascendantAngle = yield* normalizeLongitude(houses.ascendant);
-  const mcAngle = yield* normalizeLongitude(houses.mc);
-  const armcAngle = yield* normalizeLongitude(houses.armc);
-  const vertexAngle = yield* normalizeLongitude(houses.vertex);
-  const equatorialAscendantAngle = yield* normalizeLongitude(houses.equatorialAscendant);
-  const coAscendant1Angle = yield* normalizeLongitude(houses.coAscendant1);
-  const coAscendant2Angle = yield* normalizeLongitude(houses.coAscendant2);
-  const polarAscendantAngle = yield* normalizeLongitude(houses.polarAscendant);
-
-  return ChartAngles.make({
-    ascendant: CircleAngle.make(ascendantAngle),
-    mc: CircleAngle.make(mcAngle),
-    armc: CircleAngle.make(armcAngle),
-    vertex: CircleAngle.make(vertexAngle),
-    equatorialAscendant: CircleAngle.make(equatorialAscendantAngle),
-    coAscendant1: CircleAngle.make(coAscendant1Angle),
-    coAscendant2: CircleAngle.make(coAscendant2Angle),
-    polarAscendant: CircleAngle.make(polarAscendantAngle),
-  });
 });
