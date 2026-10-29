@@ -52,10 +52,10 @@ export type CombinationSnapshot = {
   readonly points: readonly PointSublord[];
 };
 
-export class BaselineMissingError extends Schema.TaggedError<BaselineMissingError>()(
-  "Benchmarks.sublordBenchmark.BaselineMissing",
-  { combination: Schema.String },
-) {}
+export class BaselineMissingError extends Schema.TaggedError<
+  BaselineMissingError,
+  { readonly brand: unique symbol }
+>()("Benchmarks.sublordBenchmark.BaselineMissing", { combination: Schema.String }) {}
 
 export type HouseDeviation = {
   readonly combination: Combination;

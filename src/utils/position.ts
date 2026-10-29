@@ -11,7 +11,10 @@ export const EPS_CIRCLE = 1e-7;
 export const EPS_BOUNDARY = 1e-9;
 export const EPS_PART = 1e-12;
 
-export class LongitudeError extends Schema.TaggedError<LongitudeError>()("LongitudeError", {
+export class LongitudeError extends Schema.TaggedError<
+  LongitudeError,
+  { readonly brand: unique symbol }
+>()("LongitudeError", {
   message: Schema.String,
   cause: Schema.Defect(),
 }) {}

@@ -1,9 +1,9 @@
 import { Schema } from "effect";
 
-export class DivisionalMappingError extends Schema.TaggedError<DivisionalMappingError>()(
-  "DivisionalMappingError",
-  {
-    message: Schema.String,
-    cause: Schema.Defect(),
-  },
-) {}
+export class DivisionalMappingError extends Schema.TaggedError<
+  DivisionalMappingError,
+  { readonly brand: unique symbol }
+>()("DivisionalMappingError", {
+  message: Schema.String,
+  cause: Schema.Defect(),
+}) {}

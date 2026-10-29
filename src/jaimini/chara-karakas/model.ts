@@ -42,15 +42,18 @@ export const Result = Schema.Struct({
 });
 export interface Result extends Schema.Schema.Type<typeof Result> {}
 
-export class EvidenceError extends Schema.TaggedError<EvidenceError>()(
-  "CharaKarakasEvidenceError",
+export class EvidenceError extends Schema.TaggedError<
+  EvidenceError,
+  { readonly brand: unique symbol }
+>()("CharaKarakasEvidenceError", {
+  placement: ClassicalPlanets,
+  expected: Schema.Literal(1),
+  actual: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+}) {}
+
+export class ParseError extends Schema.TaggedError<ParseError, { readonly brand: unique symbol }>()(
+  "CharaKarakasParseError",
   {
-    placement: ClassicalPlanets,
-    expected: Schema.Literal(1),
-    actual: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    message: Schema.String,
   },
 ) {}
-
-export class ParseError extends Schema.TaggedError<ParseError>()("CharaKarakasParseError", {
-  message: Schema.String,
-}) {}
