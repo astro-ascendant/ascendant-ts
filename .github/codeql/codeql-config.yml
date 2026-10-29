@@ -1,0 +1,11 @@
+name: astro-ascendant CodeQL config
+
+# repos/effect is a vendored copy of the Effect monorepo kept as API
+# reference (see CLAUDE.md, "Vendored Repositories"). Nothing in the package
+# imports it at runtime, it is never edited here, and each `make pull-effect`
+# rewrites thousands of its files, so scanning it only reports upstream code.
+# Ignoring it also stops CodeQL tracing taint from it into our examples.
+paths-ignore:
+  - repos/**
+  - dist/**
+  - docs/api/**
