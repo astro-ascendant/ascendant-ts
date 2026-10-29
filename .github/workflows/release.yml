@@ -53,35 +53,6 @@ jobs:
       - name: Upgrade npm for OIDC trusted publishing
         run: npm install -g npm@latest
 
-      # TEMPORARY diagnostic: ask the registry why the OIDC exchange fails.
-      - name: Diagnose npm OIDC
-        run: |
-          echo "npm $(npm --version) on node $(node --version)"
-          echo "registry: $(npm config get registry)"
-          echo "userconfig: ${NPM_CONFIG_USERCONFIG:-<unset>}"
-          if [ -f "${NPM_CONFIG_USERCONFIG:-/nonexistent}" ]; then
-            echo "npmrc auth lines:"; grep -c "_authToken" "${NPM_CONFIG_USERCONFIG}" || true
-          fi
-          if [ -z "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
-            echo "OIDC: ACTIONS_ID_TOKEN_REQUEST_URL is NOT set"
-            exit 0
-          fi
-          echo "OIDC: request url present"
-          ID_TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org" | jq -r .value)
-          echo "OIDC: id token length ${#ID_TOKEN}"
-          echo "--- claims npm matches on ---"
-          node -e '
-            const claims = JSON.parse(Buffer.from(process.argv[1].split(".")[1], "base64url"));
-            for (const k of ["aud","sub","repository","repository_owner","workflow_ref","job_workflow_ref","ref","event_name","environment","runner_environment"]) {
-              console.log(`${k}: ${JSON.stringify(claims[k])}`);
-            }' "$ID_TOKEN"
-          echo "--- exchange response ---"
-          curl -sS -o /tmp/exchange.json -w "http %{http_code}\n" -X POST \
-            "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/astro-ascendant" \
-            -H "Authorization: Bearer $ID_TOKEN"
-          cat /tmp/exchange.json | sed 's/"token":"[^"]*"/"token":"<redacted>"/'
-
       # No NODE_AUTH_TOKEN here on purpose: the OIDC exchange is what
       # authenticates this publish. See the comment at the top of the file.
       - name: Publish to npm
