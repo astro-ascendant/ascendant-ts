@@ -12,38 +12,6 @@ _Avoid_: Birth wheel, horoscope, kundali (unless the user specifically says thes
 The exact sidereal longitudes and motion states of the Lagna and grahas at a Located Moment. They are the common source from which the D1 and divisional charts are derived; Placements given natal meaning are natal placements.
 _Avoid_: D1 chart, raw chart, base chart
 
-**Yoga**:
-A named classical formation defined by relationships among grahas, signs, or houses in one or more Charts.
-_Avoid_: Yoga calculation, detected Yoga when presence has not been established
-
-**Yoga definition**:
-A versioned rule that states the evidence and conditions used to establish one canonical Yoga, together with its classification and a description of its traditionally attributed effect.
-_Avoid_: Yoga method, Yoga function, registry entry
-
-**Yoga classification**:
-The Positive, Negative, or Neutral interpretive category assigned to a Yoga definition by its rule set.
-_Avoid_: Strength, probability, evaluation outcome
-
-**Yoga evaluation**:
-The application of one or more Yoga definitions to the relevant Chart evidence.
-_Avoid_: Yoga, Yoga detection
-
-**Yoga result**:
-The present or absent outcome of evaluating one Yoga definition, together with structured supporting evidence.
-_Avoid_: Yoga definition, prediction, guaranteed outcome
-
-**Yoga evidence**:
-The chart observations and condition outcomes that explain the cause of a present or absent Yoga result. It belongs to one evaluation and is distinct from the Yoga definition's description of the attributed effect.
-_Avoid_: Description, interpretation, strength
-
-**Yoga evidence body**:
-A Lagna or graha used as a reference or checked position in typed Yoga evidence. “Body” is limited to this evidence algebra, where one position relationship must support both Lagna and grahas.
-_Avoid_: Planet when Lagna is included, node for Rahu or Ketu
-
-**Yoga rule set**:
-A named and versioned collection of Yoga definitions whose shared identity is recorded as provenance on its Yoga results.
-_Avoid_: Yoga registry, unversioned Yoga catalogue
-
 **Ashtakavarga**:
 A classical Parashari scoring system derived from the Rashi positions of the Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, and Lagna in Placements. It produces Bhinnashtakavarga tables, Sarvashtakavarga, reduced Bhinnashtakavarga, and Shodhya Pinda.
 _Avoid_: Compatibility score, probability, prediction
