@@ -168,6 +168,8 @@ const refineStation = Effect.fnUntraced(function* (
 
 interface RefinedHit {
   readonly sample: LongitudeSample;
+  /** Overrides the sampled speed when the speed at the hit itself is not meaningful. */
+  readonly speed?: number;
   readonly kind: TransitKind;
   readonly sign: Rashis;
 }
@@ -184,7 +186,7 @@ function pushDedup(hits: Array<RawHit>, hit: RefinedHit, precision: number): voi
   hits.push({
     julianDay: hit.sample.julianDay,
     longitude: hit.sample.longitude,
-    speed: hit.sample.speed,
+    speed: hit.speed ?? hit.sample.speed,
     kind: hit.kind,
     sign: hit.sign,
   });
@@ -255,8 +257,12 @@ const stationHit = Effect.fnUntraced(function* (
   const lateSpeed = later.speed;
   if (earlySpeed !== 0 && lateSpeed !== 0 && earlySpeed < 0 === lateSpeed < 0) return null;
   const refined = yield* refineStation(earlier, later, options.planet, options.ayanamsa, precision);
+  // The speed at a station is nearly zero, so its sign is noise. Report the
+  // motion just after the station in time, taken from the later bracket end.
+  const after = earlier.julianDay > later.julianDay ? earlier : later;
   const hit: RefinedHit = {
     sample: refined,
+    speed: after.speed,
     kind: "station",
     sign: Zodiac.signAt(Zodiac.indexOfLongitude(Longitude.normalize(refined.longitude))),
   };

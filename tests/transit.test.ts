@@ -288,6 +288,21 @@ describe("Transit search over linear motion", () => {
         expect(minutesBetween(events[1]!.moment, expectedMoment(30))).toBeLessThan(3);
       }),
     );
+
+    it.effect("reports the motion after a station as its retrograde state", () =>
+      Effect.gen(function* () {
+        const events = yield* Transit.findTransits({
+          planet: "Jupiter",
+          from: locatedMoment(),
+          count: 2,
+          direction: "forward",
+          kinds: ["station"],
+          maxYears: 1,
+        });
+
+        expect(events.map((event) => event.is_retrograde)).toEqual([true, false]);
+      }),
+    );
   });
 
   it.layer(Layer.merge(astroLayer, linearLayer(0, 0.01)))((it) => {

@@ -5,7 +5,7 @@ Nothing here is committed or released yet.
 
 ## Bugs
 
-- [ ] **Stations report an unreliable `is_retrograde`.** `src/transit/find.ts` sets
+- [x] **Stations report an unreliable `is_retrograde`.** `src/transit/find.ts` sets
       `is_retrograde: hit.speed < 0` at the refined station moment, where the speed is
       nearly zero, so the flag is noise. Searching Mercury from 2026-11-01, the
       February 2027 retrograde station reports `false` and the June 2027 one reports

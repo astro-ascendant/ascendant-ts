@@ -28,7 +28,9 @@ const ingresses = await Effect.runPromise(
 
 Event kinds: `sign-ingress` (sidereal D1 Rashi boundary), `longitude-hit`
 (exact `targetLongitude`), `cusp-crossing` (natal house cusp for `house` at
-`from`), and `station` (retrograde station via `longitudeSpeed` sign change).
+`from`), and `station` (retrograde station via `longitudeSpeed` sign change). For a
+station, `is_retrograde` is the motion just after it in time: `true` at the
+station that starts a retrograde, `false` at the one that ends it.
 
 Guarantees: every zero-crossing counts in strict time order, so retrograde
 triples yield three events; refinement bisects to `precisionMinutes`
