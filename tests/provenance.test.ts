@@ -11,6 +11,7 @@ import * as Karakamsha from "../src/jaimini/karakamsha/index.js";
 import * as RashiDrishti from "../src/jaimini/rashi-drishti/index.js";
 import * as Upapada from "../src/jaimini/upapada/index.js";
 import * as Provenance from "../src/provenance.js";
+import * as SAV from "../src/sav/index.js";
 import { EphemerisTestLayer } from "./support/ephemeris.js";
 import { fixtures } from "./support/fixtures.js";
 
@@ -37,10 +38,13 @@ describe("Astrology method provenance", () => {
     it.effect("binds every provenance-bearing calculation to its registry specification", () =>
       Effect.gen(function* () {
         const placements = fixtures.placementsFromLongitudes();
-        const { charts } = yield* Chart.generate(fixtures.locatedMoment(), [9]);
+        const generated = yield* Chart.generate(fixtures.locatedMoment(), [9]);
+        const { charts } = generated;
         const [d1, d9] = charts;
         const chara = yield* Dasha.calculateChara(fixtures.moment(), placements);
         const sthira = yield* Dasha.calculateSthira(fixtures.moment(), placements);
+        const vimshottari = yield* Dasha.calculate(fixtures.moment(), placements);
+        const ashtakavarga = yield* SAV.calculate(placements);
         const argala = yield* Argala.calculate(placements, { kind: "Sign", sign: "Aries" });
         const arudha = yield* ArudhaPada.calculate(placements, 1);
         const karakas = yield* CharaKarakas.calculate(placements);
@@ -61,6 +65,9 @@ describe("Astrology method provenance", () => {
               upapada.provenance,
               chara.provenance,
               sthira.provenance,
+              generated.placements.provenance,
+              vimshottari[0]?.provenance,
+              ashtakavarga.provenance,
             ],
             [
               Provenance.methods.d1ChartProjection.provenance,
@@ -73,6 +80,9 @@ describe("Astrology method provenance", () => {
               Provenance.methods.jaiminiUpapada.provenance,
               Provenance.methods.charaDasha.provenance,
               Provenance.methods.sthiraDasha.provenance,
+              Provenance.methods.placements.provenance,
+              Provenance.methods.vimshottariDasha.provenance,
+              Provenance.methods.ashtakavarga.provenance,
             ],
           ),
         ).toBe(true);

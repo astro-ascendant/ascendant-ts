@@ -21,7 +21,7 @@ A school of Jyotisha containing distinct calculations such as Chara Karakas, Ras
 _Avoid_: Jaimini calculation, Jaimini mode, Jaimini core as a user request
 
 **Calculation provenance**:
-The versioned school and method identity attached to a result, expressed as `school`, `method`, and `version`. It identifies one specification in the canonical method registry.
+The versioned school and method identity attached to a result, expressed as `school`, `method`, and `version`. It identifies one specification in the canonical method registry. Every result carries it: charts, Placements, each Vimshottari Mahadasha, Chara and Sthira dashas, Ashtakavarga results, Jaimini results and transit events. Placements built by hand may omit it.
 _Avoid_: Source code location, informal method name, citation
 
 **Method specification**:

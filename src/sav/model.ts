@@ -2,6 +2,7 @@ import { Schema } from "effect";
 
 import { CLASSICAL_PLANETS } from "../chart/internal/constants.js";
 import { LagnaName, Rashis } from "../chart/model.js";
+import { AshtakavargaProvenance } from "../provenance.js";
 
 export const AshtakavargaPlanets = Schema.Literals(CLASSICAL_PLANETS);
 export type AshtakavargaPlanets = typeof AshtakavargaPlanets.Type;
@@ -42,6 +43,7 @@ export const AshtakavargaTotals = Schema.Struct({
 export interface AshtakavargaTotals extends Schema.Schema.Type<typeof AshtakavargaTotals> {}
 
 export const AshtakavargaResult = Schema.Struct({
+  provenance: AshtakavargaProvenance,
   bhinna: BhinnaAshtakavarga,
   sarva: SignScores,
   reduced: ReducedAshtakavarga,

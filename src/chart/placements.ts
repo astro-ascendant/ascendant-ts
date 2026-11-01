@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 
 import type { HouseData, PlanetaryPosition } from "../ephemeris/model.js";
+import { placements as placementsMethod } from "../provenance.js";
 import { ChartCalculationError } from "./error.js";
 import { starOf } from "./helper.js";
 import { Longitude, Placements, SourceLagna, SourcePlanet } from "./model.js";
@@ -35,6 +36,7 @@ export const placementsFromEvidence = Effect.fnUntraced(
         star: yield* starOf(Longitude.make(ascendant)),
       }),
       planets,
+      provenance: placementsMethod.provenance,
     });
   },
   Effect.mapError((cause) =>

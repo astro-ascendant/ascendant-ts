@@ -85,11 +85,11 @@ Nothing here is committed or released yet.
       (`ArgalaEvidenceError`, `KarakamshaCalculationError`, and so on). Consider
       exporting distinct names so `catchTag` names and imports line up.
       Done: classes are now `ArgalaEvidenceError`, `KarakamshaCalculationError` and so on, with the old names kept as deprecated aliases.
-- [ ] **Provenance is missing from some results.** Placements, Vimshottari dashas and
+- [x] **Provenance is missing from some results.** Placements, Vimshottari dashas and
       Ashtakavarga (`SAV.calculate`) results carry no `provenance`, while charts, Jaimini
       results, Chara and Sthira dashas and transit events do. Decide whether the rest
       should.
-      Open: needs a decision, since adding a field changes every result shape.
+      Done: `Placements` (optional, set by `Chart.generate`), each Vimshottari `MahaDasha` and the Ashtakavarga result now carry it, with registry entries `placements`, `vimshottariDasha` and `ashtakavarga`. Vimshottari stays an array, so the provenance sits on each Mahadasha, as it does on each transit event.
 - [x] **`Transit.findTransits` error type includes a schema `Issue`.** Find out when it
       can occur, and map it into `TransitValidationError` if it can.
       Done: the schema `Issue` came from sampling past Julian Day 0 to 1e7; it now fails as `TransitValidationError`.

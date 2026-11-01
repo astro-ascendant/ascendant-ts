@@ -1,7 +1,11 @@
 import { Schema } from "effect";
 
 import { Options as AstroParamsOptions } from "../astro-params/model.js";
-import { DivisionalChartProvenance, D1ChartProvenance } from "../provenance.js";
+import {
+  DivisionalChartProvenance,
+  D1ChartProvenance,
+  PlacementsProvenance,
+} from "../provenance.js";
 import { PLANETS, CLASSICAL_PLANETS, RASHIS, STARS, PLANET_DIGNITY } from "./internal/constants.js";
 
 export const Planets = Schema.Literals(PLANETS);
@@ -175,13 +179,22 @@ export const SourceLagna = Schema.Struct({
 });
 export interface SourceLagna extends Schema.Schema.Type<typeof SourceLagna> {}
 
+/**
+ * The shared sidereal positions. `Chart.generate` fills `provenance`; Placements built by
+ * hand, for example from another source of positions, may leave it out.
+ */
 export const Placements = Schema.Struct({
   lagna: SourceLagna,
   planets: Schema.Array(SourcePlanet),
+  provenance: Schema.optionalKey(PlacementsProvenance),
 });
 export interface Placements extends Schema.Schema.Type<typeof Placements> {}
 
-export { DivisionalChartProvenance, D1ChartProvenance } from "../provenance.js";
+export {
+  DivisionalChartProvenance,
+  D1ChartProvenance,
+  PlacementsProvenance,
+} from "../provenance.js";
 
 export const Sex = Schema.Literals(["Male", "Female"]);
 export type Sex = typeof Sex.Type;

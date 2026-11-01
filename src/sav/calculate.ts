@@ -1,6 +1,7 @@
 import { Array, Effect, Record } from "effect";
 
 import type { Placements } from "../chart/model.js";
+import { ashtakavarga } from "../provenance.js";
 import { Placement, Zodiac } from "../utils/index.js";
 import {
   ASHTAKAVARGA_ENTITY_ORDER,
@@ -230,5 +231,12 @@ export const calculate = Effect.fn("astro-ascendant/sav/calculate")(function* (
   const shodhya_pinda = calculateShodhyaPinda(reduced, positions);
   const totals = yield* calculateTotals(bhinna);
 
-  return { bhinna, sarva, reduced, shodhya_pinda, totals } satisfies AshtakavargaResult;
+  return {
+    provenance: ashtakavarga.provenance,
+    bhinna,
+    sarva,
+    reduced,
+    shodhya_pinda,
+    totals,
+  } satisfies AshtakavargaResult;
 });

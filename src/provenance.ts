@@ -113,6 +113,29 @@ export interface TransitSearchProvenance extends Schema.Schema.Type<
   typeof TransitSearchProvenance
 > {}
 
+export const PlacementsProvenance = Schema.Struct({
+  school: Schema.Literal("Ascendant"),
+  method: Schema.Literal("sidereal-ephemeris-placements"),
+  version: Schema.Literal(1),
+});
+export interface PlacementsProvenance extends Schema.Schema.Type<typeof PlacementsProvenance> {}
+
+export const VimshottariDashaProvenance = Schema.Struct({
+  school: Schema.Literal("Parashari"),
+  method: Schema.Literal("moon-nakshatra-balance"),
+  version: Schema.Literal(1),
+});
+export interface VimshottariDashaProvenance extends Schema.Schema.Type<
+  typeof VimshottariDashaProvenance
+> {}
+
+export const AshtakavargaProvenance = Schema.Struct({
+  school: Schema.Literal("Parashari"),
+  method: Schema.Literal("bphs-bav-trikona-ekadhipatya"),
+  version: Schema.Literal(1),
+});
+export interface AshtakavargaProvenance extends Schema.Schema.Type<typeof AshtakavargaProvenance> {}
+
 export const d1ChartProjection = {
   provenance: { school: "Ascendant", method: "house-system-cusps", version: 1 },
   steps: [
@@ -240,6 +263,73 @@ export const sthiraDasha = {
     "Exact-degree then natural-strength breaks score ties.",
   ],
 } as const satisfies MethodSpecification;
+export const placements = {
+  provenance: { school: "Ascendant", method: "sidereal-ephemeris-placements", version: 1 },
+  steps: [
+    {
+      id: "sample-positions",
+      description:
+        "Read each graha's sidereal longitude at the moment for the selected ayanamsa; Ketu is opposite Rahu, the mean node.",
+    },
+    {
+      id: "place-lagna",
+      description: "Take the Lagna from the ascendant of the selected house system.",
+    },
+    { id: "assign-stars", description: "Assign each point its nakshatra, pada and star lord." },
+  ],
+  verification: [
+    "Every longitude lies in [0, 360).",
+    "Rahu and Ketu are opposite and never flagged retrograde.",
+  ],
+} as const satisfies MethodSpecification;
+export const vimshottariDasha = {
+  provenance: { school: "Parashari", method: "moon-nakshatra-balance", version: 1 },
+  steps: [
+    {
+      id: "derive-balance",
+      description:
+        "Find the Moon's nakshatra lord and the exact arc travelled to get the period elapsed at birth.",
+    },
+    {
+      id: "build-mahadashas",
+      description:
+        "Order the nine lords from the star lord and start the first period before birth by the elapsed part.",
+    },
+    {
+      id: "build-antardashas",
+      description: "Split each Mahadasha by the lords' shares of the 120-year cycle.",
+    },
+  ],
+  verification: [
+    "The nine Mahadashas are contiguous and span 120 years.",
+    "Antardashas tile their Mahadasha and end on its end.",
+  ],
+} as const satisfies MethodSpecification;
+export const ashtakavarga = {
+  provenance: { school: "Parashari", method: "bphs-bav-trikona-ekadhipatya", version: 1 },
+  steps: [
+    {
+      id: "score-bhinna",
+      description:
+        "Give each planet and the Lagna a bindu per contributor whose classical houses include the sign.",
+    },
+    { id: "sum-sarva", description: "Add the seven planetary tables into the Sarvashtakavarga." },
+    {
+      id: "reduce",
+      description:
+        "Apply Trikona then Ekadhipatya reduction, the latter by planet occupancy of each pair of signs.",
+    },
+    {
+      id: "weigh-pinda",
+      description:
+        "Weigh the reduced scores by the Rashi and Graha multipliers into Shodhya Pinda.",
+    },
+  ],
+  verification: [
+    "Each planetary table totals its classical bindu count and the Sarvashtakavarga totals 337.",
+    "Reduction never leaves a negative score.",
+  ],
+} as const satisfies MethodSpecification;
 export const transitSearch = {
   provenance: { school: "Ascendant", method: "transit-sample-bisect", version: 1 },
   steps: [
@@ -273,6 +363,9 @@ export const methods = {
   charaDasha,
   sthiraDasha,
   transitSearch,
+  placements,
+  vimshottariDasha,
+  ashtakavarga,
 } as const satisfies Record<string, MethodSpecification>;
 
 export type MethodId = keyof typeof methods;

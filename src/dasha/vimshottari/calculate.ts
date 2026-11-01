@@ -6,6 +6,7 @@ import {
   VIMSHOTTARI_YEARS,
 } from "../../chart/internal/constants.js";
 import type { Moment, Placements, SourcePlanet } from "../../chart/model.js";
+import { vimshottariDasha } from "../../provenance.js";
 import { Calendar } from "../calendar.js";
 import { placementOf } from "../evidence.js";
 import { AntarDasha, MahaDasha } from "../model.js";
@@ -63,6 +64,7 @@ function mahadashasFrom(sequence: readonly StarLord[], start: Moment["date"]) {
     }));
     return MahaDasha.make({
       mahadasha: period.label,
+      provenance: vimshottariDasha.provenance,
       start: period.start,
       end: period.end,
       antardashas: Timeline.subdivide(period, shares, Calendar.decimalYears).map((child) =>

@@ -2,9 +2,17 @@ import { Schema } from "effect";
 
 import { Degree, PlanetDignity, Planets, Rashis } from "../chart/model.js";
 import { Roles } from "../jaimini/chara-karakas/model.js";
-import { CharaDashaProvenance, SthiraDashaProvenance } from "../provenance.js";
+import {
+  CharaDashaProvenance,
+  SthiraDashaProvenance,
+  VimshottariDashaProvenance,
+} from "../provenance.js";
 
-export { CharaDashaProvenance, SthiraDashaProvenance } from "../provenance.js";
+export {
+  CharaDashaProvenance,
+  SthiraDashaProvenance,
+  VimshottariDashaProvenance,
+} from "../provenance.js";
 
 export const AntarDasha = Schema.Struct({
   mahadasha: Planets,
@@ -16,6 +24,7 @@ export interface AntarDasha extends Schema.Schema.Type<typeof AntarDasha> {}
 
 export const MahaDasha = Schema.Struct({
   mahadasha: Planets,
+  provenance: VimshottariDashaProvenance,
   start: Schema.DateTimeUtc,
   end: Schema.DateTimeUtc,
   antardashas: Schema.Array(AntarDasha),
