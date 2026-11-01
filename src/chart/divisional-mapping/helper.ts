@@ -5,6 +5,10 @@ import { EPS_PART } from "../../utils/position.js";
 import { Degree, type Division, Longitude } from "../model.js";
 import type { SourcePosition, Subdivision } from "./model.js";
 
+/** Wheel positions of Cancer and Leo, the Moon's and Sun's Horas in D2. */
+const CANCER_INDEX = 3;
+const LEO_INDEX = 4;
+
 export function sourcePositionOf(longitude: Longitude): SourcePosition {
   return {
     longitude,
@@ -59,9 +63,8 @@ export const targetSignOf = Function.dual<
 
   switch (division) {
     case 2:
-      return sourceSignIndex <= 5
-        ? sourceSignIndex * 2 + partIndex
-        : (sourceSignIndex - 6) * 2 + partIndex;
+      // Parashari Hora: odd signs give Leo (Sun's hora) then Cancer (Moon's), even signs the reverse.
+      return (oddRashi ? partIndex === 0 : partIndex === 1) ? LEO_INDEX : CANCER_INDEX;
 
     case 3:
       return (sourceSignIndex + Array.getUnsafe([0, 4, 8], partIndex)) % 12;

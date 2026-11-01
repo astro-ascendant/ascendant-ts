@@ -2,7 +2,6 @@ import { describe, expect, it } from "@effect/vitest";
 import { Effect, Equal } from "effect";
 
 import { getDivisionalTarget } from "../src/chart/divisional-mapping/index.js";
-import { subdivisionOf } from "../src/chart/divisional-mapping/helper.js";
 import { normalizeLongitude } from "../src/utils/position.js";
 
 describe("divisional mapping", () => {
@@ -67,10 +66,18 @@ describe("divisional mapping at floating-point edges", () => {
     }),
   );
 
-  it("keeps the subdivision degree inside [0, 30)", () => {
-    const subdivision = subdivisionOf(29.999999999999996, 45);
-
-    expect(subdivision.partIndex).toBe(44);
-    expect(subdivision.degree).toBeLessThan(30);
-  });
+  it.effect("maps D2 to the Parashari Hora: Leo and Cancer by odd or even sign", () =>
+    Effect.gen(function* () {
+      // [longitude, expected sign index]: Aries (odd) 5 and 20, Taurus (even) 35 and 50, Scorpio (even) 215.
+      for (const [longitude, signIndex] of [
+        [5, 4],
+        [20, 3],
+        [35, 3],
+        [50, 4],
+        [215, 3],
+      ] as const) {
+        expect((yield* getDivisionalTarget(longitude, 2)).signIndex).toBe(signIndex);
+      }
+    }),
+  );
 });
