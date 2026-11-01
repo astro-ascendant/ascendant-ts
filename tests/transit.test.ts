@@ -135,6 +135,48 @@ describe("Transit search over linear motion", () => {
       }),
     );
 
+    it.effect("does not report the point opposite a target longitude", () =>
+      Effect.gen(function* () {
+        const events = yield* Transit.findTransits({
+          planet: "Jupiter",
+          from: locatedMoment(),
+          count: 2,
+          direction: "forward",
+          kinds: ["longitude-hit"],
+          targetLongitude: Chart.Longitude.make(100),
+        });
+
+        expect(events).toHaveLength(2);
+        for (const event of events) {
+          expect(Number(event.longitude)).toBeCloseTo(100, 2);
+        }
+        expect(minutesBetween(events[0]!.moment, expectedMoment((100 - 68.4) / 0.14))).toBeLessThan(
+          2,
+        );
+        expect(minutesBetween(events[1]!.moment, expectedMoment((460 - 68.4) / 0.14))).toBeLessThan(
+          2,
+        );
+      }),
+    );
+
+    it.effect("does not report the point opposite a house cusp", () =>
+      Effect.gen(function* () {
+        const events = yield* Transit.findTransits({
+          planet: "Mars",
+          from: locatedMoment(),
+          count: 2,
+          direction: "forward",
+          kinds: ["cusp-crossing"],
+          house: 7,
+        });
+
+        expect(events).toHaveLength(2);
+        for (const event of events) {
+          expect(Number(event.longitude)).toBeCloseTo(180, 2);
+        }
+      }),
+    );
+
     it.effect("crosses a natal house cusp", () =>
       Effect.gen(function* () {
         const [event] = yield* Transit.findTransits({

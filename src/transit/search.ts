@@ -224,6 +224,8 @@ const fixedTargetHit = Effect.fnUntraced(function* (
   const early = Zodiac.wrapSigned(earlier.longitude - target.longitude);
   const late = Zodiac.wrapSigned(later.longitude - target.longitude);
   if (early !== 0 && late !== 0 && Math.sign(early) === Math.sign(late)) return null;
+  // wrapSigned also flips sign at the point opposite the target; that flip is not a crossing.
+  if (Math.abs(late - early) > 180) return null;
   const refined = yield* refineLongitude(
     earlier,
     later,
