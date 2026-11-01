@@ -127,7 +127,17 @@ const calculateSarva = Effect.fnUntraced(function* (bhinna: BhinnaAshtakavarga) 
   return sarva;
 });
 
-const reduceScores = Effect.fnUntraced(function* (scores: SignScores) {
+/**
+ * Trikona reduction, then Ekadhipatya reduction of each pair of signs one planet rules
+ * (BPHS 68.1-5). Occupancy decides the pair: with a planet in both signs nothing is reduced;
+ * with a planet in only one, the empty sign loses the occupied sign's score (to zero at
+ * most); with a planet in neither, the larger score keeps the difference and the smaller
+ * becomes zero.
+ */
+const reduceScores = Effect.fnUntraced(function* (
+  scores: SignScores,
+  occupied: ReadonlySet<number>,
+) {
   const reduced = Zodiac.SIGNS.map((rashi) => scores[rashi]);
 
   for (const group of TRIKONA_GROUPS) {
@@ -138,7 +148,14 @@ const reduceScores = Effect.fnUntraced(function* (scores: SignScores) {
   for (const [first, second] of DUAL_LORD_PAIRS) {
     const firstValue = reduced[first] ?? 0;
     const secondValue = reduced[second] ?? 0;
-    if (firstValue >= secondValue) {
+    const firstOccupied = occupied.has(first);
+    const secondOccupied = occupied.has(second);
+    if (firstOccupied && secondOccupied) continue;
+    if (firstOccupied) {
+      reduced[second] = Math.max(0, secondValue - firstValue);
+    } else if (secondOccupied) {
+      reduced[first] = Math.max(0, firstValue - secondValue);
+    } else if (firstValue >= secondValue) {
       reduced[first] = firstValue - secondValue;
       reduced[second] = 0;
     } else {
@@ -150,11 +167,18 @@ const reduceScores = Effect.fnUntraced(function* (scores: SignScores) {
   return yield* signScores(reduced);
 });
 
-const calculateReduced = Effect.fnUntraced(function* (bhinna: BhinnaAshtakavarga) {
+const calculateReduced = Effect.fnUntraced(function* (
+  bhinna: BhinnaAshtakavarga,
+  positions: EntityPositions,
+) {
+  // Only the seven planets occupy signs here; the Lagna and the nodes do not count.
+  const occupied = new Set(ASHTAKAVARGA_PLANET_ORDER.map((planet) => positions[planet]));
   const reducedEntries = yield* Effect.forEach(
     ASHTAKAVARGA_PLANET_ORDER,
     (planet) =>
-      reduceScores(bhinna[planet]).pipe(Effect.map((scores) => [planet, scores] as const)),
+      reduceScores(bhinna[planet], occupied).pipe(
+        Effect.map((scores) => [planet, scores] as const),
+      ),
     { concurrency: "unbounded" },
   );
   return Record.fromEntries(reducedEntries) as ReducedAshtakavarga;
@@ -201,7 +225,7 @@ export const calculate = Effect.fn("astro-ascendant/sav/calculate")(function* (
   const bhinna = yield* calculateBhinna(positions);
   yield* validateBhinna(bhinna);
   const sarva = yield* calculateSarva(bhinna);
-  const reduced = yield* calculateReduced(bhinna);
+  const reduced = yield* calculateReduced(bhinna, positions);
   const shodhya_pinda = calculateShodhyaPinda(reduced, positions);
   const totals = yield* calculateTotals(bhinna);
 

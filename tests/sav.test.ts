@@ -70,4 +70,29 @@ describe("SAV", () => {
         ]);
       }),
   );
+
+  it.effect("reduces dual-lord sign pairs by planet occupancy (BPHS 68.1-5)", () =>
+    Effect.gen(function* () {
+      // Planets sit in Aries to Libra. Aries/Scorpio has one occupied sign, Taurus/Libra and
+      // Gemini/Virgo have both occupied (never reduced), Sagittarius/Pisces and
+      // Capricorn/Aquarius have neither (larger keeps the difference). Expected values were
+      // worked out by hand from the classical BAV tables, trikona first.
+      const result = yield* SAV.calculate(fixtures.placementsFromLongitudes());
+      const expected = {
+        Sun: [3, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0],
+        Moon: [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0],
+        Mars: [2, 0, 3, 4, 1, 1, 0, 0, 0, 1, 0, 1],
+        Mercury: [2, 0, 2, 2, 0, 1, 0, 0, 1, 0, 0, 0],
+        Jupiter: [1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0],
+        Venus: [1, 4, 4, 0, 0, 1, 0, 0, 2, 0, 3, 0],
+        Saturn: [1, 2, 0, 3, 0, 0, 0, 0, 0, 0, 0, 2],
+      } as const;
+
+      for (const [planet, scores] of Object.entries(expected)) {
+        expect(
+          Zodiac.SIGNS.map((sign) => result.reduced[planet as keyof typeof expected][sign]),
+        ).toEqual(scores);
+      }
+    }),
+  );
 });
