@@ -40,7 +40,7 @@ iterations) and reports total/mean/min wall ms plus ops/s.
 | `chart:generate-d1`                      | One D1 chart: 8 native positions + houses + mapping (≈10 FFI calls). Same moment repeated, so the cached row is fully warm.                     |
 | `chart:generate-all-divisions`           | All 16 divisions from one Placements set: mapping/signification fan-out.                                                                        |
 | `throughput:N-moments`                   | N distinct weekly moments back-to-back: sustained-load number.                                                                                  |
-| `transit:saturn-ingress-30y`             | Saturn forward ingress ×3 over 30y (~1.5k coarse samples + bisection refinement).                                                               |
+| `transit:saturn-ingress-30y`             | Saturn forward ingress ×3 over 30y (speed-bounded leaps + Newton refinement).                                                               |
 | `transit:jupiter-with-charts`            | Ingress search plus D1+D9 chart enrichment per event.                                                                                           |
 | `transit:moon-ingress-count-100` (full)  | ~230-day scan, ~1k samples: high-frequency body.                                                                                                |
 | `transit:saturn-full-window-scan` (full) | Unreachable count forces a full 30-year scan; the search fails typed (`TransitSearchExhausted`) and the scan itself is timed via `Effect.exit`. |

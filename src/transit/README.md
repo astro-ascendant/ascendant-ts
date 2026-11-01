@@ -34,13 +34,13 @@ station that starts a retrograde, `false` at the one that ends it.
 
 Guarantees: `from` is inclusive for every kind, so an event at the starting instant
 is reported, forward or backward; every zero-crossing counts in strict time order, so retrograde
-triples yield three events; refinement bisects to `precisionMinutes`
+triples yield three events; refinement converges to `precisionMinutes`
 (default 1); an exhausted `maxYears` window fails with typed
 `TransitSearchExhausted` instead of a short list. Pass `includeCharts` with
 divisions to attach one full `ChartCalculation` per found moment.
 
-`findTransits` is the module's only operation; the sampling and bisection
-kernel behind it (ADR-0007) is internal. Searches sample thousands of
-ephemeris positions; for repeated or
+`findTransits` is the module's only operation; the leap-and-refine
+kernel behind it (ADR-0007) is internal. A search samples tens to a few
+hundred ephemeris positions; for repeated or
 overlapping scans, provide `SwissephCachedLayer` (see `../swisseph/README.md`)
 instead of `SwissephLayer` so re-scans hit the position cache.

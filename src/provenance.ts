@@ -245,16 +245,19 @@ export const transitSearch = {
   steps: [
     {
       id: "sample-coarse",
-      description: "Step per-planet coarse intervals from the located moment.",
+      description:
+        "Leap from the located moment by the time the graha needs to reach the nearest boundary, target or station, from per-planet speed and acceleration limits.",
     },
     {
       id: "bisect-brackets",
-      description: "Bisect each bracketed crossing to one-minute precision.",
+      description:
+        "Refine each bracketed crossing to the requested precision with Newton and secant steps kept inside the bracket.",
     },
   ],
   verification: [
     "Every zero-crossing counts in strict time order.",
     "Exhausted searches fail typed instead of returning short lists.",
+    "Searches find the events an hourly scan of the ephemeris finds.",
   ],
 } as const satisfies MethodSpecification;
 

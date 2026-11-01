@@ -13,17 +13,53 @@ export const DEFAULT_MAX_YEARS = 30;
 export const DEFAULT_PRECISION_MINUTES = 1;
 const DAYS_PER_YEAR = 365.25;
 
-export const COARSE_STEP_DAYS: Record<Planets, number> = {
-  Sun: 1,
-  Moon: 0.25,
-  Mars: 2,
-  Mercury: 1,
-  Venus: 1,
-  Jupiter: 5,
-  Saturn: 7,
-  Rahu: 3,
-  Ketu: 3,
+/**
+ * Physical limits that let the sweep leap instead of stepping at a fixed rate. Both are
+ * the largest values seen sampling 1900-2100 with the Swiss Ephemeris, plus a margin of
+ * about 30%:
+ *
+ * - `maxSpeed`: a ceiling on |longitude speed|, in degrees a day.
+ * - `maxAcceleration`: a ceiling on |change of longitude speed|, in degrees a day squared,
+ *   taken from second differences of longitude (the reported speeds have rare jumps).
+ *
+ * From a sample with speed `v`, a graha cannot have closed a gap `d` before `L` days have
+ * passed if `d` exceeds `v*L + a*L^2/2` (and `maxSpeed*L`), and its speed cannot reach
+ * zero before `|v| / a` days. So no crossing and no station can fall inside a leap.
+ *
+ * `stationGapDays` is a quarter of the shortest time between two consecutive stations
+ * (Mercury's retrograde lasts about 21 days, Venus's 40, Mars's 60, Jupiter's 120,
+ * Saturn's 138). A station search never leaps less than that: one station inside a leap
+ * shows as a speed sign change, and a pair cannot fit. Grahas that never station use 0.
+ */
+export const MOTION_LIMITS: Record<
+  Planets,
+  {
+    readonly maxSpeed: number;
+    readonly maxAcceleration: number;
+    readonly stationGapDays: number;
+  }
+> = {
+  Sun: { maxSpeed: 1.3, maxAcceleration: 0.001, stationGapDays: 0 },
+  Moon: { maxSpeed: 20, maxAcceleration: 0.7, stationGapDays: 0 },
+  Mars: { maxSpeed: 1, maxAcceleration: 0.02, stationGapDays: 15 },
+  Mercury: { maxSpeed: 2.8, maxAcceleration: 0.26, stationGapDays: 5 },
+  Venus: { maxSpeed: 1.6, maxAcceleration: 0.055, stationGapDays: 10 },
+  Jupiter: { maxSpeed: 0.31, maxAcceleration: 0.01, stationGapDays: 30 },
+  Saturn: { maxSpeed: 0.17, maxAcceleration: 0.011, stationGapDays: 34 },
+  Rahu: { maxSpeed: 0.07, maxAcceleration: 0.001, stationGapDays: 0 },
+  Ketu: { maxSpeed: 0.07, maxAcceleration: 0.001, stationGapDays: 0 },
 };
+
+/** The shortest leap, so a graha sitting on a target does not shrink the step to nothing. */
+const MIN_LEAP_DAYS = 1 / 24;
+/** The longest leap, so a slow graha far from every target is still sampled now and then. */
+const MAX_LEAP_DAYS = 400;
+/**
+ * A leap never covers more than this many degrees at the speed ceiling. Crossing tests
+ * compare the signed difference to a target across a step, which aliases beyond a
+ * half circle of motion.
+ */
+const MAX_LEAP_DEGREES = 170;
 
 export interface LongitudeSample {
   readonly julianDay: number;
@@ -45,7 +81,6 @@ export interface SearchOptions {
   readonly includeStations: boolean;
   readonly fixedTargets: ReadonlyArray<FixedTarget>;
   readonly ayanamsa: Ayanamsa;
-  readonly stepDays?: number;
   readonly precisionMinutes?: number;
   readonly maxYears?: number;
 }
@@ -110,6 +145,13 @@ function crossedBoundary(
   return { boundary, rising: later > earlier };
 }
 
+/**
+ * Finds the zero of `valueOf` inside a bracket whose ends differ in sign, to within
+ * `precisionMinutes`. Each step is a Newton step when the derivative is known (a
+ * longitude's derivative is its speed) and a secant step otherwise, falling back to
+ * bisection whenever the step leaves the bracket or the bracket stops halving. That
+ * takes about four ephemeris calls where bisecting a day-wide bracket takes eleven.
+ */
 const refineValue = Effect.fnUntraced(function* (
   low: LongitudeSample,
   high: LongitudeSample,
@@ -117,23 +159,51 @@ const refineValue = Effect.fnUntraced(function* (
   ayanamsa: Ayanamsa,
   precisionMinutes: number,
   valueOf: (sample: LongitudeSample) => number,
+  derivativeOf?: (sample: LongitudeSample) => number,
 ) {
   let lower = low;
   let upper = high;
   let lowValue = valueOf(lower);
+  let upValue = valueOf(upper);
+  if (lowValue === 0) return lower;
+  if (upValue === 0) return upper;
+
+  let previousDay = Number.NaN;
+  let widthBefore = upper.julianDay - lower.julianDay;
   for (let iteration = 0; iteration < 60; iteration += 1) {
-    if ((upper.julianDay - lower.julianDay) * MINUTES_PER_DAY <= precisionMinutes) break;
-    const midDay = (lower.julianDay + upper.julianDay) / 2;
-    const mid = yield* sampleAt(midDay, planet, ayanamsa);
-    const midValue = valueOf(mid);
-    if (Math.sign(midValue) === Math.sign(lowValue) && midValue !== 0) {
-      lower = mid;
-      lowValue = midValue;
-    } else {
-      upper = mid;
+    const width = upper.julianDay - lower.julianDay;
+    if (width * MINUTES_PER_DAY <= precisionMinutes) break;
+
+    const nearLower = Math.abs(lowValue) <= Math.abs(upValue);
+    const anchor = nearLower ? lower : upper;
+    const anchorValue = nearLower ? lowValue : upValue;
+    const slope = derivativeOf?.(anchor) ?? 0;
+    let day =
+      slope === 0
+        ? lower.julianDay + (width * lowValue) / (lowValue - upValue)
+        : anchor.julianDay - anchorValue / slope;
+    // Bisect when the step leaves the bracket, or the bracket has not halved in two steps.
+    const stalled = iteration % 2 === 1 && width > widthBefore / 2;
+    if (!(day > lower.julianDay && day < upper.julianDay) || stalled) {
+      day = (lower.julianDay + upper.julianDay) / 2;
     }
+    if (iteration % 2 === 1) widthBefore = width;
+
+    const sample = yield* sampleAt(day, planet, ayanamsa);
+    const value = valueOf(sample);
+    if (value === 0) return sample;
+    const settled = Math.abs(day - previousDay) * MINUTES_PER_DAY <= precisionMinutes / 2;
+    previousDay = day;
+    if (Math.sign(value) === Math.sign(lowValue)) {
+      lower = sample;
+      lowValue = value;
+    } else {
+      upper = sample;
+      upValue = value;
+    }
+    if (settled) return sample;
   }
-  return yield* sampleAt((lower.julianDay + upper.julianDay) / 2, planet, ayanamsa);
+  return Math.abs(lowValue) <= Math.abs(upValue) ? lower : upper;
 });
 
 const refineLongitude = Effect.fnUntraced(function* (
@@ -144,8 +214,14 @@ const refineLongitude = Effect.fnUntraced(function* (
   precisionMinutes: number,
   target: number,
 ) {
-  return yield* refineValue(low, high, planet, ayanamsa, precisionMinutes, (sample) =>
-    Zodiac.wrapSigned(sample.longitude - target),
+  return yield* refineValue(
+    low,
+    high,
+    planet,
+    ayanamsa,
+    precisionMinutes,
+    (sample) => Zodiac.wrapSigned(sample.longitude - target),
+    (sample) => sample.speed,
   );
 });
 
@@ -367,14 +443,56 @@ function appendStepHits(
   }
 }
 
+/**
+ * The earliest the graha could reach a point `gap` degrees away, given the signed speed
+ * `closing` toward it (negative when moving away): the root of
+ * `gap = closing*L + maxAcceleration*L^2/2`, never less than `gap / maxSpeed`.
+ */
+function leapToReach(gap: number, closing: number, planet: Planets): number {
+  const { maxSpeed, maxAcceleration } = MOTION_LIMITS[planet];
+  const accelerated =
+    (-closing + Math.sqrt(closing * closing + 2 * maxAcceleration * gap)) / maxAcceleration;
+  return Math.max(accelerated, gap / maxSpeed);
+}
+
+/**
+ * How far the sweep can safely advance from a sample: the earliest the graha could reach
+ * a sign boundary or target, or its speed could reach zero when stations are wanted.
+ * Nothing can happen inside the leap.
+ */
+function leapDays(sample: LongitudeSample, options: SearchOptions): number {
+  let days = Math.min(MAX_LEAP_DAYS, MAX_LEAP_DEGREES / MOTION_LIMITS[options.planet].maxSpeed);
+  if (options.includeIngress) {
+    const remainder = Longitude.normalize(sample.longitude) % 30;
+    days = Math.min(
+      days,
+      leapToReach(30 - remainder, sample.speed, options.planet),
+      leapToReach(remainder, -sample.speed, options.planet),
+    );
+  }
+  for (const target of options.fixedTargets) {
+    // The target lies ahead by `ahead` degrees going up the circle and `360 - ahead` going down.
+    const ahead = Longitude.normalize(target.longitude - sample.longitude);
+    days = Math.min(
+      days,
+      leapToReach(ahead, sample.speed, options.planet),
+      leapToReach(360 - ahead, -sample.speed, options.planet),
+    );
+  }
+  if (options.includeStations) {
+    const { maxAcceleration, stationGapDays } = MOTION_LIMITS[options.planet];
+    days = Math.min(days, Math.max(Math.abs(sample.speed) / maxAcceleration, stationGapDays));
+  }
+  return Math.max(days, MIN_LEAP_DAYS);
+}
+
 /** Every zero-crossing counts, so retrograde triples yield three hits in time order. */
 export const searchRawHits = Effect.fnUntraced(function* (options: SearchOptions) {
   const forward = options.direction === "forward";
   const sign = forward ? 1 : -1;
-  const step = (options.stepDays ?? COARSE_STEP_DAYS[options.planet]) * sign;
   const spanDays = (options.maxYears ?? DEFAULT_MAX_YEARS) * DAYS_PER_YEAR * sign;
   const limit = options.fromJulianDay + spanDays;
-  const maxIterations = Math.ceil(Math.abs(spanDays / step)) + 2;
+  const maxIterations = Math.ceil(Math.abs(spanDays) / MIN_LEAP_DAYS) + 2;
   const precision = options.precisionMinutes ?? DEFAULT_PRECISION_MINUTES;
 
   const hits: Array<RawHit> = [];
@@ -392,7 +510,8 @@ export const searchRawHits = Effect.fnUntraced(function* (options: SearchOptions
     }
     if (forward ? cursor >= limit : cursor <= limit) break;
     // Clamp the last step so no hit lies beyond the requested window.
-    const stride = forward ? Math.min(step, limit - cursor) : Math.max(step, limit - cursor);
+    const leap = leapDays(previous, options) * sign;
+    const stride = forward ? Math.min(leap, limit - cursor) : Math.max(leap, limit - cursor);
     const { next, stepHits } = yield* advanceCursor(cursor, previous, stride, forward, options);
     appendStepHits(hits, stepHits, precision, options.count);
     previous = next;

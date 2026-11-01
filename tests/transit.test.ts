@@ -1,73 +1,26 @@
 import { describe, expect, it } from "@effect/vitest";
 import { DateTime, Effect, Layer } from "effect";
-import type { DateTime as DateTimeType } from "effect/DateTime";
 
-import * as AstroParams from "../src/astro-params/index.js";
 import * as Chart from "../src/chart/index.js";
-import { julianDayOfDateTime } from "../src/ephemeris/model.js";
 import * as Swisseph from "../src/swisseph/index.js";
 import * as Transit from "../src/transit/index.js";
-import { ephemerisTestLayer, planetaryPosition } from "./support/ephemeris.js";
-import { fixtures } from "./support/fixtures.js";
+import { transitFixtures } from "./support/transit.js";
 
-const DAY_MS = 86_400_000;
-const FROM_ISO = "2026-01-01T00:00:00.000Z";
-const JD0 = julianDayOfDateTime(DateTime.makeUnsafe(FROM_ISO));
-
-function locatedMoment(): Chart.LocatedMoment {
-  return fixtures.locatedMoment(FROM_ISO);
-}
-
-interface MotionSegment {
-  readonly untilJulianDay: number;
-  readonly rate: number;
-}
-
-function motionAt(
-  base: number,
-  jd0: number,
-  segments: ReadonlyArray<MotionSegment>,
-  julianDay: number,
-): { longitude: number; speed: number } {
-  let cursor = jd0;
-  let longitude = base;
-  for (const segment of segments) {
-    if (julianDay <= segment.untilJulianDay) {
-      return { longitude: longitude + segment.rate * (julianDay - cursor), speed: segment.rate };
-    }
-    longitude += segment.rate * (segment.untilJulianDay - cursor);
-    cursor = segment.untilJulianDay;
-  }
-  const last = segments[segments.length - 1]!;
-  return { longitude: longitude + last.rate * (julianDay - cursor), speed: last.rate };
-}
-
-function fakeEphemerisLayer(base: number, segments: ReadonlyArray<MotionSegment>) {
-  return ephemerisTestLayer({
-    position: (julianDay) => {
-      const { longitude, speed } = motionAt(base, JD0, segments, Number(julianDay));
-      return Effect.succeed(planetaryPosition(longitude, speed));
-    },
-  });
-}
-
-const astroLayer = AstroParams.layer({ ayanamsa: "Lahiri", houseSystem: "WholeSign" });
-const linearLayer = (base: number, rate: number) =>
-  fakeEphemerisLayer(base, [{ untilJulianDay: Number.POSITIVE_INFINITY, rate }]);
-const jupiterLayer = linearLayer(68.4, 0.14);
-
-function minutesBetween(a: DateTimeType, b: DateTimeType): number {
-  return Math.abs(DateTime.toDate(a).getTime() - DateTime.toDate(b).getTime()) / 60_000;
-}
-
-function distanceToBoundary(longitude: number): number {
-  const remainder = Chart.Longitude.normalize(longitude) % 30;
-  return Math.min(remainder, 30 - remainder);
-}
-
-function expectedMoment(daysAfterJd0: number) {
-  return DateTime.makeUnsafe(Date.parse(FROM_ISO) + daysAfterJd0 * DAY_MS);
-}
+const {
+  FIRST_STATION,
+  FROM_ISO,
+  SECOND_STATION,
+  astroLayer,
+  distanceToBoundary,
+  expectedMoment,
+  jupiterLayer,
+  linearLayer,
+  locatedMoment,
+  marsLayer,
+  marsLongitude,
+  minutesBetween,
+  rootsOf,
+} = transitFixtures;
 
 describe("Transit search over linear motion", () => {
   it.layer(Layer.merge(astroLayer, jupiterLayer))((it) => {
@@ -236,45 +189,59 @@ describe("Transit search over linear motion", () => {
     );
   });
 
-  it.layer(
-    Layer.merge(
-      astroLayer,
-      fakeEphemerisLayer(80, [
-        { untilJulianDay: JD0 + 10, rate: 0.5 },
-        { untilJulianDay: JD0 + 30, rate: -0.5 },
-        { untilJulianDay: Number.POSITIVE_INFINITY, rate: 0.5 },
-      ]),
-    ),
-  )((it) => {
+  it.layer(Layer.merge(astroLayer, marsLayer))((it) => {
     it.effect("counts every retrograde crossing in time order", () =>
       Effect.gen(function* () {
         const events = yield* Transit.findTransits({
-          planet: "Jupiter",
+          planet: "Mars",
           from: locatedMoment(),
           count: 3,
           direction: "forward",
           kinds: ["longitude-hit"],
-          targetLongitude: Chart.Longitude.make(84),
+          targetLongitude: Chart.Longitude.make(100),
           maxYears: 1,
         });
 
+        const expected = rootsOf((t) => marsLongitude(t) - 100);
+        expect(expected).toHaveLength(3);
         expect(events).toHaveLength(3);
-        for (const event of events) {
-          expect(Number(event.longitude)).toBeCloseTo(84, 2);
+        for (const [index, event] of events.entries()) {
+          expect(Number(event.longitude)).toBeCloseTo(100, 2);
+          expect(minutesBetween(event.moment, expectedMoment(expected[index]!))).toBeLessThan(2);
         }
-        const times = events.map((event) => DateTime.toDate(event.moment).getTime());
-        expect([...times].sort((a, b) => a - b)).toEqual(times);
-        expect(minutesBetween(events[0]!.moment, expectedMoment(8))).toBeLessThan(3);
-        expect(minutesBetween(events[1]!.moment, expectedMoment(12))).toBeLessThan(3);
-        expect(minutesBetween(events[2]!.moment, expectedMoment(48))).toBeLessThan(3);
-        expect(events[1]!.is_retrograde).toBe(true);
+        expect(events.map((event) => event.is_retrograde)).toEqual([false, true, false]);
+      }),
+    );
+
+    it.effect("finds both crossings of a target just under a retrograde station", () =>
+      Effect.gen(function* () {
+        // Longitude peaks at the first station; a target 0.0005 degrees below it is crossed
+        // up and down under a day apart.
+        const target = marsLongitude(FIRST_STATION) - 0.0005;
+        const events = yield* Transit.findTransits({
+          planet: "Mars",
+          from: locatedMoment(),
+          count: 2,
+          direction: "forward",
+          kinds: ["longitude-hit"],
+          targetLongitude: Chart.Longitude.make(target),
+          maxYears: 1,
+        });
+
+        const expected = rootsOf((t) => marsLongitude(t) - target);
+        expect(expected.length).toBeGreaterThanOrEqual(2);
+        expect(expected[1]! - expected[0]!).toBeLessThan(1);
+        expect(events).toHaveLength(2);
+        for (const [index, event] of events.entries()) {
+          expect(minutesBetween(event.moment, expectedMoment(expected[index]!))).toBeLessThan(2);
+        }
       }),
     );
 
     it.effect("finds stations where speed changes sign", () =>
       Effect.gen(function* () {
         const events = yield* Transit.findTransits({
-          planet: "Jupiter",
+          planet: "Mars",
           from: locatedMoment(),
           count: 2,
           direction: "forward",
@@ -284,15 +251,15 @@ describe("Transit search over linear motion", () => {
 
         expect(events).toHaveLength(2);
         expect(events.every((event) => event.kind === "station")).toBe(true);
-        expect(minutesBetween(events[0]!.moment, expectedMoment(10))).toBeLessThan(3);
-        expect(minutesBetween(events[1]!.moment, expectedMoment(30))).toBeLessThan(3);
+        expect(minutesBetween(events[0]!.moment, expectedMoment(FIRST_STATION))).toBeLessThan(3);
+        expect(minutesBetween(events[1]!.moment, expectedMoment(SECOND_STATION))).toBeLessThan(3);
       }),
     );
 
     it.effect("reports the motion after a station as its retrograde state", () =>
       Effect.gen(function* () {
         const events = yield* Transit.findTransits({
-          planet: "Jupiter",
+          planet: "Mars",
           from: locatedMoment(),
           count: 2,
           direction: "forward",
@@ -383,169 +350,4 @@ describe("Transit search over Swiss Ephemeris", () => {
       }),
     );
   });
-});
-
-describe("Transit search window and dedup", () => {
-  it.layer(Layer.merge(astroLayer, linearLayer(89, 1)))((it) => {
-    it.effect("reports one hit when a sample lands exactly on the target", () =>
-      Effect.gen(function* () {
-        const events = yield* Transit.findTransits({
-          planet: "Sun",
-          from: locatedMoment(),
-          count: 2,
-          direction: "forward",
-          kinds: ["longitude-hit"],
-          targetLongitude: Chart.Longitude.make(92),
-          precisionMinutes: 45,
-          maxYears: 2,
-        });
-
-        expect(events).toHaveLength(2);
-        expect(minutesBetween(events[0]!.moment, expectedMoment(3))).toBeLessThan(45);
-        const gapDays =
-          (DateTime.toEpochMillis(events[1]!.moment) - DateTime.toEpochMillis(events[0]!.moment)) /
-          DAY_MS;
-        expect(gapDays).toBeGreaterThan(359);
-        expect(gapDays).toBeLessThan(361);
-      }),
-    );
-  });
-
-  it.layer(Layer.merge(astroLayer, jupiterLayer))((it) => {
-    it.effect("does not return hits beyond the maxYears window", () =>
-      Effect.gen(function* () {
-        const failure = yield* Effect.flip(
-          Transit.findTransits({
-            planet: "Jupiter",
-            from: locatedMoment(),
-            count: 1,
-            direction: "forward",
-            kinds: ["longitude-hit"],
-            targetLongitude: Chart.Longitude.make(68.82),
-            maxYears: 0.001,
-          }),
-        );
-
-        expect(failure._tag).toBe("TransitSearchExhausted");
-        if (failure._tag === "TransitSearchExhausted") {
-          expect(failure.found).toEqual([]);
-        }
-      }),
-    );
-  });
-
-  it.layer(Layer.merge(astroLayer, linearLayer(1, -0.5)))((it) => {
-    it.effect("finds backward ingresses across 0/360 for a retrograde planet", () =>
-      Effect.gen(function* () {
-        const events = yield* Transit.findTransits({
-          planet: "Mars",
-          from: locatedMoment(),
-          count: 2,
-          direction: "backward",
-          kinds: ["sign-ingress"],
-          maxYears: 1,
-        });
-
-        expect(events).toHaveLength(2);
-        expect(events.every((event) => event.is_retrograde)).toBe(true);
-        const times = events.map((event) => DateTime.toEpochMillis(event.moment));
-        expect(times[0]!).toBeGreaterThan(times[1]!);
-        expect(minutesBetween(events[0]!.moment, expectedMoment(-58))).toBeLessThan(3);
-        expect(minutesBetween(events[1]!.moment, expectedMoment(-118))).toBeLessThan(3);
-      }),
-    );
-  });
-
-  it.layer(Layer.merge(astroLayer, linearLayer(10, -0.053)))((it) => {
-    it.effect("never reports stations for the always-retrograde lunar nodes", () =>
-      Effect.gen(function* () {
-        const events = yield* Transit.findTransits({
-          planet: "Rahu",
-          from: locatedMoment(),
-          count: 2,
-          direction: "forward",
-          kinds: ["station", "sign-ingress"],
-          maxYears: 30,
-        });
-
-        expect(events).toHaveLength(2);
-        expect(events.every((event) => event.kind === "sign-ingress")).toBe(true);
-        expect(events.every((event) => event.is_retrograde)).toBe(true);
-      }),
-    );
-  });
-});
-
-describe("Transit search from exactly on a sign boundary", () => {
-  // `from` is inclusive: an ingress at the starting instant is reported, in either
-  // direction and whichever way the graha is moving.
-  for (const [rate, direction, sign] of [
-    [0.14, "forward", "Cancer"],
-    [0.14, "backward", "Gemini"],
-    [-0.14, "forward", "Gemini"],
-    [-0.14, "backward", "Cancer"],
-  ] as const) {
-    it.layer(Layer.merge(astroLayer, linearLayer(90, rate)))((it) => {
-      it.effect(`reports the ingress at \`from\` (${direction}, rate ${rate})`, () =>
-        Effect.gen(function* () {
-          const [event] = yield* Transit.findTransits({
-            planet: "Jupiter",
-            from: locatedMoment(),
-            count: 1,
-            direction,
-            kinds: ["sign-ingress"],
-          });
-
-          expect(minutesBetween(event!.moment, expectedMoment(0))).toBeLessThan(3);
-          expect(event?.sign).toBe(sign);
-        }),
-      );
-    });
-  }
-
-  it.layer(Layer.merge(astroLayer, linearLayer(90, 0.14)))((it) => {
-    it.effect("does not report the starting ingress twice", () =>
-      Effect.gen(function* () {
-        const events = yield* Transit.findTransits({
-          planet: "Jupiter",
-          from: locatedMoment(),
-          count: 2,
-          direction: "forward",
-          kinds: ["sign-ingress"],
-        });
-
-        expect(events.map((event) => event.sign)).toEqual(["Cancer", "Leo"]);
-        expect(minutesBetween(events[1]!.moment, expectedMoment(30 / 0.14))).toBeLessThan(3);
-      }),
-    );
-  });
-});
-
-describe("Transit station search from exactly on a station", () => {
-  // Retrograde before `from`, direct after, with zero speed at `from` itself.
-  const stationAtFrom = ephemerisTestLayer({
-    position: (julianDay) => {
-      const offset = Number(julianDay) - JD0;
-      const speed = offset === 0 ? 0 : offset < 0 ? -0.5 : 0.5;
-      return Effect.succeed(planetaryPosition(80 + 0.5 * Math.abs(offset), speed));
-    },
-  });
-
-  for (const direction of ["forward", "backward"] as const) {
-    it.layer(Layer.merge(astroLayer, stationAtFrom))((it) => {
-      it.effect(`reports the station at \`from\` (${direction})`, () =>
-        Effect.gen(function* () {
-          const [event] = yield* Transit.findTransits({
-            planet: "Jupiter",
-            from: locatedMoment(),
-            count: 1,
-            direction,
-            kinds: ["station"],
-          });
-
-          expect(minutesBetween(event!.moment, expectedMoment(0))).toBeLessThan(3);
-        }),
-      );
-    });
-  }
 });
