@@ -93,7 +93,7 @@ const referenceOf = Effect.fnUntraced(function* (placements: Placements) {
   };
 });
 
-/** Lords of the 5th, 7th, and 11th from the reference sign, filtered to eligible Brahma planets and deduped. */
+/** Lords of the 6th, 8th, and 12th from the reference sign (offsets 5, 7, 11 on the wheel), filtered to eligible Brahma planets and deduped. */
 function candidatesOf(referenceSign: Rashis): ReadonlyArray<EligibleBrahmaPlanet> {
   const start = Zodiac.rashiIndexOf(referenceSign);
   return pipe(

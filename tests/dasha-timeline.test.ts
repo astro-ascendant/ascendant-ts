@@ -51,48 +51,4 @@ describe("Dasha timeline", () => {
     expect(iso(Calendar.decimalYears(START, 1.5))).toBe("2001-07-31T00:00:00.000Z");
     expect(iso(Calendar.decimalYears(START, 1 / 24))).toBe("2000-02-15T00:00:00.000Z");
   });
-
-  it("finds the active periods on half-open intervals", () => {
-    const parent = { start: START, end: Calendar.wholeMonths(START, 1) };
-    const antardashas = Timeline.subdivide(
-      parent,
-      [
-        { label: "first", years: 0.5 },
-        { label: "second", years: 0.5 },
-      ],
-      Calendar.wholeMonths,
-    );
-    const timeline = [{ ...parent, antardashas }];
-    const boundary = antardashas[1]!.start;
-
-    expect(Timeline.activeAt(timeline, boundary)?.antardasha).toBe(antardashas[1]);
-    expect(Timeline.activeAt(timeline, START)?.antardasha).toBe(antardashas[0]);
-    expect(Timeline.activeAt(timeline, parent.end)).toBeNull();
-  });
-});
-
-describe("Dasha calendar edge cases", () => {
-  it("lands exactly on a whole month when the decimal years are inexact", () => {
-    // 6 years 8 months arrives as 6.666666666666666, which truncated to 79 months.
-    const start = DateTime.makeUnsafe("2000-01-01T00:00:00.000Z");
-
-    expect(iso(Calendar.decimalYears(start, 6.666666666666666))).toBe("2006-09-01T00:00:00.000Z");
-    expect(iso(Calendar.decimalYears(start, 1))).toBe("2001-01-01T00:00:00.000Z");
-  });
-
-  it("keeps a Feb 29 start's leap day in later whole-month periods", () => {
-    const start = DateTime.makeUnsafe("2000-02-29T12:00:00.000Z");
-    const periods = Timeline.sequence(
-      start,
-      [
-        { label: "a", years: 1 },
-        { label: "b", years: 3 },
-      ],
-      Calendar.wholeMonths,
-    );
-
-    expect(iso(periods[0]!.end)).toBe("2001-02-28T12:00:00.000Z");
-    expect(iso(periods[1]!.start)).toBe("2001-02-28T12:00:00.000Z");
-    expect(iso(periods[1]!.end)).toBe("2004-02-29T12:00:00.000Z");
-  });
 });

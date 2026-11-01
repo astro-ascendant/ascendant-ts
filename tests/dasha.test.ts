@@ -113,6 +113,16 @@ describe("Dasha", () => {
       expect(current?.mahadasha.mahadasha).toBe(first.mahadasha);
       expect(current?.antardasha.antardasha).toBe(first.antardashas[0]?.antardasha);
       expect(atEnd).toBeNull();
+
+      // A shared boundary belongs to the following period, at both levels.
+      const second = Array.getUnsafe(timeline, 1);
+      const atMahadashaBoundary = yield* Dasha.at(timeline, second.start);
+      expect(atMahadashaBoundary?.mahadasha.mahadasha).toBe(second.mahadasha);
+      expect(atMahadashaBoundary?.antardasha.antardasha).toBe(second.antardashas[0]?.antardasha);
+      const nextAntardasha = Array.getUnsafe(first.antardashas, 1);
+      const atAntardashaBoundary = yield* Dasha.at(timeline, nextAntardasha.start);
+      expect(atAntardashaBoundary?.mahadasha.mahadasha).toBe(first.mahadasha);
+      expect(atAntardashaBoundary?.antardasha.antardasha).toBe(nextAntardasha.antardasha);
     }),
   );
 
@@ -404,6 +414,56 @@ describe("Dasha", () => {
       expect(current?.mahadasha.mahadasha).toBe("Cancer");
       expect(current?.antardasha.antardasha).toBe("Cancer");
       expect(atEnd).toBeNull();
+    }),
+  );
+
+  it.effect(
+    "places every Antardasha boundary on a whole day when the Moon starts a nakshatra",
+    () =>
+      Effect.gen(function* () {
+        // Antardasha lengths are multiples of 1/120 year, which is exactly 3 days in a 30-day month.
+        const timeline = yield* Dasha.calculate(
+          fixtures.moment("2000-01-01T00:00:00.000Z"),
+          fixtures.placementsFromLongitudes({ Moon: 0 }),
+        );
+        const boundaries = timeline.flatMap(({ antardashas }) =>
+          antardashas.flatMap(({ start, end }) => [start, end]),
+        );
+
+        expect(boundaries).toHaveLength(9 * 9 * 2);
+        expect(
+          boundaries.filter((boundary) => !DateTime.formatIso(boundary).endsWith("T00:00:00.000Z")),
+        ).toEqual([]);
+        // Antardashas tile their Mahadasha without gaps and end exactly on its end.
+        for (const { start, end, antardashas } of timeline) {
+          expect(DateTime.formatIso(antardashas[0]!.start)).toBe(DateTime.formatIso(start));
+          for (const [index, antardasha] of antardashas.slice(1).entries()) {
+            expect(DateTime.formatIso(antardasha.start)).toBe(
+              DateTime.formatIso(antardashas[index]!.end),
+            );
+          }
+          expect(DateTime.formatIso(antardashas[antardashas.length - 1]!.end)).toBe(
+            DateTime.formatIso(end),
+          );
+        }
+      }),
+  );
+
+  it.effect("keeps a Feb 29 birth's leap day in later Chara Mahadasha ends", () =>
+    Effect.gen(function* () {
+      const chara = yield* Dasha.calculateChara(
+        fixtures.moment("2000-02-29T12:00:00.000Z"),
+        fixtures.placementsFromLongitudes(),
+      );
+      const ends = chara.mahadashas.map(({ end }) => DateTime.formatIso(end));
+      const leapEnds = ends.filter((end) => {
+        const year = Number(end.slice(0, 4));
+        return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+      });
+
+      expect(leapEnds.length).toBeGreaterThan(0);
+      expect(leapEnds.map((end) => end.slice(5, 10))).toEqual(leapEnds.map(() => "02-29"));
+      expect(ends.every((end) => end.slice(5, 10).startsWith("02-2"))).toBe(true);
     }),
   );
 });
