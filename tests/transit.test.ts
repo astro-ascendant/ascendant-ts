@@ -384,3 +384,94 @@ describe("Transit search over Swiss Ephemeris", () => {
     );
   });
 });
+
+describe("Transit search window and dedup", () => {
+  it.layer(Layer.merge(astroLayer, linearLayer(89, 1)))((it) => {
+    it.effect("reports one hit when a sample lands exactly on the target", () =>
+      Effect.gen(function* () {
+        const events = yield* Transit.findTransits({
+          planet: "Sun",
+          from: locatedMoment(),
+          count: 2,
+          direction: "forward",
+          kinds: ["longitude-hit"],
+          targetLongitude: Chart.Longitude.make(92),
+          precisionMinutes: 45,
+          maxYears: 2,
+        });
+
+        expect(events).toHaveLength(2);
+        expect(minutesBetween(events[0]!.moment, expectedMoment(3))).toBeLessThan(45);
+        const gapDays =
+          (DateTime.toEpochMillis(events[1]!.moment) - DateTime.toEpochMillis(events[0]!.moment)) /
+          DAY_MS;
+        expect(gapDays).toBeGreaterThan(359);
+        expect(gapDays).toBeLessThan(361);
+      }),
+    );
+  });
+
+  it.layer(Layer.merge(astroLayer, jupiterLayer))((it) => {
+    it.effect("does not return hits beyond the maxYears window", () =>
+      Effect.gen(function* () {
+        const failure = yield* Effect.flip(
+          Transit.findTransits({
+            planet: "Jupiter",
+            from: locatedMoment(),
+            count: 1,
+            direction: "forward",
+            kinds: ["longitude-hit"],
+            targetLongitude: Chart.Longitude.make(68.82),
+            maxYears: 0.001,
+          }),
+        );
+
+        expect(failure._tag).toBe("TransitSearchExhausted");
+        if (failure._tag === "TransitSearchExhausted") {
+          expect(failure.found).toEqual([]);
+        }
+      }),
+    );
+  });
+
+  it.layer(Layer.merge(astroLayer, linearLayer(1, -0.5)))((it) => {
+    it.effect("finds backward ingresses across 0/360 for a retrograde planet", () =>
+      Effect.gen(function* () {
+        const events = yield* Transit.findTransits({
+          planet: "Mars",
+          from: locatedMoment(),
+          count: 2,
+          direction: "backward",
+          kinds: ["sign-ingress"],
+          maxYears: 1,
+        });
+
+        expect(events).toHaveLength(2);
+        expect(events.every((event) => event.is_retrograde)).toBe(true);
+        const times = events.map((event) => DateTime.toEpochMillis(event.moment));
+        expect(times[0]!).toBeGreaterThan(times[1]!);
+        expect(minutesBetween(events[0]!.moment, expectedMoment(-58))).toBeLessThan(3);
+        expect(minutesBetween(events[1]!.moment, expectedMoment(-118))).toBeLessThan(3);
+      }),
+    );
+  });
+
+  it.layer(Layer.merge(astroLayer, linearLayer(10, -0.053)))((it) => {
+    it.effect("never reports stations for the always-retrograde lunar nodes", () =>
+      Effect.gen(function* () {
+        const events = yield* Transit.findTransits({
+          planet: "Rahu",
+          from: locatedMoment(),
+          count: 2,
+          direction: "forward",
+          kinds: ["station", "sign-ingress"],
+          maxYears: 30,
+        });
+
+        expect(events).toHaveLength(2);
+        expect(events.every((event) => event.kind === "sign-ingress")).toBe(true);
+        expect(events.every((event) => event.is_retrograde)).toBe(true);
+      }),
+    );
+  });
+});

@@ -174,12 +174,22 @@ interface RefinedHit {
   readonly sign: Rashis;
 }
 
+/**
+ * Two hits of one kind are the same crossing when they are within one
+ * refinement bracket. A bracket can be exactly `precision` wide, so equality
+ * counts (with float slack): a sample landing on the target is refined from
+ * both neighbouring steps, and the two midpoints sit one bracket apart.
+ */
+function isSameCrossing(previous: RawHit, julianDay: number, precision: number): boolean {
+  return Math.abs(julianDay - previous.julianDay) * MINUTES_PER_DAY <= precision * (1 + 1e-9);
+}
+
 function pushDedup(hits: Array<RawHit>, hit: RefinedHit, precision: number): void {
   const previous = hits[hits.length - 1];
   if (
     previous !== undefined &&
     previous.kind === hit.kind &&
-    Math.abs(hit.sample.julianDay - previous.julianDay) * MINUTES_PER_DAY < precision
+    isSameCrossing(previous, hit.sample.julianDay, precision)
   ) {
     return;
   }
@@ -330,7 +340,7 @@ function appendStepHits(
     if (
       last !== undefined &&
       last.kind === hit.kind &&
-      Math.abs(hit.julianDay - last.julianDay) * MINUTES_PER_DAY < precision
+      isSameCrossing(last, hit.julianDay, precision)
     ) {
       continue;
     }
@@ -359,10 +369,12 @@ export const searchRawHits = Effect.fnUntraced(function* (options: SearchOptions
       break;
     }
     if (forward ? cursor >= limit : cursor <= limit) break;
-    const { next, stepHits } = yield* advanceCursor(cursor, previous, step, forward, options);
+    // Clamp the last step so no hit lies beyond the requested window.
+    const stride = forward ? Math.min(step, limit - cursor) : Math.max(step, limit - cursor);
+    const { next, stepHits } = yield* advanceCursor(cursor, previous, stride, forward, options);
     appendStepHits(hits, stepHits, precision, options.count);
     previous = next;
-    cursor += step;
+    cursor += stride;
   }
 
   if (hits.length >= options.count) complete = true;
