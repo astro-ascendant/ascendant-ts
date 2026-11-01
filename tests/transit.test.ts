@@ -520,3 +520,32 @@ describe("Transit search from exactly on a sign boundary", () => {
     );
   });
 });
+
+describe("Transit station search from exactly on a station", () => {
+  // Retrograde before `from`, direct after, with zero speed at `from` itself.
+  const stationAtFrom = ephemerisTestLayer({
+    position: (julianDay) => {
+      const offset = Number(julianDay) - JD0;
+      const speed = offset === 0 ? 0 : offset < 0 ? -0.5 : 0.5;
+      return Effect.succeed(planetaryPosition(80 + 0.5 * Math.abs(offset), speed));
+    },
+  });
+
+  for (const direction of ["forward", "backward"] as const) {
+    it.layer(Layer.merge(astroLayer, stationAtFrom))((it) => {
+      it.effect(`reports the station at \`from\` (${direction})`, () =>
+        Effect.gen(function* () {
+          const [event] = yield* Transit.findTransits({
+            planet: "Jupiter",
+            from: locatedMoment(),
+            count: 1,
+            direction,
+            kinds: ["station"],
+          });
+
+          expect(minutesBetween(event!.moment, expectedMoment(0))).toBeLessThan(3);
+        }),
+      );
+    });
+  }
+});
