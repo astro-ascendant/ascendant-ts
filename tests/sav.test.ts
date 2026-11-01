@@ -2,7 +2,7 @@ import { describe, expect, it } from "@effect/vitest";
 import { Effect, Record } from "effect";
 
 import * as SAV from "../src/sav/index.js";
-import * as SAV_CONSTANTS from "../src/sav/constants.js";
+import { Zodiac } from "../src/utils/index.js";
 import { fixtures } from "./support/fixtures.js";
 
 describe("SAV", () => {
@@ -33,29 +33,41 @@ describe("SAV", () => {
     }),
   );
 
-  it("uses the BPHS 69.2-4 Gunakara multipliers", () => {
-    expect(SAV_CONSTANTS.RASHI_GUNAKAR).toEqual([7, 10, 8, 4, 10, 5, 7, 8, 9, 5, 11, 12]);
-    expect(SAV_CONSTANTS.GRAHA_GUNAKAR).toEqual({
-      Sun: 5,
-      Moon: 5,
-      Mars: 8,
-      Mercury: 5,
-      Jupiter: 10,
-      Venus: 7,
-      Saturn: 5,
-    });
-  });
-
   it.effect("weights each reduced sign score by its Rashi multiplier", () =>
     Effect.gen(function* () {
       const result = yield* SAV.calculate(fixtures.placementsFromLongitudes());
       const multipliers = [7, 10, 8, 4, 10, 5, 7, 8, 9, 5, 11, 12];
 
-      for (const planet of ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"] as const) {
+      for (const planet of [
+        "Sun",
+        "Moon",
+        "Mars",
+        "Mercury",
+        "Jupiter",
+        "Venus",
+        "Saturn",
+      ] as const) {
         const scores = Object.values(result.reduced[planet]);
         const expected = scores.reduce((sum, score, index) => sum + score * multipliers[index]!, 0);
         expect(result.shodhya_pinda[planet].rashi_pinda).toBe(expected);
       }
     }),
+  );
+
+  it.effect(
+    "scores the Moon's Bhinnashtakavarga by sign from the classical contributor houses",
+    () =>
+      Effect.gen(function* () {
+        // Sun and Lagna in Aries, Moon Taurus, Mars Gemini, Mercury Cancer, Jupiter Leo, Venus
+        // Virgo, Saturn Libra. Each sign scores one bindu per contributor whose classical houses
+        // (Sun 3 6 7 8 10 11, Moon 1 3 6 7 10 11, Mars 2 3 5 6 9 10 11, Mercury 1 3 4 5 7 8 10 11,
+        // Jupiter 1 4 7 8 10 11 12, Venus 3 4 5 7 9 10 11, Saturn 3 5 6 11, Lagna 3 6 10 11)
+        // include its house from that contributor.
+        const result = yield* SAV.calculate(fixtures.placementsFromLongitudes());
+
+        expect(Zodiac.SIGNS.map((sign) => result.bhinna.Moon[sign])).toEqual([
+          2, 4, 4, 5, 3, 3, 4, 6, 2, 4, 7, 5,
+        ]);
+      }),
   );
 });
