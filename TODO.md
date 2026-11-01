@@ -40,7 +40,7 @@ Nothing here is committed or released yet.
 - [x] **API reference lists `getDivisionalTarget` under `astro-ascendant/chart`.** In 6.0.0
       it is exported only from `astro-ascendant/chart/divisional-mapping`, and
       `import * as C from "astro-ascendant/chart"` gives `C.getDivisionalTarget ===
-    undefined`. Fix the docgen config or the export, then regenerate the website's
+  undefined`. Fix the docgen config or the export, then regenerate the website's
       Chart reference with `make sync-api` and remove the import-path callout from the
       website's Divisional charts guide.
       Done: `astro-ascendant/chart` now re-exports it and `tests/package` checks both paths. Still to do in the website repo: run `make sync-api` and drop the import-path callout.
