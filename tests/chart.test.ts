@@ -4,7 +4,7 @@ import { Array, Effect, Equal, Layer, Record, Schema } from "effect";
 import * as AstroParams from "../src/astro-params/index.js";
 import * as Chart from "../src/chart/index.js";
 import * as Provenance from "../src/provenance.js";
-import { EphemerisTestLayer, ephemerisTestLayer } from "./support/ephemeris.js";
+import { EphemerisTestLayer, ephemerisTestLayer, planetaryPosition } from "./support/ephemeris.js";
 import { fixtures } from "./support/fixtures.js";
 
 // Placidus cusps from the KP audit chart: unequal houses beginning in Libra.
@@ -302,4 +302,42 @@ describe("Chart calculation", () => {
       }),
     );
   });
+
+  for (const [longitude, name, lord, pada] of [
+    [360 / 27, "Bharani", "Venus", 1],
+    [13.333333333333332, "Ashwini", "Ketu", 4],
+  ] as const) {
+    it.layer(
+      layerWith(
+        "Placidus",
+        ephemerisTestLayer({ position: () => Effect.succeed(planetaryPosition(longitude, 1)) }),
+      ),
+    )((it) => {
+      it.effect(`places the Moon at ${longitude} in ${name} pada ${pada}`, () =>
+        Effect.gen(function* () {
+          const calculation = yield* Chart.generate(fixtures.locatedMoment());
+          const moon = calculation.placements.planets.find((planet) => planet.name === "Moon");
+
+          expect(moon?.star).toEqual({ name, lord, pada });
+        }),
+      );
+    });
+  }
+
+  for (const [label, date, longitude, lord] of [
+    ["east of Greenwich, already Monday locally", "2024-06-02T20:00:00.000Z", 77.5946, "Moon"],
+    ["west of Greenwich, still Sunday locally", "2024-06-03T04:00:00.000Z", -77, "Sun"],
+  ] as const) {
+    it.layer(layerWith("Placidus"))((it) => {
+      it.effect(`takes the day lord from the local weekday: ${label}`, () =>
+        Effect.gen(function* () {
+          const { charts } = yield* Chart.generate(
+            fixtures.locatedMoment(date, 12.9716, longitude),
+          );
+
+          expect(charts[0].rulingPlanets[4]).toBe(lord);
+        }),
+      );
+    });
+  }
 });

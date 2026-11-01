@@ -211,6 +211,7 @@ const significationsOf = Effect.fnUntraced(function* (
   houses: D1Houses,
   lagna: Lagna,
   date: DateTimeType,
+  longitude: number,
 ) {
   const allHouses = Houses.literals.map((house) => houses[house]);
   const planets = allHouses.flatMap((house) => house.planets);
@@ -242,7 +243,7 @@ const significationsOf = Effect.fnUntraced(function* (
       ascendantSignLord,
       moonStarLord,
       moonSignLord,
-      dayLord(date),
+      dayLord(date, longitude),
     ] as const,
   };
 });
@@ -259,6 +260,7 @@ const d1Chart = Effect.fnUntraced(function* (
   placements: Placements,
   evidence: HouseData,
   date: DateTimeType,
+  longitude: number,
   sex: Sex | undefined,
 ) {
   const { lagna, planets } = yield* mapPoints(placements, 1);
@@ -287,7 +289,7 @@ const d1Chart = Effect.fnUntraced(function* (
     }),
   );
   const houses = yield* decodeChart(D1Houses, Record.fromEntries(entries));
-  const significations = yield* significationsOf(houses, lagna, date);
+  const significations = yield* significationsOf(houses, lagna, date, longitude);
 
   return yield* decodeChart(D1Chart, {
     ...(sex === undefined ? {} : { sex }),
@@ -345,12 +347,13 @@ export const projectCharts = Effect.fnUntraced(function* (
   placements: Placements,
   houses: HouseData,
   date: DateTimeType,
+  longitude: number,
   divisions: readonly Division[],
   sex: Sex | undefined,
 ) {
   const [d1, divisional] = yield* Effect.all(
     [
-      d1Chart(placements, houses, date, sex),
+      d1Chart(placements, houses, date, longitude, sex),
       Effect.forEach(requestedDivisions(divisions), (division) =>
         divisionalChart(placements, division, sex),
       ),

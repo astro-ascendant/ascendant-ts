@@ -62,6 +62,7 @@ export const generate = Effect.fn("astro-ascendant/chart/generate")(function* (
     placements,
     evidence.houses,
     input.moment.date,
+    input.longitude,
     divisions,
     input.sex,
   );
