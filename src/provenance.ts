@@ -21,7 +21,7 @@ export const MethodSpecification = Schema.Struct({
 export interface MethodSpecification extends Schema.Schema.Type<typeof MethodSpecification> {}
 
 export const D1ChartProvenance = Schema.Struct({
-  school: Schema.Literal("KP"),
+  school: Schema.Literal("Universal"),
   method: Schema.Literal("house-system-cusps"),
   version: Schema.Literal("2026-11-01"),
 });
@@ -137,7 +137,7 @@ export const AshtakavargaProvenance = Schema.Struct({
 export interface AshtakavargaProvenance extends Schema.Schema.Type<typeof AshtakavargaProvenance> {}
 
 export const d1ChartProjection = {
-  provenance: { school: "KP", method: "house-system-cusps", version: "2026-11-01" },
+  provenance: { school: "Universal", method: "house-system-cusps", version: "2026-11-01" },
   steps: [
     { id: "place-points", description: "Use the Lagna and planets at their source longitudes." },
     {

@@ -20,16 +20,16 @@ _Avoid_: Compatibility score, probability, prediction
 A school of Jyotisha following Parashara's Brihat Parashara Hora Shastra, covering sidereal Placements, the divisional charts, Vimshottari, Ashtakavarga and transits. It identifies a method's provenance, not a calculation requested as a whole.
 _Avoid_: Parashari mode, Parashari core as a user request
 
-**KP**:
-The Krishnamurti Paddhati school: cusp-based houses with star, sub and sub-sub lords, significators and ruling planets. It identifies a method's provenance, not a calculation requested as a whole.
-_Avoid_: KP mode, KP core as a user request
+**Universal**:
+The school of a method that does not belong to one tradition, such as the D1 chart, whose cusps follow whichever house system and ayanamsa the calculation selects. It identifies a method's provenance, not a calculation requested as a whole.
+_Avoid_: Default school, no school
 
 **Jaimini**:
 A school of Jyotisha containing distinct calculations such as Chara Karakas, Rashi Drishti, Karakamsha, Arudha Padas, Upapada, and Argala. It identifies a method's provenance, not a calculation requested as a whole.
 _Avoid_: Jaimini calculation, Jaimini mode, Jaimini core as a user request
 
 **Calculation provenance**:
-The versioned school and method identity attached to a result, expressed as `school`, `method`, and `version`. The school is a tradition (Parashari, Jaimini or KP), never the library itself, and the version is the date the method last changed, as `YYYY-MM-DD`. It identifies one specification in the canonical method registry. Every result carries it: charts, Placements, each Vimshottari Mahadasha, Chara and Sthira dashas, Ashtakavarga results, Jaimini results and transit events. Placements built by hand may omit it.
+The versioned school and method identity attached to a result, expressed as `school`, `method`, and `version`. The school is a tradition (Parashari or Jaimini) or `Universal` for a method that holds under any of them, such as the D1 chart, whose houses depend on the chosen house system; it is never the library itself, and the version is the date the method last changed, as `YYYY-MM-DD`. It identifies one specification in the canonical method registry. Every result carries it: charts, Placements, each Vimshottari Mahadasha, Chara and Sthira dashas, Ashtakavarga results, Jaimini results and transit events. Placements built by hand may omit it.
 _Avoid_: Source code location, informal method name, citation
 
 **Method specification**:
