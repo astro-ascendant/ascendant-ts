@@ -51,8 +51,12 @@ export const sequence = Function.dual<
   ): ReadonlyArray<Placed<Label>> => {
     const periods: Array<Placed<Label>> = [];
     let cursor = start;
+    let elapsedYears = 0;
     for (const { label, years } of shares) {
-      const end = step(cursor, years);
+      elapsedYears += years;
+      // Step from the start by the cumulative years: chaining from the previous
+      // end clamps a Feb 29 or 31st start and the clamp carries into every later period.
+      const end = step(start, elapsedYears);
       periods.push({ label, start: cursor, end });
       cursor = end;
     }

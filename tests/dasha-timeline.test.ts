@@ -70,3 +70,29 @@ describe("Dasha timeline", () => {
     expect(Timeline.activeAt(timeline, parent.end)).toBeNull();
   });
 });
+
+describe("Dasha calendar edge cases", () => {
+  it("lands exactly on a whole month when the decimal years are inexact", () => {
+    // 6 years 8 months arrives as 6.666666666666666, which truncated to 79 months.
+    const start = DateTime.makeUnsafe("2000-01-01T00:00:00.000Z");
+
+    expect(iso(Calendar.decimalYears(start, 6.666666666666666))).toBe("2006-09-01T00:00:00.000Z");
+    expect(iso(Calendar.decimalYears(start, 1))).toBe("2001-01-01T00:00:00.000Z");
+  });
+
+  it("keeps a Feb 29 start's leap day in later whole-month periods", () => {
+    const start = DateTime.makeUnsafe("2000-02-29T12:00:00.000Z");
+    const periods = Timeline.sequence(
+      start,
+      [
+        { label: "a", years: 1 },
+        { label: "b", years: 3 },
+      ],
+      Calendar.wholeMonths,
+    );
+
+    expect(iso(periods[0]!.end)).toBe("2001-02-28T12:00:00.000Z");
+    expect(iso(periods[1]!.start)).toBe("2001-02-28T12:00:00.000Z");
+    expect(iso(periods[1]!.end)).toBe("2004-02-29T12:00:00.000Z");
+  });
+});

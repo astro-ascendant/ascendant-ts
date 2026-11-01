@@ -8,19 +8,26 @@ interface CalendarDuration {
   readonly minutes: number;
 }
 
+const MINUTES_PER_HOUR = 60;
+const MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR;
+const MINUTES_PER_MONTH = 30 * MINUTES_PER_DAY;
+const MINUTES_PER_YEAR = 12 * MINUTES_PER_MONTH;
+
+/**
+ * Splits decimal years into calendar units on whole minutes. Truncating the
+ * floating-point remainders directly loses a minute (or, at a month boundary,
+ * most of a month) to noise such as 80 months arriving as 79.99999999999999.
+ */
 function calendarDuration(decimalYears: number): CalendarDuration {
-  const years = Math.trunc(decimalYears);
-
-  const monthsValue = (decimalYears - years) * 12;
-  const months = Math.trunc(monthsValue);
-
-  const daysValue = (monthsValue - months) * 30;
-  const days = Math.trunc(daysValue);
-
-  const hoursValue = (daysValue - days) * 24;
-  const hours = Math.trunc(hoursValue);
-
-  const minutes = Math.trunc((hoursValue - hours) * 60);
+  const total = Math.round(decimalYears * MINUTES_PER_YEAR);
+  const years = Math.floor(total / MINUTES_PER_YEAR);
+  const afterYears = total - years * MINUTES_PER_YEAR;
+  const months = Math.floor(afterYears / MINUTES_PER_MONTH);
+  const afterMonths = afterYears - months * MINUTES_PER_MONTH;
+  const days = Math.floor(afterMonths / MINUTES_PER_DAY);
+  const afterDays = afterMonths - days * MINUTES_PER_DAY;
+  const hours = Math.floor(afterDays / MINUTES_PER_HOUR);
+  const minutes = afterDays - hours * MINUTES_PER_HOUR;
   return { years, months, days, hours, minutes };
 }
 
