@@ -28,9 +28,16 @@ function balanceOf(moon: SourcePlanet) {
     moon,
     (placement) => ({
       sequence: rotateLeft(STAR_LORD_CYCLE, STAR_LORD_CYCLE.indexOf(placement.star.lord)),
-      elapsedArcMinutes:
-        Math.round(placement.longitude * 60 * 100) / 100 -
-        Math.floor(placement.longitude / (360 / 27)) * STAR_ARC_MINUTES,
+      // Exact arc travelled in the nakshatra: rounding the longitude to a hundredth of an
+      // arcminute shifted the Dasha start by up to a couple of hours.
+      elapsedArcMinutes: Math.min(
+        STAR_ARC_MINUTES,
+        Math.max(
+          0,
+          placement.longitude * 60 -
+            Math.floor(placement.longitude / (360 / 27)) * STAR_ARC_MINUTES,
+        ),
+      ),
       lordYears: VIMSHOTTARI_YEARS[placement.star.lord],
     }),
     ({ sequence, elapsedArcMinutes, lordYears }) => ({

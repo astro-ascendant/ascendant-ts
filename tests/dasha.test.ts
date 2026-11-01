@@ -466,4 +466,18 @@ describe("Dasha", () => {
       expect(ends.every((end) => end.slice(5, 10).startsWith("02-2"))).toBe(true);
     }),
   );
+
+  it.effect("counts the Moon's elapsed arc exactly, not to a hundredth of an arcminute", () =>
+    Effect.gen(function* () {
+      // 60.004 arcminutes into Ashwini (Ketu, 7 years over 800'): 7 * 60.004 / 800 = 0.525035
+      // years, which is 6 months 9 days 18 minutes in the Dasha calendar. Rounding the arc to
+      // 60.00' would give 6 months 9 days exactly and start the Ketu period 18 minutes late.
+      const timeline = yield* Dasha.calculate(
+        fixtures.moment("2000-01-01T12:00:00.000Z"),
+        fixtures.placementsFromLongitudes({ Moon: 1 + 0.004 / 60 }),
+      );
+
+      expect(DateTime.formatIso(timeline[0]!.start)).toBe("1999-06-22T11:42:00.000Z");
+    }),
+  );
 });
