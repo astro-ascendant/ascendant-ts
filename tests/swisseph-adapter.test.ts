@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@effect/vitest";
+import * as Native from "@swisseph/node";
 import { DateTime, Effect } from "effect";
 
 import * as Ephemeris from "../src/ephemeris/index.js";
@@ -30,6 +31,34 @@ describe("Swiss Ephemeris adapter", () => {
         expect(ketu.longitudeSpeed).toBe(rahu.longitudeSpeed);
         expect(ketu.latitude).toBe(-rahu.latitude);
         expect(houses.cusps[1]).toBe(Math.floor(houses.angles.ascendant / 30) * 30);
+      }),
+    );
+
+    it.effect("subtracts the same ayanamsa from houses as from planets", () =>
+      Effect.gen(function* () {
+        const ephemeris = yield* Ephemeris.Ephemeris;
+        const date = DateTime.makeUnsafe("2024-06-01T12:00:00.000Z");
+        const julianDay = yield* ephemeris.dateToJulianDay(date);
+        const [latitude, longitude] = [12.9716, 77.5946];
+        const sun = yield* ephemeris.calculatePosition(julianDay, "Sun", "Lahiri");
+        const houses = yield* ephemeris.calculateHouses(
+          julianDay,
+          latitude,
+          longitude,
+          "Placidus",
+          "Lahiri",
+        );
+        // The ayanamsa the planets carry is the tropical minus sidereal Sun longitude.
+        const tropicalSun = Native.calculatePosition(julianDay, Native.Planet.Sun).longitude;
+        const ayanamsa = tropicalSun - sun.longitude;
+        const tropicalAscendant = Native.calculateHouses(
+          julianDay,
+          latitude,
+          longitude,
+          Native.HouseSystem.Placidus,
+        ).ascendant;
+
+        expect(houses.angles.ascendant).toBeCloseTo((tropicalAscendant - ayanamsa + 360) % 360, 9);
       }),
     );
   });

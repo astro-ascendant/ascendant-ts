@@ -71,7 +71,8 @@ export const calculateHouses = Effect.fn("astro-ascendant/swisseph/calculateHous
       Swisseph.setSiderealMode(mode);
       return {
         houses: Swisseph.calculateHouses(julianDay, latitude, longitude, nativeHouseSystem),
-        offset: Swisseph.getAyanamsa(julianDay),
+        // The planets use the true ayanamsa (nutation included); houses must subtract the same offset.
+        offset: Swisseph.getAyanamsaExUt(julianDay, Swisseph.CalculationFlag.SwissEphemeris),
       };
     }).pipe(
       Effect.flatMap(({ houses: rawHouses, offset }) =>
