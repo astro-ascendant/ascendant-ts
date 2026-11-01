@@ -13,6 +13,9 @@ export function sourcePositionOf(longitude: Longitude): SourcePosition {
   };
 }
 
+/** The largest double below 30, the top of a Degree. */
+const LARGEST_DEGREE = 30 - 2 ** -48;
+
 /**
  * Locates a degree within one of a division's equal subdivisions. Exact internal
  * boundaries belong to the following subdivision, while 30 degrees remains in
@@ -33,9 +36,11 @@ export const subdivisionOf = Function.dual<
 
   const partIndex = Math.min(division - 1, Math.floor(partPosition));
 
+  // When the scaled part rounds up to the next part boundary, the degree would be
+  // exactly 30; keep it just inside the part, since a Degree is [0, 30).
   return {
     partIndex,
-    degree: (partPosition - partIndex) * 30,
+    degree: Math.min((partPosition - partIndex) * 30, LARGEST_DEGREE),
   };
 });
 

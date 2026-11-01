@@ -3,6 +3,7 @@ import { Effect, Layer } from "effect";
 
 import * as AstroParams from "../src/astro-params/index.js";
 import * as Chart from "../src/chart/index.js";
+import { starOf } from "../src/chart/helper.js";
 import { ephemerisTestLayer } from "./support/ephemeris.js";
 import { fixtures } from "./support/fixtures.js";
 
@@ -86,4 +87,24 @@ describe("KP significators with node star lords", () => {
       }),
     );
   });
+});
+
+describe("nakshatra boundaries", () => {
+  it.effect("puts an exact star-span boundary in the following star", () =>
+    Effect.gen(function* () {
+      const bharani = yield* starOf(Chart.Longitude.make(360 / 27));
+      expect(bharani).toEqual({ name: "Bharani", lord: "Venus", pada: 1 });
+
+      const krittika = yield* starOf(Chart.Longitude.make((360 / 27) * 2));
+      expect(krittika.name).toBe("Krittika");
+      expect(krittika.pada).toBe(1);
+    }),
+  );
+
+  it.effect("keeps the last pada of a star below its boundary", () =>
+    Effect.gen(function* () {
+      const star = yield* starOf(Chart.Longitude.make(13.333333333333332));
+      expect(star).toEqual({ name: "Ashwini", lord: "Ketu", pada: 4 });
+    }),
+  );
 });

@@ -44,7 +44,12 @@ export type DivisionalDivision = typeof DivisionalDivision.Type;
 
 /** Wraps a finite angle onto the circle, [0, 360). */
 function wrap360(degrees: number): number {
-  return ((degrees % 360) + 360) % 360;
+  // Reduce first and only add 360 for negatives: adding it to an in-range value
+  // rounds away low bits, so 29.999999999999996 would come back as 30.
+  const reduced = degrees % 360;
+  const wrapped = reduced < 0 ? reduced + 360 : reduced;
+  // A tiny negative angle rounds to exactly 360 above; the circle is half-open.
+  return wrapped >= 360 ? 0 : wrapped + 0;
 }
 
 const DegreeSchema = Schema.Finite.check(
