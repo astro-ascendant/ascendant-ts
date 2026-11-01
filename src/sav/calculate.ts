@@ -132,7 +132,8 @@ const calculateSarva = Effect.fnUntraced(function* (bhinna: BhinnaAshtakavarga) 
  * (BPHS 68.1-5). Occupancy decides the pair: with a planet in both signs nothing is reduced;
  * with a planet in only one, the empty sign loses the occupied sign's score (to zero at
  * most); with a planet in neither, the larger score keeps the difference and the smaller
- * becomes zero.
+ * becomes zero. Cases checked against translations of BPHS 68.2-5 at vedicspace.com and
+ * divyachadhava.com, not yet a printed edition.
  */
 const reduceScores = Effect.fnUntraced(function* (
   scores: SignScores,
