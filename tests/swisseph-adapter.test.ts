@@ -2,6 +2,7 @@ import { describe, expect, it } from "@effect/vitest";
 import * as Native from "@swisseph/node";
 import { DateTime, Effect } from "effect";
 
+import * as AstroParams from "../src/astro-params/index.js";
 import * as Ephemeris from "../src/ephemeris/index.js";
 import * as Swisseph from "../src/swisseph/index.js";
 
@@ -86,6 +87,25 @@ describe("Swiss Ephemeris adapter", () => {
           expect((yield* housesAt(70, "Porphyrius")).houseSystem).toBe("Porphyrius");
           expect((yield* housesAt(70, "WholeSign")).houseSystem).toBe("WholeSign");
         }),
+    );
+  });
+
+  it.layer(Swisseph.SwissephLayer)((it) => {
+    it.effect("selects a distinct native sidereal mode for every Ayanamsa", () =>
+      Effect.gen(function* () {
+        const ephemeris = yield* Ephemeris.Ephemeris;
+        const julianDay = yield* ephemeris.dateToJulianDay(
+          DateTime.makeUnsafe("2000-01-01T12:00:00.000Z"),
+        );
+        const longitudes = yield* Effect.forEach(AstroParams.Ayanamsa.literals, (ayanamsa) =>
+          Effect.map(ephemeris.calculatePosition(julianDay, "Sun", ayanamsa), ({ longitude }) =>
+            Number.isFinite(longitude) ? longitude : Number.NaN,
+          ),
+        );
+
+        expect(longitudes.some(Number.isNaN)).toBe(false);
+        expect(new Set(longitudes).size).toBe(AstroParams.Ayanamsa.literals.length);
+      }),
     );
   });
 });
