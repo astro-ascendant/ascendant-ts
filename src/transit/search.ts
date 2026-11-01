@@ -328,6 +328,25 @@ const advanceCursor = Effect.fnUntraced(function* (
   return { next, stepHits } as const;
 });
 
+/**
+ * `fromJulianDay` is inclusive: a graha starting exactly on a sign boundary has an
+ * ingress at that instant. Stepping alone misses it when the graha moves away from the
+ * boundary into the sign whose index the boundary carries, because both step ends then
+ * share one sign; every other direction of motion is caught by the first step.
+ */
+function startingIngress(start: LongitudeSample, options: SearchOptions): RawHit | null {
+  if (!options.includeIngress || !isBoundaryTarget(start.longitude)) return null;
+  const rising = start.speed >= 0;
+  if (options.direction === "forward" ? !rising : rising) return null;
+  return {
+    julianDay: start.julianDay,
+    longitude: start.longitude,
+    speed: start.speed,
+    kind: "sign-ingress",
+    sign: enteredSign(start.longitude, options.direction, rising),
+  };
+}
+
 function appendStepHits(
   hits: Array<RawHit>,
   stepHits: ReadonlyArray<RawHit>,
@@ -362,6 +381,9 @@ export const searchRawHits = Effect.fnUntraced(function* (options: SearchOptions
   let cursor = options.fromJulianDay;
   let previous = yield* sampleAt(cursor, options.planet, options.ayanamsa);
   let complete = false;
+
+  const startHit = startingIngress(previous, options);
+  if (startHit !== null) hits.push(startHit);
 
   for (let iteration = 0; iteration < maxIterations; iteration += 1) {
     if (hits.length >= options.count) {

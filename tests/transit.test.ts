@@ -475,3 +475,48 @@ describe("Transit search window and dedup", () => {
     );
   });
 });
+
+describe("Transit search from exactly on a sign boundary", () => {
+  // `from` is inclusive: an ingress at the starting instant is reported, in either
+  // direction and whichever way the graha is moving.
+  for (const [rate, direction, sign] of [
+    [0.14, "forward", "Cancer"],
+    [0.14, "backward", "Gemini"],
+    [-0.14, "forward", "Gemini"],
+    [-0.14, "backward", "Cancer"],
+  ] as const) {
+    it.layer(Layer.merge(astroLayer, linearLayer(90, rate)))((it) => {
+      it.effect(`reports the ingress at \`from\` (${direction}, rate ${rate})`, () =>
+        Effect.gen(function* () {
+          const [event] = yield* Transit.findTransits({
+            planet: "Jupiter",
+            from: locatedMoment(),
+            count: 1,
+            direction,
+            kinds: ["sign-ingress"],
+          });
+
+          expect(minutesBetween(event!.moment, expectedMoment(0))).toBeLessThan(3);
+          expect(event?.sign).toBe(sign);
+        }),
+      );
+    });
+  }
+
+  it.layer(Layer.merge(astroLayer, linearLayer(90, 0.14)))((it) => {
+    it.effect("does not report the starting ingress twice", () =>
+      Effect.gen(function* () {
+        const events = yield* Transit.findTransits({
+          planet: "Jupiter",
+          from: locatedMoment(),
+          count: 2,
+          direction: "forward",
+          kinds: ["sign-ingress"],
+        });
+
+        expect(events.map((event) => event.sign)).toEqual(["Cancer", "Leo"]);
+        expect(minutesBetween(events[1]!.moment, expectedMoment(30 / 0.14))).toBeLessThan(3);
+      }),
+    );
+  });
+});

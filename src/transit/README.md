@@ -32,7 +32,8 @@ Event kinds: `sign-ingress` (sidereal D1 Rashi boundary), `longitude-hit`
 station, `is_retrograde` is the motion just after it in time: `true` at the
 station that starts a retrograde, `false` at the one that ends it.
 
-Guarantees: every zero-crossing counts in strict time order, so retrograde
+Guarantees: `from` is inclusive for every kind, so an event at the starting instant
+is reported, forward or backward; every zero-crossing counts in strict time order, so retrograde
 triples yield three events; refinement bisects to `precisionMinutes`
 (default 1); an exhausted `maxYears` window fails with typed
 `TransitSearchExhausted` instead of a short list. Pass `includeCharts` with
