@@ -2,7 +2,7 @@
 
 ## Effect Best Practices
 
-Reference: `@repos/effect/LLMS.md` - Effect API patterns, version-matched.  
+Reference: https://raw.githubusercontent.com/Effect-TS/effect/refs/heads/main/LLMS.md - Effect API patterns.  
 Reach when: uncertain on API, checking generics, debugging inference.
 
 ### Running Effect programs
@@ -76,8 +76,6 @@ Reach when: uncertain on API, checking generics, debugging inference.
 | Sequencing dependent effects | `Effect.gen` with `yield*` |
 
 ## Vendored Repositories
-- Do not edit files under `@repos/` unless explicitly asked.
-- Do not import from `@repos/` - use normal package dependencies.
 
 ## Git hooks
 
@@ -101,5 +99,5 @@ Reach when: a commit is blocked by the guard, or a file you are writing may exce
   Reach when: labeling issues, routing work.
 
 ### Domain docs
-- `docs/agents/domain.md` - Single-context layout: `CONTEXT.md` + `docs/adr/` at repo root.  
+- `docs/agents/domain.md` - Single-context layout: `GLOSSARY.md` + `docs/adr/` at repo root.  
   Reach when: writing ADRs, updating domain model.
