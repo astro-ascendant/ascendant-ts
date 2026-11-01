@@ -123,7 +123,9 @@ export const DUAL_LORD_PAIRS = [
   [9, 10],
 ] as const;
 
-export const RASHI_GUNAKAR = [7, 10, 8, 4, 5, 2, 1, 8, 9, 5, 11, 12] as const;
+// BPHS 69.2-3: Taurus and Leo 10, Gemini and Scorpio 8, Aries and Libra 7,
+// Virgo and Capricorn 5; the other signs use their own number.
+export const RASHI_GUNAKAR = [7, 10, 8, 4, 10, 5, 7, 8, 9, 5, 11, 12] as const;
 
 export const GRAHA_GUNAKAR = {
   Sun: 5,
