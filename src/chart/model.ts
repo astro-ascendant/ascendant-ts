@@ -271,6 +271,11 @@ export const Moment = Schema.Struct({
 });
 export interface Moment extends Schema.Schema.Type<typeof Moment> {}
 
+/**
+ * A moment at a place. `LocatedMoment.make` validates immediately and throws on an
+ * out-of-range coordinate; passing a plain object to `Chart.generate` instead fails typed
+ * with a `LocatedMomentValidationError`.
+ */
 export const LocatedMoment = Schema.Struct({
   moment: Moment,
   latitude: Schema.Finite.check(Schema.isBetween({ minimum: -90, maximum: 90 })),
@@ -278,6 +283,10 @@ export const LocatedMoment = Schema.Struct({
 });
 export interface LocatedMoment extends Schema.Schema.Type<typeof LocatedMoment> {}
 
+/**
+ * A `LocatedMoment` plus the optional birth `sex`. `sex` is only copied onto the
+ * generated charts; no calculation uses it.
+ */
 export const ChartParams = Schema.Struct({
   ...LocatedMoment.fields,
   sex: D1Chart.fields.sex,

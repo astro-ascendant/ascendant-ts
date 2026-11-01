@@ -44,3 +44,14 @@ kernel behind it (ADR-0007) is internal. A search samples tens to a few
 hundred ephemeris positions; for repeated or
 overlapping scans, provide `SwissephCachedLayer` (see `../swisseph/README.md`)
 instead of `SwissephLayer` so re-scans hit the position cache.
+
+## Reading an event
+
+- `sign`: for `sign-ingress`, the sign the graha moves into at that instant, in the
+  direction of the search, so a backward search reports the sign it was in before.
+  For the other kinds it is the sign containing the graha at the event.
+- `is_retrograde`: whether the graha is moving backwards at the event. At a `station`
+  it is the motion just after the station. Rahu and Ketu always report `true`.
+- `cusp-crossing` follows the cusp as it stands at `from`: the D1 cusp for `house` at
+  the starting moment under the active house system. A different house system moves the
+  crossing times.

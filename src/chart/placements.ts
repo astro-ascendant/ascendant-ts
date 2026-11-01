@@ -17,7 +17,10 @@ export const placementsFromEvidence = Effect.fnUntraced(
         SourcePlanet.make({
           name,
           longitude: position.longitude,
-          // The nodes always move backwards, so a retrograde flag would carry no information.
+          // Rahu and Ketu are the mean nodes and always move backwards, so `is_retrograde` is
+          // deliberately false for them in a chart: the flag marks a graha's apparent
+          // retrogression, which the nodes do not have. Transit events report the node's
+          // actual direction of motion, so a node's `is_retrograde` there is always true.
           is_retrograde: name === "Rahu" || name === "Ketu" ? false : position.longitudeSpeed < 0,
           star,
         }),

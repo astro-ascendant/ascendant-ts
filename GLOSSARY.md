@@ -25,7 +25,7 @@ The versioned school and method identity attached to a result, expressed as `sch
 _Avoid_: Source code location, informal method name, citation
 
 **Method specification**:
-The canonical registry record for one implemented astrological method, containing its provenance, ordered calculation steps, and executable verification criteria.
+The canonical registry record for one implemented astrological method, containing its provenance, ordered calculation steps, and verification criteria. The criteria are descriptive text; tests check that they are present, not that each one holds.
 _Avoid_: Implementation detail, undocumented convention, result evidence
 
 **Chara Karakas**:

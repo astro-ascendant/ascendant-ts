@@ -27,7 +27,12 @@ export const TransitEvent = Schema.Struct({
   moment: Schema.DateTimeUtc,
   longitude: Longitude,
   kind: TransitKind,
+  /**
+   * For `sign-ingress`, the sign entered at that instant in the direction of the search
+   * (a backward search reports the earlier sign); otherwise the sign at the event.
+   */
   sign: Schema.optionalKey(Rashis),
+  /** Whether the graha moves backwards at the event; just after it, at a `station`. */
   is_retrograde: Schema.Boolean,
   direction: TransitDirection,
   provenance: TransitSearchProvenance,

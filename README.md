@@ -19,16 +19,15 @@ Install the package and its Effect peer dependency:
 bun add astro-ascendant effect
 ```
 
-The package includes the Swiss Ephemeris adapter dependency, uses ES modules, and includes TypeScript declarations.
+The package includes the Swiss Ephemeris adapter dependency, uses ES modules, includes TypeScript declarations, and needs Node.js 20 or newer (or Bun).
 
 ## Quick start
 
-This example generates a D1 and D9 chart for a birth moment in Bengaluru. `SwissephLayer` supplies the ephemeris implementation, while `DefaultAstroParams` selects Krishnamurti ayanamsa and Placidus houses.
+This example generates a D1 and D9 chart for a birth moment in Bengaluru. `Runtime.MainLayer` supplies the Swiss Ephemeris adapter with a position cache and `DefaultAstroParams`, which selects Krishnamurti ayanamsa and Placidus houses.
 
 ```typescript
-import { AstroParams, Chart } from "astro-ascendant";
-import * as Swisseph from "astro-ascendant/swisseph";
-import { DateTime, Effect, Layer } from "effect";
+import { Chart, Runtime } from "astro-ascendant";
+import { DateTime, ManagedRuntime } from "effect";
 
 const input = Chart.ChartParams.make({
   moment: Chart.Moment.make({
@@ -39,19 +38,16 @@ const input = Chart.ChartParams.make({
   sex: "Male",
 });
 
-const program = Chart.generate(input, [9]);
-const layers = Layer.merge(AstroParams.DefaultAstroParams, Swisseph.SwissephLayer);
-const calculation = await Effect.runPromise(program.pipe(Effect.provide(layers)));
+const runtime = ManagedRuntime.make(Runtime.MainLayer);
+const calculation = await runtime.runPromise(Chart.generate(input, [9]));
 
 console.log(calculation.charts[0]); // D1
 console.log(calculation.charts[1]); // D9
+
+await runtime.dispose();
 ```
 
-For repeated or overlapping workloads (transit scans, dashboards), swap in
-`Swisseph.SwissephCachedLayer`: it memoizes `calculatePosition` per
-`(julianDay, body, ayanamsa)` with singleflight dedupe, so re-scans hit the
-cache instead of the native library. See `benchmarks/stress.md` for measured
-speedups.
+Create one runtime and reuse it for every calculation. Each runtime builds its own layer, so a single long-lived runtime shares one position cache across calls: transit scans and repeated charts then re-use positions instead of calling the native library again. Dispose it when the process is done. To choose other methodologies or an uncached ephemeris, build a layer from `AstroParams.layer` and `Swisseph.SwissephLayer` instead of `MainLayer`. `benchmarks/stress.md` has measured cache speedups.
 
 `calculation.placements` contains the shared sidereal positions. `calculation.charts` contains D1 first, followed by the requested divisions in numeric order. Optional birth `sex` is copied into each chart. D1 is a `D1Chart`: its houses begin at the selected house system's cusps, and it alone carries the chart angles, KP star, sub and sub-sub lords, four-level planet significations, four-level house significators, and the five ordered ruling planets. Each divisional chart is a `DivisionalChart` whose houses are whole signs counted from its mapped Lagna.
 

@@ -62,4 +62,30 @@ describe("Swiss Ephemeris adapter", () => {
       }),
     );
   });
+
+  it.layer(Swisseph.SwissephLayer)((it) => {
+    it.effect(
+      "fails typed for Placidus and Koch beyond the polar circle but not for other systems",
+      () =>
+        Effect.gen(function* () {
+          const ephemeris = yield* Ephemeris.Ephemeris;
+          const julianDay = yield* ephemeris.dateToJulianDay(
+            DateTime.makeUnsafe("2000-01-01T12:00:00.000Z"),
+          );
+          const housesAt = (
+            latitude: number,
+            houseSystem: "Placidus" | "Koch" | "Porphyrius" | "WholeSign",
+          ) => ephemeris.calculateHouses(julianDay, latitude, 25, houseSystem, "Lahiri");
+
+          expect((yield* housesAt(60, "Placidus")).houseSystem).toBe("Placidus");
+          expect((yield* housesAt(60, "Koch")).houseSystem).toBe("Koch");
+          for (const houseSystem of ["Placidus", "Koch"] as const) {
+            const failure = yield* Effect.flip(housesAt(70, houseSystem));
+            expect(failure._tag).toBe("EphemerisError");
+          }
+          expect((yield* housesAt(70, "Porphyrius")).houseSystem).toBe("Porphyrius");
+          expect((yield* housesAt(70, "WholeSign")).houseSystem).toBe("WholeSign");
+        }),
+    );
+  });
 });
