@@ -43,3 +43,12 @@ if (
 ) {
   throw new Error("The focused Dasha interface is not available");
 }
+
+const chart = await import("astro-ascendant/chart");
+const divisionalMapping = await import("astro-ascendant/chart/divisional-mapping");
+if (
+  typeof chart.getDivisionalTarget !== "function" ||
+  chart.getDivisionalTarget !== divisionalMapping.getDivisionalTarget
+) {
+  throw new Error("getDivisionalTarget must be exported from both chart entry points");
+}

@@ -93,6 +93,7 @@ void FocusedKarakamsha.calculate;
 void FocusedProvenance.methods;
 void FocusedRashiDrishti.calculate;
 void FocusedUpapada.calculate;
+void Chart.getDivisionalTarget;
 void DivisionalMapping.getDivisionalTarget;
 void Swisseph.SwissephLayer;
 void packageWorkflow;
