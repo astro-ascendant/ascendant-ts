@@ -1,5 +1,5 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": ["repos/**", "dist/**", "node_modules/**", ".vscode/**", "CLAUDE.md"],
+  "ignorePatterns": ["dist/**", "node_modules/**", ".vscode/**", "CLAUDE.md"],
   "sortImports": true
 }

@@ -40,11 +40,11 @@ is_ignored() {
 	esac
 
 	case "$path" in
-	# Dependencies, vendored subtrees, build output, generated API docs.
+	# Dependencies, build output, generated API docs.
 	node_modules/* | */node_modules/*)
 		return 0
 		;;
-	repos/* | dist/* | */dist/* | coverage/*)
+	dist/* | */dist/* | coverage/*)
 		return 0
 		;;
 	docs/api/* | docs/swisseph/*)

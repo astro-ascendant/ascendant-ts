@@ -13,22 +13,11 @@
     "CODE_OF_CONDUCT.md": true,
     "dist": true,
     "node_modules": true,
-    "repos/**": true,
     "AGENTS.md": true,
     ".oxfmtrc.json": true,
     "LICENSE": true,
     "tsconfig.*": true,
     "vitest.*": true,
     "Makefile": true,
-  },
-
-  "js/ts.preferences.autoImportFileExcludePatterns": ["repos/**"],
-
-  "files.watcherExclude": {
-    "repos/**": true
-  },
-
-  "search.exclude": {
-    "repos/**": true
   }
 }

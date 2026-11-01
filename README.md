@@ -64,9 +64,9 @@ The package exposes named operations for each calculation surface:
 - **Ashtakavarga**: Bhinnashtakavarga, Sarvashtakavarga, reduced BAV, and Shodhya Pinda
 - **Jaimini**: Chara Karakas, Rashi Drishti, Karakamsha, Arudha Pada, Upapada, and Argala
 - **Transits**: next/previous sign ingresses, longitude hits, house-cusp crossings, and retrograde stations per graha
-- **Methodologies**: 39 predefined ayanamsas and 13 house systems
+- **Methodologies**: 47 predefined ayanamsas and 13 house systems
 
-See the [calculation and API reference](docs/reference.md) for derivation workflows, provenance, configuration, supported divisions, and focused package exports. The published [API documentation](https://astro-ascendant.vercel.app) has the complete type surface.
+See the [calculation and API reference](https://astro-ascendant.vercel.app) for derivation workflows, provenance, configuration, supported divisions, and focused package exports. The published [API documentation](https://astro-ascendant.vercel.app) has the complete type surface.
 
 ## Development
 

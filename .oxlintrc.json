@@ -3,5 +3,5 @@
   "options": {
     "typeAware": true
   },
-  "ignorePatterns": ["repos/**", "dist/**"]
+  "ignorePatterns": ["dist/**"]
 }

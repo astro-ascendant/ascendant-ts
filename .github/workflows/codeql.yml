@@ -1,7 +1,7 @@
 name: CodeQL
 
 # Advanced setup, so the scan can read .github/codeql/codeql-config.yml and
-# skip the vendored repos/effect tree. GitHub runs either this workflow or
+# skip build output and generated docs. GitHub runs either this workflow or
 # its default CodeQL setup, not both: switch default setup off under
 # Settings > Code security before relying on this file.
 on:
