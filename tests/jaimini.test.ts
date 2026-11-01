@@ -28,7 +28,7 @@ describe("named Jaimini calculations", () => {
         Equal.equals(result.provenance, {
           school: "Jaimini",
           method: "exact-degree-shared-roles",
-          version: 1,
+          version: "2026-11-01",
         }),
       ).toBe(true);
       expect(Equal.equals(result.assignments.Atmakaraka, [{ planet: "Saturn", degree: 16 }])).toBe(
@@ -93,7 +93,7 @@ describe("named Jaimini calculations", () => {
 
       expect(
         Equal.equals(movable, {
-          provenance: { school: "Jaimini", method: "movable-fixed-dual", version: 1 },
+          provenance: { school: "Jaimini", method: "movable-fixed-dual", version: "2026-11-01" },
           reference: "Aries",
           targets: ["Leo", "Scorpio", "Aquarius"],
         }),

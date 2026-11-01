@@ -21,16 +21,16 @@ export const MethodSpecification = Schema.Struct({
 export interface MethodSpecification extends Schema.Schema.Type<typeof MethodSpecification> {}
 
 export const D1ChartProvenance = Schema.Struct({
-  school: Schema.Literal("Ascendant"),
+  school: Schema.Literal("KP"),
   method: Schema.Literal("house-system-cusps"),
-  version: Schema.Literal(1),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface D1ChartProvenance extends Schema.Schema.Type<typeof D1ChartProvenance> {}
 
 export const DivisionalChartProvenance = Schema.Struct({
-  school: Schema.Literal("Ascendant"),
+  school: Schema.Literal("Parashari"),
   method: Schema.Literal("whole-sign-from-mapped-lagna"),
-  version: Schema.Literal(1),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface DivisionalChartProvenance extends Schema.Schema.Type<
   typeof DivisionalChartProvenance
@@ -39,7 +39,7 @@ export interface DivisionalChartProvenance extends Schema.Schema.Type<
 export const JaiminiArgalaProvenance = Schema.Struct({
   school: Schema.Literal("Jaimini"),
   method: Schema.Literal("structural-positions"),
-  version: Schema.Literal(1),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface JaiminiArgalaProvenance extends Schema.Schema.Type<
   typeof JaiminiArgalaProvenance
@@ -48,7 +48,7 @@ export interface JaiminiArgalaProvenance extends Schema.Schema.Type<
 export const JaiminiArudhaPadaProvenance = Schema.Struct({
   school: Schema.Literal("Jaimini"),
   method: Schema.Literal("plain-projection"),
-  version: Schema.Literal(1),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface JaiminiArudhaPadaProvenance extends Schema.Schema.Type<
   typeof JaiminiArudhaPadaProvenance
@@ -57,7 +57,7 @@ export interface JaiminiArudhaPadaProvenance extends Schema.Schema.Type<
 export const JaiminiCharaKarakasProvenance = Schema.Struct({
   school: Schema.Literal("Jaimini"),
   method: Schema.Literal("exact-degree-shared-roles"),
-  version: Schema.Literal(1),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface JaiminiCharaKarakasProvenance extends Schema.Schema.Type<
   typeof JaiminiCharaKarakasProvenance
@@ -66,7 +66,7 @@ export interface JaiminiCharaKarakasProvenance extends Schema.Schema.Type<
 export const JaiminiKarakamshaProvenance = Schema.Struct({
   school: Schema.Literal("Jaimini"),
   method: Schema.Literal("atmakaraka-d9-sign"),
-  version: Schema.Literal(1),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface JaiminiKarakamshaProvenance extends Schema.Schema.Type<
   typeof JaiminiKarakamshaProvenance
@@ -75,7 +75,7 @@ export interface JaiminiKarakamshaProvenance extends Schema.Schema.Type<
 export const JaiminiRashiDrishtiProvenance = Schema.Struct({
   school: Schema.Literal("Jaimini"),
   method: Schema.Literal("movable-fixed-dual"),
-  version: Schema.Literal(1),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface JaiminiRashiDrishtiProvenance extends Schema.Schema.Type<
   typeof JaiminiRashiDrishtiProvenance
@@ -84,7 +84,7 @@ export interface JaiminiRashiDrishtiProvenance extends Schema.Schema.Type<
 export const JaiminiUpapadaProvenance = Schema.Struct({
   school: Schema.Literal("Jaimini"),
   method: Schema.Literal("twelfth-house-plain-projection"),
-  version: Schema.Literal(1),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface JaiminiUpapadaProvenance extends Schema.Schema.Type<
   typeof JaiminiUpapadaProvenance
@@ -93,37 +93,37 @@ export interface JaiminiUpapadaProvenance extends Schema.Schema.Type<
 export const CharaDashaProvenance = Schema.Struct({
   school: Schema.Literal("Jaimini"),
   method: Schema.Literal("kn-rao-co-lord-strength"),
-  version: Schema.Literal(2),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface CharaDashaProvenance extends Schema.Schema.Type<typeof CharaDashaProvenance> {}
 
 export const SthiraDashaProvenance = Schema.Struct({
   school: Schema.Literal("Jaimini"),
   method: Schema.Literal("bv-raman-koch-brahma-strength"),
-  version: Schema.Literal(2),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface SthiraDashaProvenance extends Schema.Schema.Type<typeof SthiraDashaProvenance> {}
 
 export const TransitSearchProvenance = Schema.Struct({
-  school: Schema.Literal("Ascendant"),
+  school: Schema.Literal("Parashari"),
   method: Schema.Literal("transit-sample-bisect"),
-  version: Schema.Literal(1),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface TransitSearchProvenance extends Schema.Schema.Type<
   typeof TransitSearchProvenance
 > {}
 
 export const PlacementsProvenance = Schema.Struct({
-  school: Schema.Literal("Ascendant"),
+  school: Schema.Literal("Parashari"),
   method: Schema.Literal("sidereal-ephemeris-placements"),
-  version: Schema.Literal(1),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface PlacementsProvenance extends Schema.Schema.Type<typeof PlacementsProvenance> {}
 
 export const VimshottariDashaProvenance = Schema.Struct({
   school: Schema.Literal("Parashari"),
   method: Schema.Literal("moon-nakshatra-balance"),
-  version: Schema.Literal(1),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface VimshottariDashaProvenance extends Schema.Schema.Type<
   typeof VimshottariDashaProvenance
@@ -132,12 +132,12 @@ export interface VimshottariDashaProvenance extends Schema.Schema.Type<
 export const AshtakavargaProvenance = Schema.Struct({
   school: Schema.Literal("Parashari"),
   method: Schema.Literal("bphs-bav-trikona-ekadhipatya"),
-  version: Schema.Literal(1),
+  version: Schema.Literal("2026-11-01"),
 });
 export interface AshtakavargaProvenance extends Schema.Schema.Type<typeof AshtakavargaProvenance> {}
 
 export const d1ChartProjection = {
-  provenance: { school: "Ascendant", method: "house-system-cusps", version: 1 },
+  provenance: { school: "KP", method: "house-system-cusps", version: "2026-11-01" },
   steps: [
     { id: "place-points", description: "Use the Lagna and planets at their source longitudes." },
     {
@@ -156,7 +156,11 @@ export const d1ChartProjection = {
   ],
 } as const satisfies MethodSpecification;
 export const divisionalChartProjection = {
-  provenance: { school: "Ascendant", method: "whole-sign-from-mapped-lagna", version: 1 },
+  provenance: {
+    school: "Parashari",
+    method: "whole-sign-from-mapped-lagna",
+    version: "2026-11-01",
+  },
   steps: [
     { id: "map-longitudes", description: "Map the Lagna and planets into the Division." },
     {
@@ -170,7 +174,7 @@ export const divisionalChartProjection = {
   ],
 } as const satisfies MethodSpecification;
 export const jaiminiArgala = {
-  provenance: { school: "Jaimini", method: "structural-positions", version: 1 },
+  provenance: { school: "Jaimini", method: "structural-positions", version: "2026-11-01" },
   steps: [
     { id: "validate-placements", description: "Require one placement for every planet." },
     {
@@ -184,7 +188,7 @@ export const jaiminiArgala = {
   ],
 } as const satisfies MethodSpecification;
 export const jaiminiArudhaPada = {
-  provenance: { school: "Jaimini", method: "plain-projection", version: 1 },
+  provenance: { school: "Jaimini", method: "plain-projection", version: "2026-11-01" },
   steps: [
     {
       id: "derive-source",
@@ -195,7 +199,7 @@ export const jaiminiArudhaPada = {
   verification: ["Exactly one placement is required for the house lord."],
 } as const satisfies MethodSpecification;
 export const jaiminiCharaKarakas = {
-  provenance: { school: "Jaimini", method: "exact-degree-shared-roles", version: 1 },
+  provenance: { school: "Jaimini", method: "exact-degree-shared-roles", version: "2026-11-01" },
   steps: [
     { id: "rank", description: "Rank classical planets by exact degree within their signs." },
     { id: "assign", description: "Assign Karaka roles, sharing every role at an exact tie." },
@@ -203,7 +207,7 @@ export const jaiminiCharaKarakas = {
   verification: ["All seven classical planet placements are required.", "Exact ties share roles."],
 } as const satisfies MethodSpecification;
 export const jaiminiKarakamsha = {
-  provenance: { school: "Jaimini", method: "atmakaraka-d9-sign", version: 1 },
+  provenance: { school: "Jaimini", method: "atmakaraka-d9-sign", version: "2026-11-01" },
   steps: [
     { id: "select-atmakaraka", description: "Use the Chara Karaka Atmakaraka assignment." },
     { id: "map-d9", description: "Map each Atmakaraka to its D9 sign." },
@@ -211,7 +215,7 @@ export const jaiminiKarakamsha = {
   verification: ["Every tied Atmakaraka is reported."],
 } as const satisfies MethodSpecification;
 export const jaiminiRashiDrishti = {
-  provenance: { school: "Jaimini", method: "movable-fixed-dual", version: 1 },
+  provenance: { school: "Jaimini", method: "movable-fixed-dual", version: "2026-11-01" },
   steps: [
     {
       id: "classify-reference",
@@ -222,7 +226,11 @@ export const jaiminiRashiDrishti = {
   verification: ["Every reference sign has exactly three targets."],
 } as const satisfies MethodSpecification;
 export const jaiminiUpapada = {
-  provenance: { school: "Jaimini", method: "twelfth-house-plain-projection", version: 1 },
+  provenance: {
+    school: "Jaimini",
+    method: "twelfth-house-plain-projection",
+    version: "2026-11-01",
+  },
   steps: [
     { id: "fix-house", description: "Use the twelfth house as the Arudha source." },
     { id: "project", description: "Apply the plain Arudha projection to that source." },
@@ -230,7 +238,7 @@ export const jaiminiUpapada = {
   verification: ["The result always reports house twelve."],
 } as const satisfies MethodSpecification;
 export const charaDasha = {
-  provenance: { school: "Jaimini", method: "kn-rao-co-lord-strength", version: 2 },
+  provenance: { school: "Jaimini", method: "kn-rao-co-lord-strength", version: "2026-11-01" },
   steps: [
     { id: "derive-direction", description: "Set direction from the ninth sign's pada group." },
     {
@@ -246,7 +254,7 @@ export const charaDasha = {
   ],
 } as const satisfies MethodSpecification;
 export const sthiraDasha = {
-  provenance: { school: "Jaimini", method: "bv-raman-koch-brahma-strength", version: 2 },
+  provenance: { school: "Jaimini", method: "bv-raman-koch-brahma-strength", version: "2026-11-01" },
   steps: [
     { id: "select-reference", description: "Compare Lagna and seventh-sign Rashi Bala." },
     {
@@ -264,7 +272,11 @@ export const sthiraDasha = {
   ],
 } as const satisfies MethodSpecification;
 export const placements = {
-  provenance: { school: "Ascendant", method: "sidereal-ephemeris-placements", version: 1 },
+  provenance: {
+    school: "Parashari",
+    method: "sidereal-ephemeris-placements",
+    version: "2026-11-01",
+  },
   steps: [
     {
       id: "sample-positions",
@@ -283,7 +295,7 @@ export const placements = {
   ],
 } as const satisfies MethodSpecification;
 export const vimshottariDasha = {
-  provenance: { school: "Parashari", method: "moon-nakshatra-balance", version: 1 },
+  provenance: { school: "Parashari", method: "moon-nakshatra-balance", version: "2026-11-01" },
   steps: [
     {
       id: "derive-balance",
@@ -306,7 +318,11 @@ export const vimshottariDasha = {
   ],
 } as const satisfies MethodSpecification;
 export const ashtakavarga = {
-  provenance: { school: "Parashari", method: "bphs-bav-trikona-ekadhipatya", version: 1 },
+  provenance: {
+    school: "Parashari",
+    method: "bphs-bav-trikona-ekadhipatya",
+    version: "2026-11-01",
+  },
   steps: [
     {
       id: "score-bhinna",
@@ -331,7 +347,7 @@ export const ashtakavarga = {
   ],
 } as const satisfies MethodSpecification;
 export const transitSearch = {
-  provenance: { school: "Ascendant", method: "transit-sample-bisect", version: 1 },
+  provenance: { school: "Parashari", method: "transit-sample-bisect", version: "2026-11-01" },
   steps: [
     {
       id: "sample-coarse",

@@ -40,9 +40,9 @@ describe("Transit search over linear motion", () => {
         expect(event?.is_retrograde).toBe(false);
         expect(event?.direction).toBe("forward");
         expect(event?.provenance).toEqual({
-          school: "Ascendant",
+          school: "Parashari",
           method: "transit-sample-bisect",
-          version: 1,
+          version: "2026-11-01",
         });
         if (event !== undefined) {
           expect(minutesBetween(event.moment, expectedMoment((90 - 68.4) / 0.14))).toBeLessThan(2);
