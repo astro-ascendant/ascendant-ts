@@ -6,6 +6,7 @@ import { JulianDay } from "../ephemeris/model.js";
 import { Ephemeris } from "../ephemeris/service.js";
 import { Zodiac } from "../utils/index.js";
 import { EPS_BOUNDARY } from "../utils/position.js";
+import { TransitValidationError } from "./error.js";
 import { type Planets, type TransitDirection, type TransitKind } from "./model.js";
 
 export const MINUTES_PER_DAY = 1440;
@@ -105,7 +106,16 @@ export const sampleAt = Effect.fnUntraced(function* (
   ayanamsa: Ayanamsa,
 ) {
   const ephemeris = yield* Ephemeris;
-  const julianDayValue = yield* JulianDay.makeEffect(julianDay);
+  // A search window can run past the supported Julian Day range (0 to 1e7); that is a
+  // request problem, so it fails as a `TransitValidationError` and not a bare schema issue.
+  const julianDayValue = yield* JulianDay.makeEffect(julianDay).pipe(
+    Effect.mapError((cause) =>
+      TransitValidationError.make({
+        message: "The search window leaves the supported Julian Day range",
+        cause,
+      }),
+    ),
+  );
   const position = yield* ephemeris.calculatePosition(julianDayValue, planet, ayanamsa);
   return {
     julianDay,

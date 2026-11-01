@@ -4,6 +4,7 @@ import { DateTime, Effect, Layer } from "effect";
 import * as Chart from "../src/chart/index.js";
 import * as Transit from "../src/transit/index.js";
 import { ephemerisTestLayer, planetaryPosition } from "./support/ephemeris.js";
+import { fixtures } from "./support/fixtures.js";
 import { transitFixtures } from "./support/transit.js";
 
 const {
@@ -215,6 +216,28 @@ describe("Transit search sampling", () => {
         expect(events).toHaveLength(3);
         expect(minutesBetween(events[0]!.moment, expectedMoment(300))).toBeLessThan(1);
         expect(calls).toBeLessThan(80);
+      }),
+    );
+  });
+});
+
+describe("Transit search window range", () => {
+  it.layer(Layer.merge(astroLayer, linearLayer(10, 0.5)))((it) => {
+    it.effect("fails typed when the window runs past the supported Julian Day range", () =>
+      Effect.gen(function* () {
+        // Julian Day 0 is the year -4712; searching back from just after it leaves the range.
+        const failure = yield* Effect.flip(
+          Transit.findTransits({
+            planet: "Mars",
+            from: fixtures.locatedMoment("-004712-01-10T00:00:00.000Z"),
+            count: 1,
+            direction: "backward",
+            kinds: ["sign-ingress"],
+            maxYears: 1,
+          }),
+        );
+
+        expect(failure._tag).toBe("TransitValidationError");
       }),
     );
   });
