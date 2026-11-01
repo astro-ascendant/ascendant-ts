@@ -38,9 +38,9 @@ Nothing here is committed or released yet.
 - [x] **README links to a missing `docs/reference.md`.** Write it, or point the link at
       the published documentation.
 - [x] **API reference lists `getDivisionalTarget` under `astro-ascendant/chart`.** In 6.0.0
-      it is exported only from `astro-ascendant/chart/divisional-mapping`, and
-      `import * as C from "astro-ascendant/chart"` gives `C.getDivisionalTarget ===
-  undefined`. Fix the docgen config or the export, then regenerate the website's
+      it is exported only from `astro-ascendant/chart/divisional-mapping`, so
+      `C.getDivisionalTarget` is `undefined` after importing `astro-ascendant/chart` as `C`.
+      Fix the docgen config or the export, then regenerate the website's
       Chart reference with `make sync-api` and remove the import-path callout from the
       website's Divisional charts guide.
       Done: `astro-ascendant/chart` now re-exports it and `tests/package` checks both paths. Still to do in the website repo: run `make sync-api` and drop the import-path callout.
