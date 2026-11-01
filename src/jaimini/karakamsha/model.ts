@@ -18,8 +18,8 @@ export const Result = Schema.Struct({
 });
 export interface Result extends Schema.Schema.Type<typeof Result> {}
 
-export class EvidenceError extends Schema.TaggedError<
-  EvidenceError,
+export class KarakamshaEvidenceError extends Schema.TaggedError<
+  KarakamshaEvidenceError,
   { readonly brand: unique symbol }
 >()("KarakamshaEvidenceError", {
   placement: ClassicalPlanets,
@@ -27,10 +27,18 @@ export class EvidenceError extends Schema.TaggedError<
   actual: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
 }) {}
 
-export class CalculationError extends Schema.TaggedError<
-  CalculationError,
+/** @deprecated Use `KarakamshaEvidenceError`; the unprefixed name collides across Jaimini modules. */
+export const EvidenceError = KarakamshaEvidenceError;
+export type EvidenceError = KarakamshaEvidenceError;
+
+export class KarakamshaCalculationError extends Schema.TaggedError<
+  KarakamshaCalculationError,
   { readonly brand: unique symbol }
 >()("KarakamshaCalculationError", {
   message: Schema.String,
   cause: Schema.Defect(),
 }) {}
+
+/** @deprecated Use `KarakamshaCalculationError`; the unprefixed name collides across Jaimini modules. */
+export const CalculationError = KarakamshaCalculationError;
+export type CalculationError = KarakamshaCalculationError;

@@ -5,7 +5,7 @@ import { jaiminiCharaKarakas } from "../../provenance.js";
 import { ExactDegree, Placement } from "../../utils/index.js";
 import { CLASSICAL_PLANET_ORDER, ROLE_ORDER, assignmentAt } from "./helper.js";
 import type { Result, Holder, Role, RankedHolder } from "./model.js";
-import { EvidenceError, ParseError } from "./model.js";
+import { CharaKarakasEvidenceError, CharaKarakasParseError } from "./model.js";
 
 const byExactDegreeDescending = Order.make<RankedHolder>((left, right) => {
   const compared = ExactDegree.compare(right.exactDegree, left.exactDegree);
@@ -25,7 +25,7 @@ export const calculate = Effect.fn("astro-ascendant/jaimini/chara-karakas/calcul
   const required = yield* Placement.requireEach(
     placements,
     CLASSICAL_PLANET_ORDER,
-    (placement, actual) => EvidenceError.make({ placement, expected: 1, actual }),
+    (placement, actual) => CharaKarakasEvidenceError.make({ placement, expected: 1, actual }),
   );
   const holders = Array.sort(
     CLASSICAL_PLANET_ORDER.map((planet): RankedHolder => {
@@ -40,7 +40,9 @@ export const calculate = Effect.fn("astro-ascendant/jaimini/chara-karakas/calcul
   while (rank < holders.length) {
     const first = holders[rank];
     if (first === undefined) {
-      return yield* ParseError.make({ message: `Missing Chara Karaka holder at rank ${rank}` });
+      return yield* CharaKarakasParseError.make({
+        message: `Missing Chara Karaka holder at rank ${rank}`,
+      });
     }
 
     let nextRank = rank + 1;
@@ -61,7 +63,7 @@ export const calculate = Effect.fn("astro-ascendant/jaimini/chara-karakas/calcul
     }));
     const firstTiedHolder = tiedHolders[0];
     if (firstTiedHolder === undefined) {
-      return yield* ParseError.make({ message: `Missing tied holder at rank ${rank}` });
+      return yield* CharaKarakasParseError.make({ message: `Missing tied holder at rank ${rank}` });
     }
     const nonEmptyTiedHolders: readonly [Holder, ...Holder[]] = [
       firstTiedHolder,
@@ -71,7 +73,7 @@ export const calculate = Effect.fn("astro-ascendant/jaimini/chara-karakas/calcul
     for (let roleIndex = rank; roleIndex < nextRank; roleIndex += 1) {
       const role = ROLE_ORDER[roleIndex];
       if (role === undefined) {
-        return yield* ParseError.make({
+        return yield* CharaKarakasParseError.make({
           message: `Missing Chara Karaka role at rank ${roleIndex}`,
         });
       }

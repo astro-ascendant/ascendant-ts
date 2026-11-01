@@ -42,8 +42,8 @@ export const Result = Schema.Struct({
 });
 export interface Result extends Schema.Schema.Type<typeof Result> {}
 
-export class EvidenceError extends Schema.TaggedError<
-  EvidenceError,
+export class CharaKarakasEvidenceError extends Schema.TaggedError<
+  CharaKarakasEvidenceError,
   { readonly brand: unique symbol }
 >()("CharaKarakasEvidenceError", {
   placement: ClassicalPlanets,
@@ -51,9 +51,17 @@ export class EvidenceError extends Schema.TaggedError<
   actual: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
 }) {}
 
-export class ParseError extends Schema.TaggedError<ParseError, { readonly brand: unique symbol }>()(
-  "CharaKarakasParseError",
-  {
-    message: Schema.String,
-  },
-) {}
+/** @deprecated Use `CharaKarakasEvidenceError`; the unprefixed name collides across Jaimini modules. */
+export const EvidenceError = CharaKarakasEvidenceError;
+export type EvidenceError = CharaKarakasEvidenceError;
+
+export class CharaKarakasParseError extends Schema.TaggedError<
+  CharaKarakasParseError,
+  { readonly brand: unique symbol }
+>()("CharaKarakasParseError", {
+  message: Schema.String,
+}) {}
+
+/** @deprecated Use `CharaKarakasParseError`; the unprefixed name collides across Jaimini modules. */
+export const ParseError = CharaKarakasParseError;
+export type ParseError = CharaKarakasParseError;

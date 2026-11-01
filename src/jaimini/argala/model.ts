@@ -40,8 +40,8 @@ export const Result = Schema.Struct({
 });
 export interface Result extends Schema.Schema.Type<typeof Result> {}
 
-export class EvidenceError extends Schema.TaggedError<
-  EvidenceError,
+export class ArgalaEvidenceError extends Schema.TaggedError<
+  ArgalaEvidenceError,
   { readonly brand: unique symbol }
 >()("ArgalaEvidenceError", {
   placement: Planets,
@@ -49,10 +49,18 @@ export class EvidenceError extends Schema.TaggedError<
   actual: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
 }) {}
 
-export class CalculationError extends Schema.TaggedError<
-  CalculationError,
+/** @deprecated Use `ArgalaEvidenceError`; the unprefixed name collides across Jaimini modules. */
+export const EvidenceError = ArgalaEvidenceError;
+export type EvidenceError = ArgalaEvidenceError;
+
+export class ArgalaCalculationError extends Schema.TaggedError<
+  ArgalaCalculationError,
   { readonly brand: unique symbol }
 >()("ArgalaCalculationError", {
   message: Schema.String,
   cause: Schema.Defect(),
 }) {}
+
+/** @deprecated Use `ArgalaCalculationError`; the unprefixed name collides across Jaimini modules. */
+export const CalculationError = ArgalaCalculationError;
+export type CalculationError = ArgalaCalculationError;

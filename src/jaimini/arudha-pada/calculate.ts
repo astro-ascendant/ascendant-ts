@@ -4,7 +4,7 @@ import { Houses, type Placements } from "../../chart/model.js";
 import { jaiminiArudhaPada } from "../../provenance.js";
 import { Placement, Zodiac } from "../../utils/index.js";
 import type { Result } from "./model.js";
-import { EvidenceError } from "./model.js";
+import { ArudhaPadaEvidenceError } from "./model.js";
 
 /** Plain Arudha projection only; exceptional adjustments are excluded per ADR-0004. */
 export const calculate = Effect.fn("astro-ascendant/jaimini/arudha-pada/calculate")(function* (
@@ -16,7 +16,7 @@ export const calculate = Effect.fn("astro-ascendant/jaimini/arudha-pada/calculat
   const lord = Zodiac.lordOf(sourceSign);
 
   const lordPlacement = yield* Placement.exactlyOnce(placements, lord, (actual) =>
-    EvidenceError.make({ placement: lord, expected: 1, actual }),
+    ArudhaPadaEvidenceError.make({ placement: lord, expected: 1, actual }),
   );
 
   const lordSignIndex = Zodiac.indexOfLongitude(lordPlacement.longitude);

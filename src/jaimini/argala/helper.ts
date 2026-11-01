@@ -3,7 +3,7 @@ import { Effect, HashMap, Option } from "effect";
 import type { Planets, Rashis } from "../../chart/model.js";
 import { Zodiac } from "../../utils/index.js";
 import type { Relation } from "./model.js";
-import { CalculationError, Positions } from "./model.js";
+import { ArgalaCalculationError, Positions } from "./model.js";
 
 type PositionType = typeof Positions.Type;
 
@@ -17,7 +17,7 @@ export const relation = Effect.fnUntraced(function* (
   const sign = Zodiac.signAt(referenceIndex + (reverse ? -offset : offset));
   const planets = HashMap.get(occupants, sign);
   if (Option.isNone(planets)) {
-    return yield* CalculationError.make({
+    return yield* ArgalaCalculationError.make({
       message: `Missing occupants for ${sign}`,
       cause: sign,
     });

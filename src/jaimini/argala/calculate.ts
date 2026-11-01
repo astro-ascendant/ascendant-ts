@@ -6,7 +6,7 @@ import { jaiminiArgala } from "../../provenance.js";
 import { Placement, Zodiac } from "../../utils/index.js";
 import { relation } from "./helper.js";
 import type { Reference, Relation, Result } from "./model.js";
-import { EvidenceError, Positions } from "./model.js";
+import { ArgalaEvidenceError, Positions } from "./model.js";
 
 /** Groups located planets by occupied sign; every sign stays present, even when empty. */
 function occupantsOf(located: ReadonlyArray<{ readonly planet: Planets; readonly sign: Rashis }>) {
@@ -29,7 +29,7 @@ export const calculate = Effect.fn("astro-ascendant/jaimini/argala/calculate")(f
   reference: Reference,
 ) {
   const required = yield* Placement.requireEach(placements, PLANETS, (placement, actual) =>
-    EvidenceError.make({ placement, expected: 1, actual }),
+    ArgalaEvidenceError.make({ placement, expected: 1, actual }),
   );
   const occupants = occupantsOf(
     PLANETS.map((planet) => ({ planet, sign: Zodiac.signOfLongitude(required[planet].longitude) })),

@@ -143,4 +143,25 @@ describe("named Jaimini calculations", () => {
       expect(forward.obstructing[2]).toMatchObject({ position: 3, planets: ["Mars"] });
     }),
   );
+
+  it("names each module's error classes after their tags, keeping the old names as aliases", () => {
+    const evidence = { placement: "Sun", expected: 1, actual: 0 } as const;
+    const calculation = { message: "m", cause: undefined } as const;
+
+    expect(Argala.ArgalaEvidenceError.make(evidence)._tag).toBe("ArgalaEvidenceError");
+    expect(Argala.ArgalaCalculationError.make(calculation)._tag).toBe("ArgalaCalculationError");
+    expect(ArudhaPada.ArudhaPadaEvidenceError.make(evidence)._tag).toBe("ArudhaPadaEvidenceError");
+    expect(CharaKarakas.CharaKarakasEvidenceError.make(evidence)._tag).toBe(
+      "CharaKarakasEvidenceError",
+    );
+    expect(Karakamsha.KarakamshaEvidenceError.make(evidence)._tag).toBe("KarakamshaEvidenceError");
+    expect(Karakamsha.KarakamshaCalculationError.make(calculation)._tag).toBe(
+      "KarakamshaCalculationError",
+    );
+    expect(Upapada.UpapadaEvidenceError.make(evidence)._tag).toBe("UpapadaEvidenceError");
+
+    expect(Argala.EvidenceError).toBe(Argala.ArgalaEvidenceError);
+    expect(Karakamsha.CalculationError).toBe(Karakamsha.KarakamshaCalculationError);
+    expect(Upapada.EvidenceError).toBe(Upapada.UpapadaEvidenceError);
+  });
 });

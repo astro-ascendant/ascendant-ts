@@ -3,11 +3,8 @@ import { Effect } from "effect";
 import type { Placements } from "../../chart/model.js";
 import { jaiminiUpapada } from "../../provenance.js";
 import { calculate as calculateArudhaPada } from "../arudha-pada/calculate.js";
-import type {
-  EvidenceError as ArudhaPadaEvidenceError,
-  Result as ArudhaPadaResult,
-} from "../arudha-pada/model.js";
-import { EvidenceError, type Result } from "./model.js";
+import type { ArudhaPadaEvidenceError, Result as ArudhaPadaResult } from "../arudha-pada/model.js";
+import { UpapadaEvidenceError, type Result } from "./model.js";
 
 export const calculate = Effect.fn("astro-ascendant/jaimini/upapada/calculate")(function* (
   placements: Placements,
@@ -15,9 +12,13 @@ export const calculate = Effect.fn("astro-ascendant/jaimini/upapada/calculate")(
   const arudhaPada: ArudhaPadaResult = yield* calculateArudhaPada(placements, 12).pipe(
     Effect.catchTag(
       "ArudhaPadaEvidenceError",
-      (error: ArudhaPadaEvidenceError): Effect.Effect<never, EvidenceError> =>
+      (error: ArudhaPadaEvidenceError): Effect.Effect<never, UpapadaEvidenceError> =>
         Effect.fail(
-          EvidenceError.make({ placement: error.placement, expected: 1, actual: error.actual }),
+          UpapadaEvidenceError.make({
+            placement: error.placement,
+            expected: 1,
+            actual: error.actual,
+          }),
         ),
     ),
   );
