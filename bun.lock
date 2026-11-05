@@ -13,6 +13,7 @@
         "@effect/platform-bun": "^4.1.1",
         "@effect/tsgo": "0.63.0",
         "@effect/vitest": "^4.1.1",
+        "@hona/strobe": "^0.4.1",
         "effect": "^4.1.1",
         "oxfmt": "^0.75.0",
         "oxlint": "1.90.0",
@@ -146,6 +147,18 @@
     "@esbuild/win32-ia32": ["@esbuild/win32-ia32@0.28.2", "", { "os": "win32", "cpu": "ia32" }, "sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA=="],
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.28.2", "", { "os": "win32", "cpu": "x64" }, "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g=="],
+
+    "@hona/strobe": ["@hona/strobe@0.4.1", "", { "optionalDependencies": { "@hona/strobe-darwin-arm64": "0.4.1", "@hona/strobe-darwin-x64": "0.4.1", "@hona/strobe-linux-arm64": "0.4.1", "@hona/strobe-linux-x64": "0.4.1", "@hona/strobe-win32-x64": "0.4.1" }, "bin": { "strobe": "bin/strobe.js" } }, "sha512-m7iJF7MwH5OrRBxfecx2v1U6O/CdMV819Fj9nBHDE7s1p/gfC83guFgHm8hCcx++PBvD9W7Fm+FI9T164NGnUA=="],
+
+    "@hona/strobe-darwin-arm64": ["@hona/strobe-darwin-arm64@0.4.1", "", { "os": "darwin", "cpu": "arm64" }, "sha512-N/0gj4caX/Sgx1XtXCYLeB09Xgp9MvBvdw2ImsCV59h6PRxUvn63QXHEHFV299I1biQiptbOZ1OrRUyIh7CtuQ=="],
+
+    "@hona/strobe-darwin-x64": ["@hona/strobe-darwin-x64@0.4.1", "", { "os": "darwin", "cpu": "x64" }, "sha512-CStiQCSjVCGQrT6Cz6VoQ2VqyNgCA0VH2Bl4HaClALEf6iS7UBsnsIT2oNMYu7QSYZnH6/xFIK1R3WL4TYDxHQ=="],
+
+    "@hona/strobe-linux-arm64": ["@hona/strobe-linux-arm64@0.4.1", "", { "os": "linux", "cpu": "arm64" }, "sha512-faND4gHEfpqa7+vE/DbdkldNZeneXRZQbFYgZu9Yah/YqoUiCBtvu1zk+WEMc2x8sIOx8UbTHduHZ1xx/Gic7w=="],
+
+    "@hona/strobe-linux-x64": ["@hona/strobe-linux-x64@0.4.1", "", { "os": "linux", "cpu": "x64" }, "sha512-RR8x9XncBTSuf1sHm2mPQDz2BnLEp3Zdi+8/To3Wlb8FIfF4803mKaOMpNIPrrCK8okOmQOO3EaFVz8AN3xPWA=="],
+
+    "@hona/strobe-win32-x64": ["@hona/strobe-win32-x64@0.4.1", "", { "os": "win32", "cpu": "x64" }, "sha512-6fFTveUwchK3vH6hwx8W2aZ873rSxuAfEWaodTdNO+x9ZDW5ygz7j0wmjEjF/WiresKzpwQBId+asibuX1ilJg=="],
 
     "@jridgewell/resolve-uri": ["@jridgewell/resolve-uri@3.1.2", "", {}, "sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw=="],
 

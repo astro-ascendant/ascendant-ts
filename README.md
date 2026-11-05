@@ -47,7 +47,7 @@ console.log(calculation.charts[1]); // D9
 await runtime.dispose();
 ```
 
-Create one runtime and reuse it for every calculation. Each runtime builds its own layer, so a single long-lived runtime shares one position cache across calls: transit scans and repeated charts then re-use positions instead of calling the native library again. Dispose it when the process is done. To choose other methodologies or an uncached ephemeris, build a layer from `AstroParams.layer` and `Swisseph.SwissephLayer` instead of `MainLayer`. `benchmarks/stress.md` has measured cache speedups.
+Create one runtime and reuse it for every calculation. Each runtime builds its own layer, so a single long-lived runtime shares one position cache across calls: transit scans and repeated charts then re-use positions instead of calling the native library again. Dispose it when the process is done. To choose other methodologies or an uncached ephemeris, build a layer from `AstroParams.layer` and `Swisseph.SwissephLayer` instead of `MainLayer`. `benchmarks/library.bench.ts` (via strobe) measures cache speedups; `bun run benchmark` validates, `bun run benchmark:compare` compares against `origin/main`.
 
 `calculation.placements` contains the shared sidereal positions. `calculation.charts` contains D1 first, followed by the requested divisions in numeric order. Optional birth `sex` is copied into each chart. D1 is a `D1Chart`: its houses begin at the selected house system's cusps, and it alone carries the chart angles, KP star, sub and sub-sub lords, four-level planet significations, four-level house significators, and the five ordered ruling planets. Each divisional chart is a `DivisionalChart` whose houses are whole signs counted from its mapped Lagna.
 
