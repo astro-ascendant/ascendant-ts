@@ -8,8 +8,21 @@ import { Zodiac } from "../utils/index.js";
 import { EPS_BOUNDARY } from "../utils/position.js";
 import { TransitValidationError } from "./error.js";
 import { type Planets, type TransitDirection, type TransitKind } from "./model.js";
+import {
+  MAX_REFINE_ITERATIONS,
+  nextProbe,
+  recordProbe,
+  startRefine,
+  type RefineBounds,
+} from "./refine.js";
+import {
+  isSameCrossing,
+  recordStep,
+  startSweep,
+  type SweepBounds,
+  type SweepStop,
+} from "./sweep.js";
 
-export const MINUTES_PER_DAY = 1440;
 export const DEFAULT_MAX_YEARS = 30;
 export const DEFAULT_PRECISION_MINUTES = 1;
 const DAYS_PER_YEAR = 365.25;
@@ -96,7 +109,7 @@ export interface RawHit {
 
 export interface SearchOutcome {
   readonly hits: ReadonlyArray<RawHit>;
-  readonly complete: boolean;
+  readonly stop: SweepStop;
   readonly endJulianDay: number;
 }
 
@@ -157,10 +170,11 @@ function crossedBoundary(
 
 /**
  * Finds the zero of `valueOf` inside a bracket whose ends differ in sign, to within
- * `precisionMinutes`. Each step is a Newton step when the derivative is known (a
- * longitude's derivative is its speed) and a secant step otherwise, falling back to
- * bisection whenever the step leaves the bracket or the bracket stops halving. That
- * takes about four ephemeris calls where bisecting a day-wide bracket takes eleven.
+ * `precisionMinutes`, by driving the refinement machine in `refine.ts`: a Newton step
+ * when the derivative is known (a longitude's derivative is its speed), a secant step
+ * otherwise, and bisection whenever the step leaves the bracket or the bracket stops
+ * halving. That takes about four ephemeris calls where bisecting a day-wide bracket
+ * takes eleven.
  */
 const refineValue = Effect.fnUntraced(function* (
   low: LongitudeSample,
@@ -171,49 +185,14 @@ const refineValue = Effect.fnUntraced(function* (
   valueOf: (sample: LongitudeSample) => number,
   derivativeOf?: (sample: LongitudeSample) => number,
 ) {
-  let lower = low;
-  let upper = high;
-  let lowValue = valueOf(lower);
-  let upValue = valueOf(upper);
-  if (lowValue === 0) return lower;
-  if (upValue === 0) return upper;
-
-  let previousDay = Number.NaN;
-  let widthBefore = upper.julianDay - lower.julianDay;
-  for (let iteration = 0; iteration < 60; iteration += 1) {
-    const width = upper.julianDay - lower.julianDay;
-    if (width * MINUTES_PER_DAY <= precisionMinutes) break;
-
-    const nearLower = Math.abs(lowValue) <= Math.abs(upValue);
-    const anchor = nearLower ? lower : upper;
-    const anchorValue = nearLower ? lowValue : upValue;
-    const slope = derivativeOf?.(anchor) ?? 0;
-    let day =
-      slope === 0
-        ? lower.julianDay + (width * lowValue) / (lowValue - upValue)
-        : anchor.julianDay - anchorValue / slope;
-    // Bisect when the step leaves the bracket, or the bracket has not halved in two steps.
-    const stalled = iteration % 2 === 1 && width > widthBefore / 2;
-    if (!(day > lower.julianDay && day < upper.julianDay) || stalled) {
-      day = (lower.julianDay + upper.julianDay) / 2;
-    }
-    if (iteration % 2 === 1) widthBefore = width;
-
-    const sample = yield* sampleAt(day, planet, ayanamsa);
-    const value = valueOf(sample);
-    if (value === 0) return sample;
-    const settled = Math.abs(day - previousDay) * MINUTES_PER_DAY <= precisionMinutes / 2;
-    previousDay = day;
-    if (Math.sign(value) === Math.sign(lowValue)) {
-      lower = sample;
-      lowValue = value;
-    } else {
-      upper = sample;
-      upValue = value;
-    }
-    if (settled) return sample;
+  const bounds: RefineBounds = { precisionMinutes, maxIterations: MAX_REFINE_ITERATIONS };
+  let state = startRefine({ low, lowValue: valueOf(low), high, highValue: valueOf(high) }, bounds);
+  while (state._tag === "Bracketing") {
+    const probe = nextProbe(state, derivativeOf);
+    const sample = yield* sampleAt(probe.day, planet, ayanamsa);
+    state = recordProbe(state, { probe, sample, value: valueOf(sample) }, bounds);
   }
-  return Math.abs(lowValue) <= Math.abs(upValue) ? lower : upper;
+  return state.sample;
 });
 
 const refineLongitude = Effect.fnUntraced(function* (
@@ -258,16 +237,6 @@ interface RefinedHit {
   readonly speed?: number;
   readonly kind: TransitKind;
   readonly sign: Rashis;
-}
-
-/**
- * Two hits of one kind are the same crossing when they are within one
- * refinement bracket. A bracket can be exactly `precision` wide, so equality
- * counts (with float slack): a sample landing on the target is refined from
- * both neighbouring steps, and the two midpoints sit one bracket apart.
- */
-function isSameCrossing(previous: RawHit, julianDay: number, precision: number): boolean {
-  return Math.abs(julianDay - previous.julianDay) * MINUTES_PER_DAY <= precision * (1 + 1e-9);
 }
 
 function pushDedup(hits: Array<RawHit>, hit: RefinedHit, precision: number): void {
@@ -433,26 +402,6 @@ function startingIngress(start: LongitudeSample, options: SearchOptions): RawHit
   };
 }
 
-function appendStepHits(
-  hits: Array<RawHit>,
-  stepHits: ReadonlyArray<RawHit>,
-  precision: number,
-  count: number,
-): void {
-  for (const hit of stepHits) {
-    if (hits.length >= count) break;
-    const last = hits[hits.length - 1];
-    if (
-      last !== undefined &&
-      last.kind === hit.kind &&
-      isSameCrossing(last, hit.julianDay, precision)
-    ) {
-      continue;
-    }
-    hits.push(hit);
-  }
-}
-
 /**
  * The earliest the graha could reach a point `gap` degrees away, given the signed speed
  * `closing` toward it (negative when moving away): the root of
@@ -503,31 +452,25 @@ export const searchRawHits = Effect.fnUntraced(function* (options: SearchOptions
   const spanDays = (options.maxYears ?? DEFAULT_MAX_YEARS) * DAYS_PER_YEAR * sign;
   const limit = options.fromJulianDay + spanDays;
   const maxIterations = Math.ceil(Math.abs(spanDays) / MIN_LEAP_DAYS) + 2;
-  const precision = options.precisionMinutes ?? DEFAULT_PRECISION_MINUTES;
 
-  const hits: Array<RawHit> = [];
-  let cursor = options.fromJulianDay;
-  let previous = yield* sampleAt(cursor, options.planet, options.ayanamsa);
-  let complete = false;
+  const bounds: SweepBounds = {
+    forward,
+    limit,
+    count: options.count,
+    precisionMinutes: options.precisionMinutes ?? DEFAULT_PRECISION_MINUTES,
+    maxIterations,
+  };
 
-  const startHit = startingIngress(previous, options);
-  if (startHit !== null) hits.push(startHit);
-
-  for (let iteration = 0; iteration < maxIterations; iteration += 1) {
-    if (hits.length >= options.count) {
-      complete = true;
-      break;
-    }
-    if (forward ? cursor >= limit : cursor <= limit) break;
+  const start = yield* sampleAt(options.fromJulianDay, options.planet, options.ayanamsa);
+  let state = startSweep(start, startingIngress(start, options), bounds);
+  while (state._tag === "Sweeping") {
+    const { cursor, previous } = state;
     // Clamp the last step so no hit lies beyond the requested window.
     const leap = leapDays(previous, options) * sign;
     const stride = forward ? Math.min(leap, limit - cursor) : Math.max(leap, limit - cursor);
     const { next, stepHits } = yield* advanceCursor(cursor, previous, stride, forward, options);
-    appendStepHits(hits, stepHits, precision, options.count);
-    previous = next;
-    cursor += stride;
+    state = recordStep(state, { next, stride, stepHits }, bounds);
   }
 
-  if (hits.length >= options.count) complete = true;
-  return { hits, complete, endJulianDay: cursor } satisfies SearchOutcome;
+  return { hits: state.hits, stop: state._tag, endJulianDay: state.cursor } satisfies SearchOutcome;
 });

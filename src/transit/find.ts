@@ -82,7 +82,7 @@ export const findTransits = Effect.fn("astro-ascendant/transit/findTransits")(fu
 
   const events = mapEvents(outcome.hits, planet, direction);
 
-  if (!outcome.complete) {
+  if (outcome.stop !== "Complete") {
     return yield* TransitSearchExhausted.make({
       message: `Found ${events.length} of ${validated.count} events within ${validated.maxYears ?? DEFAULT_MAX_YEARS} years`,
       found: events,
