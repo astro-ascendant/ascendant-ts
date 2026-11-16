@@ -1,10 +1,11 @@
 /**
  * The dasha period timeline shared by every system: Mahadashas laid end to
- * end, each subdivided into Antardashas by its share of the cycle, and the
- * lookup of the periods active at an instant. A system supplies only its
+ * end, each subdivided into Antardashas by its share of the cycle, deeper
+ * levels split by their share of the parent's span, and the lookup of the
+ * periods active at an instant. A system supplies only its
  * sequence, its durations, and the calendar step it counts years in.
  */
-import { type DateTime, Function } from "effect";
+import { DateTime, Function } from "effect";
 
 import type { CalendarStep } from "./calendar.js";
 import { contains, type DashaPeriod } from "./query.js";
@@ -92,6 +93,46 @@ export const subdivide = Function.dual<
     for (const [index, { label, years }] of shares.entries()) {
       elapsed += years;
       const end = index === shares.length - 1 ? parent.end : step(parent.start, elapsed);
+      periods.push({ label, start: cursor, end });
+      cursor = end;
+    }
+    return periods;
+  },
+);
+
+const MILLISECONDS_PER_MINUTE = 60_000;
+
+/**
+ * Subdivides a parent period by each child's share of the parent's actual
+ * span, with boundaries a whole number of minutes after its start and the
+ * last child ending at the parent's end. Calendar stepping is not monotonic below a month: from a
+ * 31st, a slightly longer step can land earlier once whole months clamp to the
+ * month's end, so periods shorter than a month must not be stepped that way.
+ */
+export const subdivideProportionally = Function.dual<
+  <Label>(
+    shares: ReadonlyArray<Share<Label>>,
+  ) => (parent: DashaPeriod) => ReadonlyArray<Placed<Label>>,
+  <Label>(parent: DashaPeriod, shares: ReadonlyArray<Share<Label>>) => ReadonlyArray<Placed<Label>>
+>(
+  2,
+  <Label>(
+    parent: DashaPeriod,
+    shares: ReadonlyArray<Share<Label>>,
+  ): ReadonlyArray<Placed<Label>> => {
+    const startMs = parent.start.epochMilliseconds;
+    const spanMs = parent.end.epochMilliseconds - startMs;
+    const totalYears = shares.reduce((sum, { years }) => sum + years, 0);
+    const periods: Array<Placed<Label>> = [];
+    let cursor = parent.start;
+    let elapsed = 0;
+    for (const [index, { label, years }] of shares.entries()) {
+      elapsed += years;
+      const offsetMinutes = Math.round((spanMs * elapsed) / totalYears / MILLISECONDS_PER_MINUTE);
+      const end =
+        index === shares.length - 1
+          ? parent.end
+          : DateTime.makeUnsafe(startMs + offsetMinutes * MILLISECONDS_PER_MINUTE);
       periods.push({ label, start: cursor, end });
       cursor = end;
     }

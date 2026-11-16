@@ -345,7 +345,8 @@ export const runSelectedExample = Effect.gen(function* () {
       },
       {
         title: "Dasha",
-        description: "Calculate a Chara, Sthira, or Vimshottari timeline",
+        description:
+          "Calculate a Chara, Sthira, or Vimshottari timeline and the periods active now",
         value: "dasha",
       },
       {

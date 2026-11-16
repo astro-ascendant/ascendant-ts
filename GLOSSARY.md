@@ -20,6 +20,10 @@ _Avoid_: Compatibility score, probability, prediction
 A school of Jyotisha following Parashara's Brihat Parashara Hora Shastra, covering sidereal Placements, the divisional charts, Vimshottari, Ashtakavarga and transits. It identifies a method's provenance, not a calculation requested as a whole.
 _Avoid_: Parashari mode, Parashari core as a user request
 
+**Dasha level**:
+One depth of a Vimshottari timeline: Mahadasha, Antardasha, Pratyantardasha, then Sookshma. Each level splits its parent among the nine lords in cycle order from the parent's own lord, each by its share of the 120-year cycle. Mahadashas and Antardashas are laid out with every timeline; Pratyantardashas and Sookshmas are calculated on request from their parent. Bhukti is the South Indian and KP name for an Antardasha, and Antara is the KP name for a Pratyantardasha.
+_Avoid_: Sub-period or sub-sub-period without the level; Antara for an Antardasha
+
 **Universal**:
 The school of a method that does not belong to one tradition, such as the D1 chart, whose cusps follow whichever house system and ayanamsa the calculation selects. It identifies a method's provenance, not a calculation requested as a whole.
 _Avoid_: Default school, no school
