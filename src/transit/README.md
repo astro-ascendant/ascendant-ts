@@ -5,11 +5,10 @@ from a Located Moment. There is no interpretation here: each event reports
 the exact moment, longitude, kind, and retrograde state.
 
 ```ts
-import { Effect } from "effect";
-
 import { AstroParams } from "astro-ascendant/astro-params";
-import * as Transit from "astro-ascendant/transit";
 import { SwissephLayer } from "astro-ascendant/swisseph";
+import * as Transit from "astro-ascendant/transit";
+import { Effect } from "effect";
 
 const ingresses = await Effect.runPromise(
   Transit.findTransits({

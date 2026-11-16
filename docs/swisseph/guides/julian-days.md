@@ -337,8 +337,8 @@ console.log(`Spring Equinox ~${julianDayToDate(equinoxJd).toString()}`);
 ## Time Zone Conversion (with Luxon)
 
 ```typescript
-import { DateTime } from "luxon";
 import { julianDay, julianDayToDate } from "@swisseph/node";
+import { DateTime } from "luxon";
 
 // Local time → Julian Day
 function localTimeToJulianDay(

@@ -878,8 +878,8 @@ const position = calculatePosition(jd, Planet.Sun, flags.toNumber());
 ### Working with Eclipse Types
 
 ```typescript
-import { findNextLunarEclipse } from "@swisseph/node";
 import { EclipseTypeFlags, EclipseType } from "@swisseph/core";
+import { findNextLunarEclipse } from "@swisseph/node";
 
 const jd = julianDay(2025, 1, 1);
 
