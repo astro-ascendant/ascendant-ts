@@ -22,6 +22,27 @@ export const AntarDasha = Schema.Struct({
 });
 export interface AntarDasha extends Schema.Schema.Type<typeof AntarDasha> {}
 
+/** The third Vimshottari level (Antara in KP usage): one ninth-cycle share of an Antardasha. */
+export const PratyantarDasha = Schema.Struct({
+  mahadasha: Planets,
+  antardasha: Planets,
+  pratyantardasha: Planets,
+  start: Schema.DateTimeUtc,
+  end: Schema.DateTimeUtc,
+});
+export interface PratyantarDasha extends Schema.Schema.Type<typeof PratyantarDasha> {}
+
+/** The fourth Vimshottari level: one ninth-cycle share of a Pratyantardasha. */
+export const SookshmaDasha = Schema.Struct({
+  mahadasha: Planets,
+  antardasha: Planets,
+  pratyantardasha: Planets,
+  sookshma: Planets,
+  start: Schema.DateTimeUtc,
+  end: Schema.DateTimeUtc,
+});
+export interface SookshmaDasha extends Schema.Schema.Type<typeof SookshmaDasha> {}
+
 export const MahaDasha = Schema.Struct({
   mahadasha: Planets,
   provenance: VimshottariDashaProvenance,
@@ -37,6 +58,8 @@ export type VimshottariDasha = typeof VimshottariDasha.Type;
 export const CurrentDasha = Schema.Struct({
   mahadasha: MahaDasha,
   antardasha: AntarDasha,
+  pratyantardasha: PratyantarDasha,
+  sookshma: SookshmaDasha,
 });
 export interface CurrentDasha extends Schema.Schema.Type<typeof CurrentDasha> {}
 

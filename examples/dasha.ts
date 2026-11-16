@@ -17,10 +17,15 @@ const DASHA_CHOICES = [
   },
   {
     title: "Vimshottari",
-    description: "Calculate the Vimshottari planetary timeline",
+    description: "Calculate the Vimshottari timeline, down to the current Sookshma",
     value: "vimshottari" as const,
   },
 ] as const;
+
+/** The ISO start and end of a period, for a table row. */
+function spanOf(period: { readonly start: DateTime.Utc; readonly end: DateTime.Utc }) {
+  return { Start: DateTime.formatIso(period.start), End: DateTime.formatIso(period.end) };
+}
 
 const printVimshottariDasha = Effect.fn(function* (timeline: Dasha.VimshottariDasha) {
   yield* Console.log("Vimshottari Mahadashas");
@@ -44,6 +49,56 @@ const printVimshottariDasha = Effect.fn(function* (timeline: Dasha.VimshottariDa
       })),
     );
   }
+
+  const current = yield* Dasha.at(timeline);
+  if (current === null) {
+    yield* Console.log("Now is outside the Vimshottari timeline");
+    return;
+  }
+  yield* Console.log("Vimshottari periods active now");
+  yield* Console.table([
+    { Level: "Mahadasha", Lord: current.mahadasha.mahadasha, ...spanOf(current.mahadasha) },
+    { Level: "Antardasha", Lord: current.antardasha.antardasha, ...spanOf(current.antardasha) },
+    {
+      Level: "Pratyantardasha",
+      Lord: current.pratyantardasha.pratyantardasha,
+      ...spanOf(current.pratyantardasha),
+    },
+    { Level: "Sookshma", Lord: current.sookshma.sookshma, ...spanOf(current.sookshma) },
+  ]);
+
+  yield* Console.log(
+    `${current.mahadasha.mahadasha}-${current.antardasha.antardasha} Pratyantardashas`,
+  );
+  yield* Console.table(
+    Dasha.pratyantardashas(current.antardasha).map((period) => ({
+      Pratyantardasha: period.pratyantardasha,
+      ...spanOf(period),
+    })),
+  );
+
+  yield* Console.log(
+    `${current.mahadasha.mahadasha}-${current.antardasha.antardasha}-${current.pratyantardasha.pratyantardasha} Sookshmas`,
+  );
+  yield* Console.table(
+    Dasha.sookshmas(current.pratyantardasha).map((period) => ({
+      Sookshma: period.sookshma,
+      ...spanOf(period),
+    })),
+  );
+});
+
+const printCurrentRashiDasha = Effect.fn(function* (timeline: Dasha.RashiDasha) {
+  const current = yield* Dasha.atRashi(timeline);
+  if (current === null) {
+    yield* Console.log(`Now is outside the ${timeline.system} timeline`);
+    return;
+  }
+  yield* Console.log(`${timeline.system} periods active now`);
+  yield* Console.table([
+    { Level: "Mahadasha", Sign: current.mahadasha.mahadasha, ...spanOf(current.mahadasha) },
+    { Level: "Antardasha", Sign: current.antardasha.antardasha, ...spanOf(current.antardasha) },
+  ]);
 });
 
 const printRashiDasha = Effect.fn(function* (timeline: Dasha.RashiDasha) {
@@ -113,6 +168,8 @@ const printRashiDasha = Effect.fn(function* (timeline: Dasha.RashiDasha) {
       })),
     );
   }
+
+  yield* printCurrentRashiDasha(timeline);
 });
 
 const calculateChara = Effect.fn(function* (moment: Chart.Moment, placements: Chart.Placements) {

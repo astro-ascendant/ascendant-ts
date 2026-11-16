@@ -311,10 +311,16 @@ export const vimshottariDasha = {
       id: "build-antardashas",
       description: "Split each Mahadasha by the lords' shares of the 120-year cycle.",
     },
+    {
+      id: "subdivide-deeper-levels",
+      description:
+        "On request, split an Antardasha into Pratyantardashas and those into Sookshmas, from the parent's lord, by the lords' shares of the parent's actual span on whole minutes.",
+    },
   ],
   verification: [
     "The nine Mahadashas are contiguous and span 120 years.",
     "Antardashas tile their Mahadasha and end on its end.",
+    "Pratyantardashas and Sookshmas tile their parent, never run backwards, and end on its end.",
   ],
 } as const satisfies MethodSpecification;
 export const ashtakavarga = {
