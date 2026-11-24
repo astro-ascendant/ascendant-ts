@@ -52,3 +52,7 @@ if (
 ) {
   throw new Error("getDivisionalTarget must be exported from both chart entry points");
 }
+
+if (typeof chart.starOf !== "function" || typeof chart.subLordOf !== "function") {
+  throw new Error("starOf and subLordOf must be exported from astro-ascendant/chart");
+}
