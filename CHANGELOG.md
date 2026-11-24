@@ -1,5 +1,11 @@
 # astro-ascendant
 
+## 6.2.1
+
+### Patch Changes
+
+- 3e2ad59: Export `starOf` and `subLordOf` from `astro-ascendant/chart` (and `Chart` in the root entry point). `starOf(longitude)` returns the Nakshatra, its lord and pada; `subLordOf(longitude)` returns the KP sub lord.
+
 ## 6.2.0
 
 ### Minor Changes
